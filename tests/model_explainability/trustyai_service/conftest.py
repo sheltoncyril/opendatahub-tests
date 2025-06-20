@@ -111,6 +111,24 @@ def trustyai_service_with_db_storage(
     )
 
 
+@pytest.fixture(scope="class")
+def trustyai_service_with_pvc_and_db_storage(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    cluster_monitoring_config: ConfigMap,
+    user_workload_monitoring_config: ConfigMap,
+    mariadb: MariaDB,
+    trustyai_db_ca_secret: None,
+) -> Generator[TrustyAIService, Any, Any]:
+    yield from create_trustyai_service(
+        client=admin_client,
+        namespace=model_namespace.name,
+        storage=TAI_DB_STORAGE_CONFIG,
+        metrics=TAI_METRICS_CONFIG,
+        wait_for_replicas=True,
+    )
+
+
 @pytest.fixture(scope="session")
 def user_workload_monitoring_config(admin_client: DynamicClient) -> Generator[ConfigMap, Any, Any]:
     data = {"config.yaml": yaml.dump({"prometheus": {"logLevel": "debug", "retention": "15d"}})}
@@ -291,7 +309,6 @@ def gaussian_credit_model(
     minio_service: Service,
     minio_data_connection: Secret,
     mlserver_runtime: ServingRuntime,
-    trustyai_service_with_pvc_storage: TrustyAIService,
     teardown_resources: bool,
 ) -> Generator[InferenceService, Any, Any]:
     gaussian_credit_model_kwargs = {
