@@ -369,6 +369,12 @@ def lmeval_minio_copy_pod(
                     "mc mb --ignore-existing myminio/models &&\n"
                     "mc cp --recursive /shared/data/ myminio/models"
                 ],
+                "securityContext": {
+                    "allowPrivilegeEscalation": False,
+                    "runAsNonRoot": True,
+                    "seccompProfile": {"type": "RuntimeDefault"},
+                    "capabilities": {"drop": ["ALL"]},
+                },
                 "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
             }
         ],
