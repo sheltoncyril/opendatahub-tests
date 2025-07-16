@@ -349,6 +349,12 @@ def lmeval_minio_copy_pod(
                 "@sha256:11cc9c2f38ac9cc26c4fab1a01a8c02db81c8f4801b5d2b2b90f90f91b97ac98",
                 "command": ["/bin/sh", "-c"],
                 "args": ["cp -r /mnt/data /shared"],
+                "securityContext": {
+                    "allowPrivilegeEscalation": False,
+                    "runAsNonRoot": True,
+                    "seccompProfile": {"type": "RuntimeDefault"},
+                    "capabilities": {"drop": ["ALL"]},
+                },
                 "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
             }
         ],
