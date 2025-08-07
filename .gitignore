@@ -166,3 +166,6 @@ cython_debug/
 
 # VSCode config
 .vscode/
+
+# AI Assistant Config Files
+CLAUDE.md
