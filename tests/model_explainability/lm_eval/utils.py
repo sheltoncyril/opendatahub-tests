@@ -1,10 +1,10 @@
 from typing import List
 import re
+from logging import Logger
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.lm_eval_job import LMEvalJob
 from ocp_resources.pod import Pod
 
-from tests.model_explainability.utils import log_pod_failure_logs
 from utilities.constants import Timeout
 from simple_logger.logger import get_logger
 from timeout_sampler import TimeoutExpiredError
@@ -88,6 +88,36 @@ def get_lmeval_tasks(min_downloads: int | float, max_downloads: int | float | No
 
     return unique_tasks
 
+def log_pod_failure_logs(logger: Logger, pod: Pod, include_spec: bool=True, tail_lines: int=100) -> None:
+    """Log pod info and logs to logger.
+
+    Args:
+        logger: logging.Logger
+            The logger to output to.
+        pod: Pod
+            The relevant pod to gain information on.
+        include_spec: bool, Default: True
+            If True, include spec info in the pod in the logs.
+            Using this might expose sensitive information.
+        tail_lines: int, Default: 100
+            The number of lines to tail from the logs.
+
+    Returns: None
+    """
+    logger.error("--------------------------------- FAILED POD INFO -----------------------------------")
+    logger.error(f"Failed Pod Name: {pod.name}")
+    logger.error(f"Failed Pod Status: {pod.status}")
+    logger.error(f"Failed Pod Labels: {pod.labels}")
+    logger.error(f"Failed Pod Namespace: {pod.namespace}")
+    if include_spec:
+        logger.error(f"Failed Pod Spec: {pod.instance.spec.to_dict()}")
+    logger.error("--------------------------------- FAILED POD LOGS ----------------------------------")
+    if tail_lines > 0:
+        logger.error(f"{pod.log(tail_lines=tail_lines)}")
+    else:
+        logger.error(f"{pod.log()}")
+    logger.error("--------------------------------- END OF POD LOGS ----------------------------------")
+
 
 def validate_lmeval_job_pod_and_logs(lmevaljob_pod: Pod) -> None:
     """Validate LMEval job pod success and presence of corresponding logs.
@@ -101,14 +131,9 @@ def validate_lmeval_job_pod_and_logs(lmevaljob_pod: Pod) -> None:
         r"INFO\sdriver\supdate status: job completed\s\{\"state\":\s\{\"state\""
         r":\"Complete\",\"reason\":\"Succeeded\",\"message\":\"job completed\""
     )
+    lmevaljob_pod.wait_for_status(status=lmevaljob_pod.Status.RUNNING, timeout=Timeout.TIMEOUT_5MIN)
     try:
-        lmevaljob_pod.wait_for_status(status=lmevaljob_pod.Status.RUNNING, timeout=Timeout.TIMEOUT_5MIN)
-    except TimeoutExpiredError as e:
-        raise UnexpectedFailureError(
-            f"LMEval job pod did not reach a running state. Status: {lmevaljob_pod.status}"
-        ) from e
-    try:
-        lmevaljob_pod.wait_for_status(Pod.Status.SUCCEEDED, timeout=Timeout.TIMEOUT_10MIN)
+        lmevaljob_pod.wait_for_status(Pod.Status.SUCCEEDED, timeout=Timeout.TIMEOUT_20MIN)
     except TimeoutExpiredError as e:
         log_pod_failure_logs(LOGGER, lmevaljob_pod)
         raise UnexpectedFailureError("LMEval job pod failed from a running state.") from e

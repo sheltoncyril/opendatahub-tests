@@ -1,4 +1,3 @@
-from logging import Logger
 import re
 from ocp_resources.config_map import ConfigMap
 from ocp_resources.pod import Pod
@@ -35,24 +34,3 @@ def validate_tai_component_images(
         )
 
 
-def log_pod_failure_logs(logger: Logger, pod: Pod) -> None:
-    """Log pod info and logs to logger.
-
-    Args:
-        logger: logging.Logger
-         The logger to output to.
-        pod: Pod
-         The relevant pod to gain information on.
-
-    Returns: None
-    """
-    logger.error("--------------------------------- FAILED POD INFO -----------------------------------")
-    logger.error(f"Failed Pod Name: {pod.name}")
-    logger.error(f"Failed Pod Status: {pod.status}")
-    logger.error(f"Failed Pod IP: {pod.ip}")
-    logger.error(f"Failed Pod Labels: {pod.labels}")
-    logger.error(f"Failed Pod Namespace: {pod.namespace}")
-    logger.error(f"Failed Pod Spec: {pod.instance.spec.to_dict()}")
-    logger.error("--------------------------------- FAILED POD LOGS ----------------------------------")
-    logger.error(f"{pod.log()}")
-    logger.error("--------------------------------- END OF POD LOGS ----------------------------------")
