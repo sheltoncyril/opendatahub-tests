@@ -1,7 +1,6 @@
 import pytest
 from typing import List
 
-from utilities.constants import Timeout
 
 from tests.model_explainability.utils import validate_tai_component_images
 

@@ -88,6 +88,7 @@ def get_lmeval_tasks(min_downloads: int | float, max_downloads: int | float | No
 
     return unique_tasks
 
+
 def validate_lmeval_job_pod_and_logs(lmevaljob_pod: Pod) -> None:
     """Validate LMEval job pod success and presence of corresponding logs.
 
@@ -96,14 +97,16 @@ def validate_lmeval_job_pod_and_logs(lmevaljob_pod: Pod) -> None:
 
     Returns: None
     """
-    pod_success_log_regex = r'INFO\sdriver\supdate status: job completed\s\{\"state\":\s\{\"state\"'\
-                            r':\"Complete\",\"reason\":\"Succeeded\",\"message\":\"job completed\"'
-    try:
-        lmevaljob_pod.wait_for_status(
-        status=lmevaljob_pod.Status.RUNNING, timeout=Timeout.TIMEOUT_5MIN
+    pod_success_log_regex = (
+        r"INFO\sdriver\supdate status: job completed\s\{\"state\":\s\{\"state\""
+        r":\"Complete\",\"reason\":\"Succeeded\",\"message\":\"job completed\""
     )
+    try:
+        lmevaljob_pod.wait_for_status(status=lmevaljob_pod.Status.RUNNING, timeout=Timeout.TIMEOUT_5MIN)
     except TimeoutExpiredError as e:
-        raise UnexpectedFailureError(f"LMEval job pod did not reach a running state. Status: {lmevaljob_pod.status}") from e
+        raise UnexpectedFailureError(
+            f"LMEval job pod did not reach a running state. Status: {lmevaljob_pod.status}"
+        ) from e
     try:
         lmevaljob_pod.wait_for_status(Pod.Status.SUCCEEDED, timeout=Timeout.TIMEOUT_10MIN)
     except TimeoutExpiredError as e:

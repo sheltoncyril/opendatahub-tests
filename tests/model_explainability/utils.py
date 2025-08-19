@@ -34,6 +34,7 @@ def validate_tai_component_images(
             f"{container.name} : {container.image} not present in TrustyAI operator configmap."
         )
 
+
 def log_pod_failure_logs(logger: Logger, pod: Pod) -> None:
     """Log pod info and logs to logger.
 
@@ -55,4 +56,3 @@ def log_pod_failure_logs(logger: Logger, pod: Pod) -> None:
     logger.error("--------------------------------- FAILED POD LOGS ----------------------------------")
     logger.error(f"{pod.log()}")
     logger.error("--------------------------------- END OF POD LOGS ----------------------------------")
-
