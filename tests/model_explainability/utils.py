@@ -32,5 +32,3 @@ def validate_tai_component_images(
         assert container.image in tai_configmap_values, (
             f"{container.name} : {container.image} not present in TrustyAI operator configmap."
         )
-
-

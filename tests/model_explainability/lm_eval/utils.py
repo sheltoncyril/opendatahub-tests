@@ -88,7 +88,8 @@ def get_lmeval_tasks(min_downloads: int | float, max_downloads: int | float | No
 
     return unique_tasks
 
-def log_pod_failure_logs(logger: Logger, pod: Pod, include_spec: bool=True, tail_lines: int=100) -> None:
+
+def log_pod_failure_logs(logger: Logger, pod: Pod, include_spec: bool = True, tail_lines: int = 100) -> None:
     """Log pod info and logs to logger.
 
     Args:
