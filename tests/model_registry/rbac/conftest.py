@@ -22,6 +22,7 @@ from kubernetes.dynamic import DynamicClient
 from pyhelper_utils.shell import run_command
 
 from tests.model_registry.rbac.utils import wait_for_oauth_openshift_deployment, create_role_binding
+from tests.model_registry.utils import delete_model_catalog_configmap
 from utilities.general import generate_random_name
 from utilities.infra import login_with_user_password
 from utilities.user_utils import UserTestSession, create_htpasswd_file, wait_for_user_creation
@@ -29,6 +30,7 @@ from tests.model_registry.rbac.group_utils import create_group
 from tests.model_registry.constants import (
     MR_INSTANCE_NAME,
 )
+from pytest_testconfig import config as py_config
 
 LOGGER = get_logger(name=__name__)
 
@@ -337,7 +339,7 @@ def db_deployment_parametrized(
 
 @pytest.fixture(scope="class")
 def model_registry_instance_parametrized(
-    request: FixtureRequest, teardown_resources: bool
+    request: FixtureRequest, admin_client: DynamicClient, teardown_resources: bool
 ) -> Generator[List[ModelRegistry], Any, Any]:
     """Create Model Registry instance parametrized"""
     with ExitStack() as stack:
@@ -353,6 +355,8 @@ def model_registry_instance_parametrized(
             f"Created {len(model_registry_instances)} MR instances: {[mr.name for mr in model_registry_instances]}"
         )
         yield model_registry_instances
+    # delete the model catalog configmap manually:
+    delete_model_catalog_configmap(admin_client=admin_client, namespace=py_config["model_registry_namespace"])
 
 
 @pytest.fixture(scope="session")
