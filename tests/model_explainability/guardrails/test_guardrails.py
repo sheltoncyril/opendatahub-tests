@@ -205,7 +205,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
                 PII_ENDPOINT,
                 id="harmless_input",
             ),
-            pytest.param(PROMPT_WITH_PII, "/passthrough", id="pastthrough_endpoint"),
+            pytest.param(PROMPT_WITH_PII, "/passthrough", id="passthrough_endpoint"),
         ],
     )
     def test_guardrails_builtin_detectors_negative_detection(
