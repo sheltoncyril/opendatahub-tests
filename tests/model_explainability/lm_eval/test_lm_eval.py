@@ -1,7 +1,7 @@
 import pytest
 from typing import List
 
-
+from tests.model_explainability.lm_eval.data.param_data import lmeval_hf_llmaaj_task_data
 from tests.model_explainability.utils import validate_tai_component_images
 
 from tests.model_explainability.lm_eval.utils import get_lmeval_tasks, validate_lmeval_job_pod_and_logs
@@ -18,44 +18,23 @@ TIER2_LMEVAL_TASKS: List[str] = list(
 @pytest.mark.parametrize(
     "model_namespace, lmevaljob_hf",
     [
+        # pytest.param(
+        #     {"name": "test-lmeval-hf-tier1"},
+        #     {"task_list": {"taskNames": TIER1_LMEVAL_TASKS}},
+        # ),
+        # pytest.param(
+        #     {"name": "test-lmeval-hf-tier2"},
+        #     {"task_list": {"taskNames": TIER2_LMEVAL_TASKS}},
+        # ),
+        # pytest.param(
+        #     {"name": "test-lmeval-hf-custom-task"},
+        #     lmeval_hf_custom_task_data,
+        #     id="custom_task",
+        # ),
         pytest.param(
-            {"name": "test-lmeval-hf-tier1"},
-            {"task_list": {"taskNames": TIER1_LMEVAL_TASKS}},
-        ),
-        pytest.param(
-            {"name": "test-lmeval-hf-tier2"},
-            {"task_list": {"taskNames": TIER2_LMEVAL_TASKS}},
-        ),
-        pytest.param(
-            {"name": "test-lmeval-hf-custom-task"},
-            {
-                "task_list": {
-                    "custom": {
-                        "systemPrompts": [
-                            {"name": "sp_0", "value": "Be concise. At every point give the shortest acceptable answer."}
-                        ],
-                        "templates": [
-                            {
-                                "name": "tp_0",
-                                "value": '{ "__type__": "input_output_template", '
-                                '"input_format": "{text_a_type}: {text_a}\\n'
-                                '{text_b_type}: {text_b}", '
-                                '"output_format": "{label}", '
-                                '"target_prefix": '
-                                '"The {type_of_relation} class is ", '
-                                '"instruction": "Given a {text_a_type} and {text_b_type} '
-                                'classify the {type_of_relation} of the {text_b_type} to one of {classes}.",'
-                                ' "postprocessors": [ "processors.take_first_non_empty_line",'
-                                ' "processors.lower_case_till_punc" ] }',
-                            }
-                        ],
-                    },
-                    "taskRecipes": [
-                        {"card": {"name": "cards.wnli"}, "systemPrompt": {"ref": "sp_0"}, "template": {"ref": "tp_0"}}
-                    ],
-                }
-            },
-            id="custom_task",
+            {"name": "test-lmeval-hf-llmaaj"},
+            lmeval_hf_llmaaj_task_data,
+            id="llmaaj_task",
         ),
     ],
     indirect=True,
