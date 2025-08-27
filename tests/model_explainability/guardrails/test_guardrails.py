@@ -311,8 +311,8 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
         verify_builtin_detector_unsuitable_input_response(
             response=response,
             detector_id="prompt_injection",
-            detection_name="sequence_classifier",
-            detection_type="sequence_classification",
+            detection_name="detection",
+            detection_type="INJECTION",
             detection_text=prompt_injection,
         )
 
