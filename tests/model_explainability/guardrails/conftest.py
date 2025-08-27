@@ -19,11 +19,9 @@ from ocp_resources.serving_runtime import ServingRuntime
 from pytest_testconfig import py_config
 
 from utilities.certificates_utils import create_ca_bundle_file
-from utilities.constants import (
-    KServeDeploymentType,
-    Labels,
-)
+from utilities.constants import KServeDeploymentType, Labels, RuntimeTemplates
 from utilities.inference_utils import create_isvc
+from utilities.serving_runtime import ServingRuntimeFromTemplate
 
 
 GUARDRAILS_ORCHESTRATOR_NAME = "guardrails-orchestrator"
@@ -133,39 +131,12 @@ def huggingface_sr(
     admin_client: DynamicClient,
     model_namespace: Namespace,
 ) -> Generator[ServingRuntime, Any, Any]:
-    with ServingRuntime(
+    with ServingRuntimeFromTemplate(
         client=admin_client,
         name="guardrails-detector-runtime-prompt-injection",
+        template_name=RuntimeTemplates.GUARDRAILS_DETECTOR_HUGGINGFACE,
         namespace=model_namespace.name,
-        containers=[
-            {
-                "name": "kserve-container",
-                "image": "quay.io/trustyai/guardrails-detector-huggingface-runtime:v0.2.0",
-                "command": ["uvicorn", "app:app"],
-                "args": [
-                    "--workers=4",
-                    "--host=0.0.0.0",
-                    "--port=8000",
-                    "--log-config=/common/log_conf.yaml",
-                ],
-                "env": [
-                    {"name": "MODEL_DIR", "value": "/mnt/models"},
-                    {"name": "HF_HOME", "value": "/tmp/hf_home"},
-                ],
-                "ports": [{"containerPort": 8000, "protocol": "TCP"}],
-            }
-        ],
         supported_model_formats=[{"name": "guardrails-detector-huggingface", "autoSelect": True}],
-        multi_model=False,
-        annotations={
-            "openshift.io/display-name": "Guardrails Detector ServingRuntime for KServe",
-            "opendatahub.io/recommended-accelerators": '["nvidia.com/gpu"]',
-            "prometheus.io/port": "8080",
-            "prometheus.io/path": "/metrics",
-        },
-        label={
-            "opendatahub.io/dashboard": "true",
-        },
     ) as serving_runtime:
         yield serving_runtime
 

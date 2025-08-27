@@ -54,7 +54,7 @@ HF_DETECTORS: Dict[str, Dict[str, Any]] = {
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "chat_generation": CHAT_GENERATION_CONFIG,
+                        "openai": CHAT_GENERATION_CONFIG,
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -78,12 +78,12 @@ def test_validate_guardrails_orchestrator_images(guardrails_orchestrator_pod, tr
     [
         pytest.param(
             {"name": "test-guardrails-builtin"},
-            MinIo.PodConfig.QWEN_MINIO_CONFIG,
+            MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
             {"bucket": "llms"},
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "chat_generation": CHAT_GENERATION_CONFIG,
+                        "openai": CHAT_GENERATION_CONFIG,
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -154,7 +154,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
 
         healthy_status = "HEALTHY"
         response_data = response.json()
-        assert response_data["services"]["chat_generation"]["status"] == healthy_status
+        assert response_data["services"]["openai"]["status"] == healthy_status
         assert response_data["services"]["regex"]["status"] == healthy_status
 
     def test_guardrails_builtin_detectors_unsuitable_input(
@@ -185,7 +185,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             url=f"https://{guardrails_orchestrator_route.host}{PII_ENDPOINT}{OpenAIEnpoints.CHAT_COMPLETIONS}",
             headers=get_auth_headers(token=current_client_token),
             json=get_chat_detections_payload(
-                content="Hi, write three and only three examples of email adresses "
+                content="Hi, write three and only three examples of email addresses "
                 "that I can use to create an account for an online service."
                 "Don't provide any additional explanation.",
                 model=MNT_MODELS,
@@ -240,7 +240,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "chat_generation": {
+                        "openai": {
                             "service": {
                                 "hostname": f"{QWEN_ISVC_NAME}-predictor",
                                 "port": 8032,
@@ -377,7 +377,7 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "chat_generation": {
+                        "openai": {
                             "service": {
                                 "hostname": f"{QWEN_ISVC_NAME}-predictor",
                                 "port": 8032,

@@ -25,7 +25,7 @@ PII_REGEX_SHIELD_ID = "regex"
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "chat_generation": CHAT_GENERATION_CONFIG,
+                        "openai": CHAT_GENERATION_CONFIG,
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
