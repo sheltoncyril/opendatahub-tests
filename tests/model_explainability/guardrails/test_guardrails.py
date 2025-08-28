@@ -7,7 +7,7 @@ import yaml
 from simple_logger.logger import get_logger
 from timeout_sampler import retry
 
-from tests.model_explainability.constants import MNT_MODELS
+from tests.model_explainability.constants import VLLM_SERVED_MODEL_NAME
 from tests.model_explainability.guardrails.constants import (
     QWEN_ISVC_NAME,
     CHAT_GENERATION_CONFIG,
@@ -165,7 +165,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             headers=get_auth_headers(token=current_client_token),
             json=get_chat_detections_payload(
                 content=PROMPT_WITH_PII,
-                model=MNT_MODELS,
+                model=VLLM_SERVED_MODEL_NAME,
             ),
             verify=openshift_ca_bundle_file,
         )
@@ -188,7 +188,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
                 content="Hi, write three and only three examples of email addresses "
                 "that I can use to create an account for an online service."
                 "Don't provide any additional explanation.",
-                model=MNT_MODELS,
+                model=VLLM_SERVED_MODEL_NAME,
             ),
             verify=openshift_ca_bundle_file,
         )
@@ -222,7 +222,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             headers=get_auth_headers(token=current_client_token),
             json=get_chat_detections_payload(
                 content=str(message),
-                model=MNT_MODELS,
+                model=VLLM_SERVED_MODEL_NAME,
             ),
             verify=openshift_ca_bundle_file,
         )
@@ -303,7 +303,7 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
             url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
             headers=get_auth_headers(token=current_client_token),
             json=get_chat_detections_payload(
-                content=prompt_injection, model=MNT_MODELS, detectors=PROMPT_INJECTION_DETECTORS
+                content=prompt_injection, model=VLLM_SERVED_MODEL_NAME, detectors=PROMPT_INJECTION_DETECTORS
             ),
             verify=openshift_ca_bundle_file,
         )
@@ -330,7 +330,7 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
             url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
             headers=get_auth_headers(token=current_client_token),
             json=get_chat_detections_payload(
-                content=HARMLESS_PROMPT, model=MNT_MODELS, detectors=PROMPT_INJECTION_DETECTORS
+                content=HARMLESS_PROMPT, model=VLLM_SERVED_MODEL_NAME, detectors=PROMPT_INJECTION_DETECTORS
             ),
             verify=openshift_ca_bundle_file,
         )
@@ -448,7 +448,7 @@ class TestGuardrailsOrchestratorWithSeveralDetectors:
                 headers=get_auth_headers(token=current_client_token),
                 json=get_chat_detections_payload(
                     content=input_text,
-                    model=MNT_MODELS,
+                    model=VLLM_SERVED_MODEL_NAME,
                     detectors=HF_DETECTORS,
                 ),
                 verify=openshift_ca_bundle_file,
@@ -476,7 +476,9 @@ class TestGuardrailsOrchestratorWithSeveralDetectors:
         response = requests.post(
             url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
             headers=get_auth_headers(token=current_client_token),
-            json=get_chat_detections_payload(content=HARMLESS_PROMPT, model=MNT_MODELS, detectors=HF_DETECTORS),
+            json=get_chat_detections_payload(
+                content=HARMLESS_PROMPT, model=VLLM_SERVED_MODEL_NAME, detectors=HF_DETECTORS
+            ),
             verify=openshift_ca_bundle_file,
         )
 

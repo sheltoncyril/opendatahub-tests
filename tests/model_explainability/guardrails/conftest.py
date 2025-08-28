@@ -104,11 +104,22 @@ def guardrails_orchestrator_route(
     model_namespace: Namespace,
     guardrails_orchestrator: GuardrailsOrchestrator,
 ) -> Generator[Route, Any, Any]:
-    yield Route(
+    guardrails_orchestrator_route = Route(
         name=f"{guardrails_orchestrator.name}",
         namespace=guardrails_orchestrator.namespace,
         wait_for_resource=True,
+        ensure_exists=True,
     )
+    with ResourceEditor(
+        patches={
+            guardrails_orchestrator_route: {
+                "metadata": {
+                    "annotations": {"haproxy.router.openshift.io/timeout": "10m"},
+                }
+            }
+        }
+    ):
+        yield guardrails_orchestrator_route
 
 
 @pytest.fixture(scope="class")
@@ -117,11 +128,22 @@ def guardrails_orchestrator_health_route(
     model_namespace: Namespace,
     guardrails_orchestrator: GuardrailsOrchestrator,
 ) -> Generator[Route, Any, Any]:
-    yield Route(
+    guardrails_orchestrator_health_route = Route(
         name=f"{guardrails_orchestrator.name}-health",
         namespace=guardrails_orchestrator.namespace,
         wait_for_resource=True,
+        ensure_exists=True,
     )
+    with ResourceEditor(
+        patches={
+            guardrails_orchestrator_health_route: {
+                "metadata": {
+                    "annotations": {"haproxy.router.openshift.io/timeout": "10m"},
+                }
+            }
+        }
+    ):
+        yield guardrails_orchestrator_health_route
 
 
 # ServingRuntimes, InferenceServices, and related resources
