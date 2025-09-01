@@ -73,6 +73,7 @@ class TestModelRegistryCreationRest:
             ),
         ],
     )
+    @pytest.mark.smoke
     def test_validate_model_registry_resource(
         self: Self,
         registered_model_rest_api: dict[str, Any],
@@ -85,6 +86,7 @@ class TestModelRegistryCreationRest:
             resource_name=data_key,
         )
 
+    @pytest.mark.sanity
     def test_model_registry_validate_api_version(
         self: Self,
         model_registry_instance,
@@ -98,6 +100,7 @@ class TestModelRegistryCreationRest:
         expected_version = f"{ModelRegistry.ApiGroup.MODELREGISTRY_OPENDATAHUB_IO}/{ModelRegistry.ApiVersion.V1BETA1}"
         assert api_version == expected_version
 
+    @pytest.mark.sanity
     def test_model_registry_validate_oauthproxy_enabled(
         self: Self,
         model_registry_instance,
@@ -140,6 +143,7 @@ class TestModelRegistryCreationRest:
         ],
         indirect=["updated_model_registry_resource"],
     )
+    @pytest.mark.smoke
     def test_create_update_model_artifact(
         self,
         updated_model_registry_resource: dict[str, Any],
@@ -185,6 +189,7 @@ class TestModelRegistryCreationRest:
         ],
         indirect=["updated_model_registry_resource"],
     )
+    @pytest.mark.sanity
     def test_updated_model_version(
         self,
         updated_model_registry_resource: dict[str, Any],
@@ -230,6 +235,7 @@ class TestModelRegistryCreationRest:
         ],
         indirect=["updated_model_registry_resource"],
     )
+    @pytest.mark.sanity
     def test_updated_registered_model(
         self,
         updated_model_registry_resource: dict[str, Any],
