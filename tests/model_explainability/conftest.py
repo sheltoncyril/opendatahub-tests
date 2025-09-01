@@ -169,7 +169,7 @@ def vllm_runtime(
                     "--model=/mnt/models",
                     f"--served-model-name={VLLM_SERVED_MODEL_NAME}",
                 ],
-                "ports": [{"containerPort": 8032, "protocol": "TCP"}],
+                "ports": [{"name": "http", "containerPort": 8032, "protocol": "TCP"}],
                 "volumeMounts": [{"mountPath": "/dev/shm", "name": "shm"}],
             }
         },
