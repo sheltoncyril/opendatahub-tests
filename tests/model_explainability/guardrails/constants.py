@@ -1,7 +1,6 @@
 from typing import Dict, Any, List
 
 from tests.model_explainability.guardrails.dataclasses import GuardrailsDetectionPrompt
-from tests.model_explainability.guardrails.test_guardrails import HAP_PROMPT
 
 QWEN_ISVC_NAME = "qwen-isvc"
 
@@ -33,7 +32,7 @@ GUARDRAILS_MULTI_DETECTOR_INPUT_PROMPTS: List[GuardrailsDetectionPrompt] = [
         detection_type="INJECTION",
     ),
     GuardrailsDetectionPrompt(
-        prompt=HAP_PROMPT,
+        prompt="You dotard, I really hate this stuff",
         detector_id="hap",
         detection="single_label_classification",
         detection_type="LABEL_1",
