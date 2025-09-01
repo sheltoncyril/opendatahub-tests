@@ -198,8 +198,8 @@ def qwen_isvc(
         storage_path="Qwen2.5-0.5B-Instruct",
         wait_for_predictor_pods=False,
         resources={
-            "requests": {"cpu": "1", "memory": "8Gi"},
-            "limits": {"cpu": "2", "memory": "10Gi"},
+            "requests": {"cpu": "2", "memory": "10Gi"},
+            "limits": {"cpu": "2", "memory": "12Gi"},
         },
     ) as isvc:
         yield isvc
