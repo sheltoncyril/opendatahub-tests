@@ -19,7 +19,7 @@ from ocp_resources.serving_runtime import ServingRuntime
 from pytest_testconfig import py_config
 
 from utilities.certificates_utils import create_ca_bundle_file
-from utilities.constants import KServeDeploymentType, Labels, RuntimeTemplates
+from utilities.constants import KServeDeploymentType, Labels, RuntimeTemplates, Annotations
 from utilities.inference_utils import create_isvc
 from utilities.serving_runtime import ServingRuntimeFromTemplate
 
@@ -138,7 +138,7 @@ def guardrails_orchestrator_health_route(
         patches={
             guardrails_orchestrator_health_route: {
                 "metadata": {
-                    "annotations": {"haproxy.router.openshift.io/timeout": "10m"},
+                    "annotations": {Annotations.HaproxyRouterOpenshiftIo.TIMEOUT: "10m"},
                 }
             }
         }

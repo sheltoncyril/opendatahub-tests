@@ -17,7 +17,7 @@ from ocp_resources.serving_runtime import ServingRuntime
 from pytest_testconfig import config as py_config
 
 from tests.model_explainability.guardrails.constants import QWEN_ISVC_NAME
-from tests.model_explainability.constants import VLLM_SERVED_MODEL_NAME
+from tests.model_explainability.constants import QWEN_MODEL_NAME
 from tests.model_explainability.trustyai_service.trustyai_service_utils import TRUSTYAI_SERVICE_NAME
 from utilities.constants import KServeDeploymentType, RuntimeTemplates
 from utilities.inference_utils import create_isvc
@@ -78,7 +78,7 @@ def llamastack_distribution(
                     },
                     {
                         "name": "INFERENCE_MODEL",
-                        "value": VLLM_SERVED_MODEL_NAME,
+                        "value": QWEN_MODEL_NAME,
                     },
                     {
                         "name": "MILVUS_DB_PATH",
@@ -167,7 +167,7 @@ def vllm_runtime(
                 "args": [
                     "--port=8032",
                     "--model=/mnt/models",
-                    f"--served-model-name={VLLM_SERVED_MODEL_NAME}",
+                    f"--served-model-name={QWEN_MODEL_NAME}",
                 ],
                 "ports": [{"name": "http", "containerPort": 8032, "protocol": "TCP"}],
                 "volumeMounts": [{"mountPath": "/dev/shm", "name": "shm"}],
