@@ -15,7 +15,7 @@ TIER2_LMEVAL_TASKS: List[str] = list(
 )
 
 
-@pytest.mark.connected_env_only
+@pytest.mark.skip_on_disconnected
 @pytest.mark.parametrize(
     "model_namespace, lmevaljob_hf",
     [
