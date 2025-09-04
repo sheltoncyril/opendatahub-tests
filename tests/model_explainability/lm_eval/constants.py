@@ -61,7 +61,7 @@ lmeval_hf_llmaaj_task_data = {
                     '"model_name": "mistralai/Mistral-7B-Instruct-v0.2",\n        '
                     '"max_new_tokens": 256,\n        "use_fp16": true\n    },\n    '
                     '"template": "templates.response_assessment.rating.mt_bench_single_turn",\n    '
-                    '"task": "rating.single_turn",\n    '
+                    '"task": "response_assessment.rating.single_turn",\n    '
                     '"format": "formats.models.mistral.instruction",\n    '
                     '"main_score": "mistral_7b_instruct_v0_2_huggingface_template_mt_bench_single_turn"\n}'
                     "\n",
