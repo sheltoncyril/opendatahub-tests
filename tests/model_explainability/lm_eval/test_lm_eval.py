@@ -1,7 +1,7 @@
 import pytest
 from typing import List
 
-from tests.model_explainability.lm_eval.data.param_data import lmeval_hf_llmaaj_task_data
+from tests.model_explainability.lm_eval.constants import lmeval_hf_llmaaj_task_data, lmeval_hf_custom_task_data
 from tests.model_explainability.utils import validate_tai_component_images
 
 from tests.model_explainability.lm_eval.utils import get_lmeval_tasks, validate_lmeval_job_pod_and_logs
@@ -18,19 +18,19 @@ TIER2_LMEVAL_TASKS: List[str] = list(
 @pytest.mark.parametrize(
     "model_namespace, lmevaljob_hf",
     [
-        # pytest.param(
-        #     {"name": "test-lmeval-hf-tier1"},
-        #     {"task_list": {"taskNames": TIER1_LMEVAL_TASKS}},
-        # ),
-        # pytest.param(
-        #     {"name": "test-lmeval-hf-tier2"},
-        #     {"task_list": {"taskNames": TIER2_LMEVAL_TASKS}},
-        # ),
-        # pytest.param(
-        #     {"name": "test-lmeval-hf-custom-task"},
-        #     lmeval_hf_custom_task_data,
-        #     id="custom_task",
-        # ),
+        pytest.param(
+            {"name": "test-lmeval-hf-tier1"},
+            {"task_list": {"taskNames": TIER1_LMEVAL_TASKS}},
+        ),
+        pytest.param(
+            {"name": "test-lmeval-hf-tier2"},
+            {"task_list": {"taskNames": TIER2_LMEVAL_TASKS}},
+        ),
+        pytest.param(
+            {"name": "test-lmeval-hf-custom-task"},
+            lmeval_hf_custom_task_data,
+            id="custom_task",
+        ),
         pytest.param(
             {"name": "test-lmeval-hf-llmaaj"},
             lmeval_hf_llmaaj_task_data,
