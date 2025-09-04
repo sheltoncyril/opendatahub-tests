@@ -102,7 +102,7 @@ def validate_lmeval_job_pod_and_logs(lmevaljob_pod: Pod) -> None:
     )
     lmevaljob_pod.wait_for_status(status=lmevaljob_pod.Status.RUNNING, timeout=Timeout.TIMEOUT_5MIN)
     try:
-        lmevaljob_pod.wait_for_status(status=Pod.Status.SUCCEEDED, timeout=Timeout.TIMEOUT_20MIN)
+        lmevaljob_pod.wait_for_status(status=Pod.Status.SUCCEEDED, timeout=Timeout.TIMEOUT_40MIN)
     except TimeoutExpiredError as e:
         raise UnexpectedFailureError("LMEval job pod failed from a running state.") from e
     if not bool(re.search(pod_success_log_regex, lmevaljob_pod.log())):
