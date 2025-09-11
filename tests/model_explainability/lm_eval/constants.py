@@ -1,4 +1,4 @@
-lmeval_hf_custom_task_data = {
+CUSTOM_UNITXT_TASK_DATA = {
     "task_list": {
         "custom": {
             "systemPrompts": [
@@ -24,7 +24,7 @@ lmeval_hf_custom_task_data = {
     }
 }
 
-lmeval_hf_llmaaj_task_data = {
+LLMAAJ_TASK_DATA = {
     "task_list": {
         "custom": {
             "templates": [
@@ -58,8 +58,8 @@ lmeval_hf_llmaaj_task_data = {
                     "name": "llmaaj_metric",
                     "value": '{\n    "__type__": "llm_as_judge",\n    "inference_model": {\n        '
                     '"__type__": "hf_pipeline_based_inference_engine",\n        '
-                    '"model_name": "mistralai/Mistral-7B-Instruct-v0.2",\n        '
-                    '"max_new_tokens": 256,\n        "use_fp16": true\n    },\n    '
+                    '"model_name": "rgeada/tiny-untrained-granite",\n        '
+                    '"max_new_tokens": 256\n},\n    '
                     '"template": "templates.response_assessment.rating.mt_bench_single_turn",\n    '
                     '"task": "response_assessment.rating.single_turn",\n    '
                     '"format": "formats.models.mistral.instruction",\n    '
