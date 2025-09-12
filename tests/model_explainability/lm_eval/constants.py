@@ -59,12 +59,10 @@ LLMAAJ_TASK_DATA = {
                     "value": '{\n    "__type__": "llm_as_judge",\n    "inference_model": {\n        '
                     '"__type__": "hf_pipeline_based_inference_engine",\n        '
                     '"model_name": "rgeada/tiny-untrained-granite",\n        '
-                    '"max_new_tokens": 256\n},\n    '
+                    '"max_new_tokens": 256,\n "use_fp16": true},\n    '
                     '"template": "templates.response_assessment.rating.mt_bench_single_turn",\n    '
                     '"task": "response_assessment.rating.single_turn",\n    '
-                    '"format": "formats.models.mistral.instruction",\n    '
-                    '"main_score": "mistral_7b_instruct_v0_2_huggingface_template_mt_bench_single_turn"\n}'
-                    "\n",
+                    '"main_score": "mistral_7b_instruct_v0_2_huggingface_template_mt_bench_single_turn"\n}',
                 }
             ],
         },
@@ -102,7 +100,6 @@ LLMAAJ_TASK_DATA = {
                     '"templates": [\n        '
                     '"templates.response_assessment.rating.mt_bench_single_turn"\n    ]\n}\n',
                     "template": {"ref": "response_assessment.rating.mt_bench_single_turn"},
-                    "format": "formats.models.mistral.instruction",
                     "metrics": [{"ref": "llmaaj_metric"}],
                 }
             }
