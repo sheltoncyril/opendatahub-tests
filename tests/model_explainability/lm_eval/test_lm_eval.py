@@ -46,6 +46,23 @@ def test_lmeval_huggingface_model(admin_client, model_namespace, lmevaljob_hf_po
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_hf_pod)
 
 
+@pytest.mark.skip_on_disconnected
+@pytest.mark.parametrize(
+    "model_namespace, lmevaljob_hf_dsc_patched",
+    [
+        pytest.param(
+            {"name": "test-lmeval-hf-tier1"},
+            {"task_list": {"taskNames": TIER1_LMEVAL_TASKS}},
+        )
+    ],
+    indirect=True,
+)
+def test_lmeval_hf_dsc_config(admin_client, model_namespace, lmevaljob_hf_dsc_patched_pod):
+    """Tests that verify running common evaluations (and a custom one) on a model pulled directly from HuggingFace.
+    On each test we run a different evaluation task, limiting it to 0.5% of the questions on each eval."""
+    validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_hf_dsc_patched_pod)
+
+
 @pytest.mark.parametrize(
     "model_namespace, lmeval_data_downloader_pod, lmevaljob_local_offline",
     [

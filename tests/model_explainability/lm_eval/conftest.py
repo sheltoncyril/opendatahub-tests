@@ -3,6 +3,7 @@ from typing import Any, Generator
 import pytest
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.config_map import ConfigMap
+from ocp_resources.data_science_cluster import DataScienceCluster
 from ocp_resources.deployment import Deployment
 from ocp_resources.lm_eval_job import LMEvalJob
 from ocp_resources.namespace import Namespace
@@ -13,9 +14,10 @@ from ocp_resources.secret import Secret
 from ocp_resources.service import Service
 from pytest import Config, FixtureRequest
 
-from tests.model_explainability.lm_eval.utils import get_lmevaljob_pod
+from tests.model_explainability.lm_eval.utils import get_lmevaljob_pod, lmeval_job, patch_dsc_trustyai_lmeval_config
 from utilities.constants import Labels, MinIo, Protocols, Timeout
 from utilities.exceptions import MissingParameter
+from utilities.infra import get_data_science_cluster
 
 VLLM_EMULATOR: str = "vllm-emulator"
 VLLM_EMULATOR_PORT: int = 8000
@@ -30,43 +32,29 @@ def lmevaljob_hf(
     patched_trustyai_configmap_allow_online: ConfigMap,
     lmeval_hf_access_token: Secret,
 ) -> Generator[LMEvalJob, None, None]:
-    with LMEvalJob(
-        client=admin_client,
-        name=LMEVALJOB_NAME,
-        namespace=model_namespace.name,
-        model="hf",
-        model_args=[{"name": "pretrained", "value": "rgeada/tiny-untrained-granite"}],
-        task_list=request.param.get("task_list"),
-        log_samples=True,
-        allow_online=True,
-        allow_code_execution=True,
-        system_instruction="Be concise. At every point give the shortest acceptable answer.",
-        chat_template={
-            "enabled": True,
-        },
-        limit="0.01",
-        pod={
-            "container": {
-                "resources": {
-                    "limits": {"cpu": "1", "memory": "8Gi"},
-                    "requests": {"cpu": "1", "memory": "8Gi"},
-                },
-                "env": [
-                    {
-                        "name": "HF_TOKEN",
-                        "valueFrom": {
-                            "secretKeyRef": {
-                                "name": "hf-secret",
-                                "key": "HF_ACCESS_TOKEN",
-                            },
-                        },
-                    },
-                    {"name": "HF_ALLOW_CODE_EVAL", "value": "1"},
-                ],
-            },
-        },
-    ) as job:
-        yield job
+    yield from lmeval_job(
+        admin_client=admin_client, model_namespace=model_namespace, request=request, job_name=LMEVALJOB_NAME
+    )
+
+
+@pytest.fixture(scope="class")
+def patched_dsc_lmeval_allow_all(admin_client):
+    """Enable LMEval PermitOnline and PermitCodeExecution flags in the Datascience cluster."""
+    dsc = get_data_science_cluster(client=admin_client)
+    yield from patch_dsc_trustyai_lmeval_config(dsc=dsc, permit_code_execution=True, permit_online=True)
+
+
+@pytest.fixture(scope="function")
+def lmevaljob_hf_dsc_patched(
+    request: FixtureRequest,
+    admin_client: DynamicClient,
+    patched_dsc_lmeval_allow_all: DataScienceCluster,
+    model_namespace: Namespace,
+    lmeval_hf_access_token: Secret,
+) -> Generator[LMEvalJob, None, None]:
+    yield from lmeval_job(
+        admin_client=admin_client, model_namespace=model_namespace, request=request, job_name=LMEVALJOB_NAME
+    )
 
 
 @pytest.fixture(scope="function")
@@ -390,6 +378,13 @@ def lmevaljob_s3_offline(
 @pytest.fixture(scope="function")
 def lmevaljob_hf_pod(admin_client: DynamicClient, lmevaljob_hf: LMEvalJob) -> Generator[Pod, Any, Any]:
     yield get_lmevaljob_pod(client=admin_client, lmevaljob=lmevaljob_hf)
+
+
+@pytest.fixture(scope="function")
+def lmevaljob_hf_dsc_patched_pod(
+    admin_client: DynamicClient, lmevaljob_hf_dsc_patched: LMEvalJob
+) -> Generator[Pod, Any, Any]:
+    yield get_lmevaljob_pod(client=admin_client, lmevaljob=lmevaljob_hf_dsc_patched)
 
 
 @pytest.fixture(scope="function")

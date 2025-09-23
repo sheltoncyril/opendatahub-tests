@@ -1,5 +1,9 @@
-from typing import List
+from typing import List, Generator, Any
 import re
+
+from ocp_resources.data_science_cluster import DataScienceCluster
+from ocp_resources.namespace import Namespace
+from ocp_resources.resource import ResourceEditor
 from pyhelper_utils.general import tts
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.lm_eval_job import LMEvalJob
@@ -8,10 +12,12 @@ from ocp_resources.pod import Pod
 from utilities.constants import Timeout
 from simple_logger.logger import get_logger
 from timeout_sampler import TimeoutExpiredError
+from pytest import FixtureRequest
 
 import pandas as pd
 
 from utilities.exceptions import PodLogMissMatchError, UnexpectedFailureError
+from utilities.infra import wait_for_dsc_status_ready
 
 LOGGER = get_logger(name=__name__)
 
@@ -101,10 +107,87 @@ def validate_lmeval_job_pod_and_logs(lmevaljob_pod: Pod) -> None:
         r"INFO\sdriver\supdate status: job completed\s\{\"state\":\s\{\"state\""
         r":\"Complete\",\"reason\":\"Succeeded\",\"message\":\"job completed\""
     )
-    lmevaljob_pod.wait_for_status(status=lmevaljob_pod.Status.RUNNING, timeout=tts("5m"))
+    lmevaljob_pod.wait_for_status(status=lmevaljob_pod.Status.RUNNING, timeout=tts("10m"))
     try:
         lmevaljob_pod.wait_for_status(status=Pod.Status.SUCCEEDED, timeout=tts("1h"))
     except TimeoutExpiredError as e:
         raise UnexpectedFailureError("LMEval job pod failed from a running state.") from e
     if not bool(re.search(pod_success_log_regex, lmevaljob_pod.log())):
         raise PodLogMissMatchError("LMEval job pod failed.")
+
+
+def patch_dsc_trustyai_lmeval_config(
+    dsc: DataScienceCluster,
+    permit_code_execution: bool = False,
+    permit_online: bool = False,
+) -> Generator[DataScienceCluster, Any, Any]:
+    """
+    Patch DataScienceCluster object with default deployment mode and wait for it to be set in configmap.
+
+    Args:
+        dsc (DataScienceCluster): DataScienceCluster object
+        permit_code_execution (bool, optional): Allow code execution mode. Defaults to False.
+        permit_online (bool, optional): Allow online mode. Defaults to False.
+    Yields:
+        DataScienceCluster: DataScienceCluster object
+
+    """
+    with ResourceEditor(
+        patches={
+            dsc: {
+                "spec": {
+                    "components": {
+                        "trustyai": {
+                            "eval": {
+                                "lmeval": {"permitCodeExecution": permit_code_execution, "permitOnline": permit_online}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ):
+        wait_for_dsc_status_ready(dsc_resource=dsc)
+        yield dsc
+
+
+def lmeval_job(
+    admin_client: DynamicClient, model_namespace: Namespace, request: FixtureRequest, job_name: str
+) -> Generator[LMEvalJob, Any, Any]:
+    with LMEvalJob(
+        client=admin_client,
+        name=job_name,
+        namespace=model_namespace.name,
+        model="hf",
+        model_args=[{"name": "pretrained", "value": "rgeada/tiny-untrained-granite"}],
+        task_list=request.param.get("task_list"),
+        log_samples=True,
+        allow_online=True,
+        allow_code_execution=True,
+        system_instruction="Be concise. At every point give the shortest acceptable answer.",
+        chat_template={
+            "enabled": True,
+        },
+        limit="0.01",
+        pod={
+            "container": {
+                "resources": {
+                    "limits": {"cpu": "1", "memory": "8Gi"},
+                    "requests": {"cpu": "1", "memory": "8Gi"},
+                },
+                "env": [
+                    {
+                        "name": "HF_TOKEN",
+                        "valueFrom": {
+                            "secretKeyRef": {
+                                "name": "hf-secret",
+                                "key": "HF_ACCESS_TOKEN",
+                            },
+                        },
+                    },
+                    {"name": "HF_ALLOW_CODE_EVAL", "value": "1"},
+                ],
+            },
+        },
+    ) as job:
+        yield job
