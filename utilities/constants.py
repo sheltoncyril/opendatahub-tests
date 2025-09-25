@@ -304,7 +304,7 @@ class MinIo:
 
         MODEL_MESH_MINIO_CONFIG: dict[str, Any] = {
             "image": "quay.io/trustyai_testing/modelmesh-minio-examples@"
-            "sha256:d2ccbe92abf9aa5085b594b2cae6c65de2bf06306c30ff5207956eb949bb49da",
+            "sha256:8b8ffcf25d27a17d9d33e6054e2c6ac0b36c4be6432426a26c344e9f013cb35b",
             # noqa: E501
             **MINIO_BASE_CONFIG,
         }
@@ -341,10 +341,24 @@ INTERNAL_IMAGE_REGISTRY_PATH: str = "image-registry.openshift-image-registry.svc
 
 vLLM_CONFIG: dict[str, dict[str, Any]] = {
     "port_configurations": {
-        "grpc": [{"containerPort": Ports.GRPC_PORT, "name": PortNames.GRPC_PORT_NAME, "protocol": Protocols.TCP}],
+        "grpc": [
+            {
+                "containerPort": Ports.GRPC_PORT,
+                "name": PortNames.GRPC_PORT_NAME,
+                "protocol": Protocols.TCP,
+            }
+        ],
         "raw": [
-            {"containerPort": Ports.REST_PORT, "name": PortNames.REST_PORT_NAME, "protocol": Protocols.TCP},
-            {"containerPort": Ports.GRPC_PORT, "name": PortNames.GRPC_PORT_NAME, "protocol": Protocols.TCP},
+            {
+                "containerPort": Ports.REST_PORT,
+                "name": PortNames.REST_PORT_NAME,
+                "protocol": Protocols.TCP,
+            },
+            {
+                "containerPort": Ports.GRPC_PORT,
+                "name": PortNames.GRPC_PORT_NAME,
+                "protocol": Protocols.TCP,
+            },
         ],
     },
     "commands": {"GRPC": "vllm_tgis_adapter"},
@@ -371,6 +385,10 @@ QWEN_ISVC_NAME = "qwen-isvc"
 QWEN_MODEL_NAME: str = "qwen25-05b-instruct"
 
 CHAT_GENERATION_CONFIG: Dict[str, Any] = {
-    "service": {"hostname": f"{QWEN_MODEL_NAME}-predictor", "port": 8032, "request_timeout": 600}
+    "service": {
+        "hostname": f"{QWEN_MODEL_NAME}-predictor",
+        "port": 8032,
+        "request_timeout": 600,
+    }
 }
 TRUSTYAI_SERVICE_NAME: str = "trustyai-service"
