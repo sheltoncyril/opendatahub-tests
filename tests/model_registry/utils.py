@@ -24,7 +24,6 @@ from tests.model_registry.constants import (
     MARIADB_MY_CNF,
     PORT_MAP,
     MODEL_REGISTRY_POD_FILTER,
-    DEFAULT_MODEL_CATALOG,
 )
 from tests.model_registry.exceptions import ModelRegistryResourceNotFoundError
 from utilities.exceptions import ProtocolNotSupportedError, TooManyServicesError
@@ -35,7 +34,7 @@ from model_registry.types import RegisteredModel
 
 ADDRESS_ANNOTATION_PREFIX: str = "routing.opendatahub.io/external-address-"
 MARIA_DB_IMAGE = (
-    "registry.redhat.io/rhel9/mariadb-1011@sha256:e89fe8e65e3ad6d3cf5a90f53032ef73eb63e68bf76ecf06464e30c08c700338"
+    "registry.redhat.io/rhel9/mariadb-1011@sha256:5608cce9ca8fed81027c97336d526b80320b0f4517ca5d3d141c0bbd7d563f8a"
 )
 LOGGER = get_logger(name=__name__)
 
@@ -719,13 +718,15 @@ def validate_mlmd_removal_in_model_registry_pod_log(
     assert not errors, f"Log validation failed with error(s): {errors}"
 
 
-def delete_model_catalog_configmap(admin_client: DynamicClient, namespace: str) -> None:
-    cfg = ConfigMap(name=DEFAULT_MODEL_CATALOG, client=admin_client, namespace=namespace)
-    if cfg.exists:
-        cfg.delete(wait=True)
-
-
 def get_model_catalog_pod(client: DynamicClient, model_registry_namespace: str) -> list[Pod]:
     return list(
         Pod.get(namespace=model_registry_namespace, label_selector="component=model-catalog", dyn_client=client)
     )
+
+
+def get_rest_headers(token: str) -> dict[str, str]:
+    return {
+        "Authorization": f"Bearer {token}",
+        "accept": "application/json",
+        "Content-Type": "application/json",
+    }

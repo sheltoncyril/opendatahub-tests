@@ -276,7 +276,7 @@ class OCIRegistry:
         DEFAULT_HTTP_ADDRESS: str = "0.0.0.0"
 
     class PodConfig:
-        REGISTRY_IMAGE: str = "ghcr.io/project-zot/zot-linux-amd64:v2.1.7"
+        REGISTRY_IMAGE: str = "ghcr.io/project-zot/zot:v2.1.8"
         REGISTRY_BASE_CONFIG: dict[str, Any] = {
             "args": None,
             "labels": {
@@ -310,18 +310,21 @@ class MinIo:
 
     class PodConfig:
         KSERVE_MINIO_IMAGE: str = (
-            "quay.io/jooholee/model-minio@sha256:b50aa0fbfea740debb314ece8e925b3e8e761979f345b6cd12a6833efd04e2c2"
+            "quay.io/jooholee/model-minio@sha256:b9554be19a223830cf792d5de984ccc57fc140b954949f5ffc6560fab977ca7a"
             # noqa: E501
         )
-
-        MINIO_BASE_CONFIG: dict[str, Any] = {
-            "args": ["server", "/data1"],
+        MINIO_BASE_LABELS_ANNOTATIONS: dict[str, Any] = {
             "labels": {
                 "maistra.io/expose-route": "true",
             },
             "annotations": {
                 "sidecar.istio.io/inject": "true",
             },
+        }
+
+        MINIO_BASE_CONFIG: dict[str, Any] = {
+            "args": ["server", "/data1"],
+            **MINIO_BASE_LABELS_ANNOTATIONS,
         }
 
         MODEL_MESH_MINIO_CONFIG: dict[str, Any] = {
@@ -348,6 +351,12 @@ class MinIo:
         KSERVE_MINIO_CONFIG: dict[str, Any] = {
             "image": KSERVE_MINIO_IMAGE,
             **MINIO_BASE_CONFIG,
+        }
+
+        MODEL_REGISTRY_MINIO_CONFIG: dict[str, Any] = {
+            "image": "quay.io/minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+            "args": ["server", "/data"],
+            **MINIO_BASE_LABELS_ANNOTATIONS,
         }
 
     class RunTimeConfig:
@@ -390,8 +399,9 @@ BUILTIN_DETECTOR_CONFIG: Dict[str, Any] = {
 }
 
 QWEN_ISVC_NAME = "qwen-isvc"
+QWEN_MODEL_NAME: str = "qwen25-05b-instruct"
+
 CHAT_GENERATION_CONFIG: Dict[str, Any] = {
-    "service": {"hostname": f"{QWEN_ISVC_NAME}-predictor", "port": 8032, "request_timeout": 600}
+    "service": {"hostname": f"{QWEN_MODEL_NAME}-predictor", "port": 8032, "request_timeout": 600}
 }
 TRUSTYAI_SERVICE_NAME: str = "trustyai-service"
-QWEN_MODEL_NAME: str = "qwen2.5-0.5b-instruct"

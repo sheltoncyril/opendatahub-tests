@@ -21,24 +21,32 @@ def guardrails_orchestrator(
     request: FixtureRequest,
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    orchestrator_config: ConfigMap,
 ) -> Generator[GuardrailsOrchestrator, Any, Any]:
     gorch_kwargs = {
         "client": admin_client,
         "name": GUARDRAILS_ORCHESTRATOR_NAME,
         "namespace": model_namespace.name,
-        "orchestrator_config": orchestrator_config.name,
+        "log_level": "DEBUG",
         "replicas": 1,
         "wait_for_resource": True,
     }
 
-    if enable_built_in_detectors := request.param.get("enable_built_in_detectors"):
-        gorch_kwargs["enable_built_in_detectors"] = enable_built_in_detectors
+    if request.param.get("auto_config"):
+        gorch_kwargs["auto_config"] = request.param.get("auto_config")
+
+    if request.param.get("orchestrator_config"):
+        orchestrator_config = request.getfixturevalue(argname="orchestrator_config")
+        gorch_kwargs["orchestrator_config"] = orchestrator_config.name
 
     if request.param.get("enable_guardrails_gateway"):
-        guardrails_gateway_config = request.getfixturevalue(argname="guardrails_gateway_config")
         gorch_kwargs["enable_guardrails_gateway"] = True
+
+    if request.param.get("guardrails_gateway_config"):
+        guardrails_gateway_config = request.getfixturevalue(argname="guardrails_gateway_config")
         gorch_kwargs["guardrails_gateway_config"] = guardrails_gateway_config.name
+
+    if enable_built_in_detectors := request.param.get("enable_built_in_detectors"):
+        gorch_kwargs["enable_built_in_detectors"] = enable_built_in_detectors
 
     with GuardrailsOrchestrator(**gorch_kwargs) as gorch:
         gorch_deployment = Deployment(name=gorch.name, namespace=gorch.namespace, wait_for_resource=True)
@@ -139,3 +147,27 @@ def guardrails_orchestrator_health_route(
         }
     ):
         yield guardrails_orchestrator_health_route
+
+
+@pytest.fixture(scope="class")
+def guardrails_orchestrator_gateway_route(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    guardrails_orchestrator: GuardrailsOrchestrator,
+) -> Generator[Route, Any, Any]:
+    guardrails_orchestrator_gateway_route = Route(
+        name=f"{guardrails_orchestrator.name}-gateway",
+        namespace=guardrails_orchestrator.namespace,
+        wait_for_resource=True,
+        ensure_exists=True,
+    )
+    with ResourceEditor(
+        patches={
+            guardrails_orchestrator_gateway_route: {
+                "metadata": {
+                    "annotations": {Annotations.HaproxyRouterOpenshiftIo.TIMEOUT: "10m"},
+                }
+            }
+        }
+    ):
+        yield guardrails_orchestrator_gateway_route

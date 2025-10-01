@@ -33,7 +33,7 @@ MODEL_DATA = {
     "minio_pod, oci_registry_pod_with_minio",
     [
         pytest.param(
-            MinIo.PodConfig.MODEL_MESH_MINIO_CONFIG,
+            MinIo.PodConfig.MODEL_REGISTRY_MINIO_CONFIG,
             OCIRegistry.PodConfig.REGISTRY_BASE_CONFIG,
         )
     ],
@@ -58,10 +58,10 @@ MODEL_DATA = {
     ],
     indirect=True,
 )
+@pytest.mark.downstream_only
 class TestAsyncUploadE2E:
     """RHOAIENG-32501: Test for async upload job with real MinIO, OCI registry, Connection Secrets and Model Registry"""
 
-    # FAILS until https://github.com/kubeflow/model-registry/pull/1499 is merged downstream
     @pytest.mark.dependency(name="job_creation_and_pod_spawning")
     def test_job_creation_and_pod_spawning(
         self: Self,
