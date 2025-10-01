@@ -2,7 +2,6 @@ from typing import Any, Generator
 
 import pytest
 from kubernetes.dynamic import DynamicClient
-from ocp_resources.config_map import ConfigMap
 from ocp_resources.data_science_cluster import DataScienceCluster
 from ocp_resources.deployment import Deployment
 from ocp_resources.lm_eval_job import LMEvalJob
@@ -24,28 +23,15 @@ VLLM_EMULATOR_PORT: int = 8000
 LMEVALJOB_NAME: str = "lmeval-test-job"
 
 
-@pytest.fixture(scope="function")
-def lmevaljob_hf(
-    request: FixtureRequest,
-    admin_client: DynamicClient,
-    model_namespace: Namespace,
-    patched_trustyai_configmap_allow_online: ConfigMap,
-    lmeval_hf_access_token: Secret,
-) -> Generator[LMEvalJob, None, None]:
-    yield from lmeval_job(
-        admin_client=admin_client, model_namespace=model_namespace, request=request, job_name=LMEVALJOB_NAME
-    )
-
-
 @pytest.fixture(scope="class")
-def patched_dsc_lmeval_allow_all(admin_client):
+def patched_dsc_lmeval_allow_all(admin_client) -> Generator[DataScienceCluster, None, None]:
     """Enable LMEval PermitOnline and PermitCodeExecution flags in the Datascience cluster."""
     dsc = get_data_science_cluster(client=admin_client)
     yield from patch_dsc_trustyai_lmeval_config(dsc=dsc, permit_code_execution=True, permit_online=True)
 
 
 @pytest.fixture(scope="function")
-def lmevaljob_hf_dsc_patched(
+def lmevaljob_hf(
     request: FixtureRequest,
     admin_client: DynamicClient,
     patched_dsc_lmeval_allow_all: DataScienceCluster,
@@ -62,7 +48,7 @@ def lmevaljob_local_offline(
     request: FixtureRequest,
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    patched_trustyai_configmap_allow_online: ConfigMap,
+    patched_dsc_lmeval_allow_all: DataScienceCluster,
     lmeval_data_downloader_pod: Pod,
 ) -> Generator[LMEvalJob, Any, Any]:
     with LMEvalJob(
@@ -92,7 +78,7 @@ def lmevaljob_local_offline(
 def lmevaljob_vllm_emulator(
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    patched_trustyai_configmap_allow_online: ConfigMap,
+    patched_dsc_lmeval_allow_all: DataScienceCluster,
     vllm_emulator_deployment: Deployment,
     vllm_emulator_service: Service,
     vllm_emulator_route: Route,
@@ -378,13 +364,6 @@ def lmevaljob_s3_offline(
 @pytest.fixture(scope="function")
 def lmevaljob_hf_pod(admin_client: DynamicClient, lmevaljob_hf: LMEvalJob) -> Generator[Pod, Any, Any]:
     yield get_lmevaljob_pod(client=admin_client, lmevaljob=lmevaljob_hf)
-
-
-@pytest.fixture(scope="function")
-def lmevaljob_hf_dsc_patched_pod(
-    admin_client: DynamicClient, lmevaljob_hf_dsc_patched: LMEvalJob
-) -> Generator[Pod, Any, Any]:
-    yield get_lmevaljob_pod(client=admin_client, lmevaljob=lmevaljob_hf_dsc_patched)
 
 
 @pytest.fixture(scope="function")

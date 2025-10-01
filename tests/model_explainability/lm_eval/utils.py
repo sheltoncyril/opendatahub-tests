@@ -1,3 +1,4 @@
+import time
 from typing import List, Generator, Any
 import re
 
@@ -139,7 +140,10 @@ def patch_dsc_trustyai_lmeval_config(
                     "components": {
                         "trustyai": {
                             "eval": {
-                                "lmeval": {"permitCodeExecution": permit_code_execution, "permitOnline": permit_online}
+                                "lmeval": {
+                                    "permitCodeExecution": "allow" if permit_code_execution else "deny",
+                                    "permitOnline": "allow" if permit_online else "deny",
+                                }
                             }
                         }
                     }
@@ -147,6 +151,7 @@ def patch_dsc_trustyai_lmeval_config(
             }
         }
     ):
+        time.sleep(seconds=5)
         wait_for_dsc_status_ready(dsc_resource=dsc)
         yield dsc
 
