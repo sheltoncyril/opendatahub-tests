@@ -218,9 +218,7 @@ class TimeoutMeta(type):
             raise AttributeError("Invalid timeout specified, it should be in the format TIMEOUT_XXYY.")
         delta = timedelta()
         for split_timeout in timeout.split("_")[1:]:
-            if parsed := re.search(
-                r"(\d+)(SECS?|MINS?|HRS?|DAYS?|WEEKS?)$", split_timeout
-            ):
+            if parsed := re.search(r"(\d+)(SECS?|MINS?|HRS?|DAYS?|WEEKS?)$", split_timeout):
                 number, duration = parsed.groups()
                 number = int(number)
                 match duration:
