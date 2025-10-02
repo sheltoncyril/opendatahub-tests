@@ -219,7 +219,7 @@ class TimeoutMeta(type):
         delta = timedelta()
         for split_timeout in timeout.split("_")[1:]:
             if parsed := re.search(
-                r"(\d+)(SEC$|MIN$|HR$|DAY$|WEEK$|SECS$|MINS$|HRS$|DAYS$|MINS$|WEEKS$)", split_timeout
+                r"(\d+)(SECS?|MINS?|HRS?|DAYS?|WEEKS?)$", split_timeout
             ):
                 number, duration = parsed.groups()
                 number = int(number)
