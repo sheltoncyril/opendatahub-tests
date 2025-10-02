@@ -5,11 +5,11 @@ from ocp_resources.deployment import Deployment
 
 from typing import Generator
 
+from ocp_resources.resource import ResourceEditor
 from pytest_testconfig import py_config
 
 from utilities.constants import TRUSTYAI_SERVICE_NAME
 from utilities.infra import get_data_science_cluster
-from utilities.trustyai_utils import patch_dsc_trustyai_lmeval_config
 
 
 @pytest.fixture(scope="class")
@@ -28,9 +28,26 @@ def patched_dsc_lmeval_allow_all(
 ) -> Generator[DataScienceCluster, None, None]:
     """Enable LMEval PermitOnline and PermitCodeExecution flags in the Datascience cluster."""
     dsc = get_data_science_cluster(client=admin_client)
-    yield from patch_dsc_trustyai_lmeval_config(
-        dsc=dsc,
-        trustyai_operator_deployment=trustyai_operator_deployment,
-        permit_code_execution=True,
-        permit_online=True,
-    )
+    with ResourceEditor(
+        patches={
+            dsc: {
+                "spec": {
+                    "components": {
+                        "trustyai": {
+                            "eval": {
+                                "lmeval": {
+                                    "permitCodeExecution": "allow",
+                                    "permitOnline": "allow",
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ):
+        num_replicas: int = trustyai_operator_deployment.replicas
+        trustyai_operator_deployment.scale_replicas(replica_count=0)
+        trustyai_operator_deployment.scale_replicas(replica_count=num_replicas)
+        trustyai_operator_deployment.wait_for_replicas()
+        yield dsc
