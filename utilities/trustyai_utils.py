@@ -12,7 +12,7 @@ def patch_dsc_trustyai_lmeval_config(
     permit_online: bool = False,
 ) -> Generator[DataScienceCluster, Any, Any]:
     """
-    Patch DataScienceCluster object with default deployment mode and wait for it to be set in configmap.
+    Patch DataScienceCluster object with default deployment mode and restart rollout for the TrustyAI operator deployment
 
     Args:
         dsc (DataScienceCluster): DataScienceCluster object
