@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from ocp_resources.resource import Resource
@@ -382,4 +383,33 @@ QWEN_MODEL_NAME: str = "qwen25-05b-instruct"
 CHAT_GENERATION_CONFIG: Dict[str, Any] = {
     "service": {"hostname": f"{QWEN_MODEL_NAME}-predictor", "port": 8032, "request_timeout": 600}
 }
+
 TRUSTYAI_SERVICE_NAME: str = "trustyai-service"
+
+
+@dataclass
+class LLMdInferenceSimConfigMeta:
+    name: str = "llm-d-inference-sim"
+    port: int = 8000
+    model_name: str = QWEN_MODEL_NAME
+    label: dict[str, str] | None = None
+    route: str = ""
+    service_name: str = ""
+    route_name: str = ""
+    endpoint_name: str = ""
+    container_name: str = ""
+
+    def __init__(self) -> None:
+        self.label = {Labels.Openshift.APP: f"{self.name}-label"}
+        self.route = "http://llm-d-inference-sim-route-test-guardrails-builtin.apps.ods-qe-psi-20.osp.rh-ods.com"
+        self.service_name = f"{self.name}-service"
+        self.route_name = f"{self.name}-route"
+        self.endpoint_name = f"{self.name}-endpoint"
+        self.container_name = f"{self.name}-container"
+
+
+LLMdInferenceSimConfig = LLMdInferenceSimConfigMeta()
+
+LLM_D_CHAT_GENERATION_CONFIG: Dict[str, Any] = {
+    "service": {"hostname": f"{LLMdInferenceSimConfig.name}-predictor", "port": 8000, "request_timeout": 600}
+}

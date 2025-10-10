@@ -2,14 +2,22 @@ from typing import Generator, Any
 
 import pytest
 from kubernetes.dynamic import DynamicClient
+from ocp_resources.deployment import Deployment
 from ocp_resources.inference_service import InferenceService
 from ocp_resources.namespace import Namespace
 from ocp_resources.pod import Pod
+from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 from ocp_resources.service import Service
 from ocp_resources.serving_runtime import ServingRuntime
 
-from utilities.constants import RuntimeTemplates, KServeDeploymentType, QWEN_MODEL_NAME
+from utilities.constants import (
+    RuntimeTemplates,
+    KServeDeploymentType,
+    QWEN_MODEL_NAME,
+    LLMdInferenceSimConfig,
+    Protocols,
+)
 from utilities.inference_utils import create_isvc
 from utilities.serving_runtime import ServingRuntimeFromTemplate
 
@@ -72,3 +80,76 @@ def qwen_isvc(
 @pytest.fixture(scope="class")
 def qwen_isvc_url(qwen_isvc: InferenceService) -> str:
     return f"http://{qwen_isvc.name}-predictor.{qwen_isvc.namespace}.svc.cluster.local:8032/v1"
+
+
+@pytest.fixture(scope="function")
+def llm_d_inference_sim_deployment(admin_client, model_namespace: Namespace) -> Generator[Deployment, Any, Any]:
+    with Deployment(
+        client=admin_client,
+        namespace=model_namespace.name,
+        name=LLMdInferenceSimConfig.name,
+        label=LLMdInferenceSimConfig.label,
+        selector={"matchLabels": LLMdInferenceSimConfig.label},
+        template={
+            "metadata": {
+                "labels": LLMdInferenceSimConfig.label,
+                "name": LLMdInferenceSimConfig.name,
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "image": "quay.io/trustyai_testing/llmd-inference-sim-dataset-builtin"
+                        "@sha256:1c8891b3bdf7dbe657d8b3945297b550921083bd3df72f9b8d202ffd99beb341",
+                        "name": LLMdInferenceSimConfig.container_name,
+                        "securityContext": {
+                            "allowPrivilegeEscalation": False,
+                            "capabilities": {"drop": ["ALL"]},
+                            "seccompProfile": {"type": "RuntimeDefault"},
+                        },
+                        "args": [
+                            "--model",
+                            LLMdInferenceSimConfig.model_name,
+                            "--port",
+                            str(LLMdInferenceSimConfig.port),
+                        ],
+                    }
+                ]
+            },
+        },
+        replicas=1,
+    ) as deployment:
+        yield deployment
+
+
+@pytest.fixture(scope="function")
+def llm_d_inference_sim_service(
+    admin_client: DynamicClient, model_namespace: Namespace, llm_d_inference_sim_deployment: Deployment
+) -> Generator[Service, Any, Any]:
+    with Service(
+        client=admin_client,
+        namespace=llm_d_inference_sim_deployment.namespace,
+        name=LLMdInferenceSimConfig.service_name,
+        ports=[
+            {
+                "name": LLMdInferenceSimConfig.endpoint_name,
+                "port": LLMdInferenceSimConfig.port,
+                "protocol": Protocols.TCP,
+                "targetPort": LLMdInferenceSimConfig.port,
+            }
+        ],
+        selector=LLMdInferenceSimConfig.label,
+    ) as service:
+        yield service
+
+
+@pytest.fixture(scope="function")
+def llm_d_inference_sim_route(
+    admin_client: DynamicClient, model_namespace: Namespace, llm_d_inference_sim_service: Service
+) -> Generator[Route, Any, Any]:
+    with Route(
+        client=admin_client,
+        namespace=llm_d_inference_sim_service.namespace,
+        name=LLMdInferenceSimConfig.route_name,
+        service=llm_d_inference_sim_service.name,
+    ) as route:
+        yield route

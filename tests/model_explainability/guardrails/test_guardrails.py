@@ -179,6 +179,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
         current_client_token,
         openshift_ca_bundle_file,
         qwen_isvc,
+        llm_d_inference_sim_route,
         orchestrator_config,
         guardrails_orchestrator_health_route,
     ):
@@ -194,6 +195,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
         current_client_token,
         openshift_ca_bundle_file,
         qwen_isvc,
+        llm_d_inference_sim_route,
         orchestrator_config,
         guardrails_orchestrator_health_route,
     ):
