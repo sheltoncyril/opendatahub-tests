@@ -455,7 +455,6 @@ CHAT_GENERATION_CONFIG: Dict[str, Any] = {
         "request_timeout": 600,
     }
 }
-
 TRUSTYAI_SERVICE_NAME: str = "trustyai-service"
 
 LLM_D_INFERENCE_SIM_NAME = "llm-d-inference-sim"
