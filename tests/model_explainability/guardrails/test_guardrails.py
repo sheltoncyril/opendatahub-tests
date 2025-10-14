@@ -178,8 +178,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
-        llm_d_inference_sim_route,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_health_route,
     ):
@@ -194,8 +193,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
-        llm_d_inference_sim_route,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_health_route,
     ):
@@ -209,7 +207,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_gateway_route,
     ):
@@ -235,7 +233,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_gateway_route,
     ):
@@ -271,7 +269,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_gateway_route,
         message,
@@ -353,7 +351,7 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
         current_client_token,
         minio_pod,
         minio_data_connection,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_route,
         prompt_injection_detector_route,
@@ -383,7 +381,7 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
         current_client_token,
         minio_pod,
         minio_data_connection,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_route,
         prompt_injection_detector_route,
@@ -406,7 +404,7 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_route,
         hap_detector_route,
@@ -495,7 +493,7 @@ class TestGuardrailsOrchestratorWithMultipleDetectors:
         current_client_token,
         minio_pod,
         minio_data_connection,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         guardrails_orchestrator_route,
         prompt_injection_detector_route,
         hap_detector_route,
@@ -528,7 +526,7 @@ class TestGuardrailsOrchestratorWithMultipleDetectors:
         current_client_token,
         minio_pod,
         minio_data_connection,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_route,
         hap_detector_route,
@@ -577,7 +575,7 @@ class TestGuardrailsOrchestratorAutoConfig:
         current_client_token,
         minio_pod,
         minio_data_connection,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         prompt_injection_detector_route,
         hap_detector_route,
         openshift_ca_bundle_file,
@@ -592,7 +590,11 @@ class TestGuardrailsOrchestratorAutoConfig:
         assert "fms-guardrails-orchestr8" in response.text
 
     def test_guardrails_gateway_info_endpoint(
-        self, current_client_token, openshift_ca_bundle_file, qwen_isvc, guardrails_orchestrator_health_route
+        self,
+        current_client_token,
+        openshift_ca_bundle_file,
+        llm_d_inference_sim_isvc,
+        guardrails_orchestrator_health_route,
     ):
         verify_health_info_response(
             host=guardrails_orchestrator_health_route.host,
@@ -604,7 +606,7 @@ class TestGuardrailsOrchestratorAutoConfig:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         guardrails_orchestrator_route,
     ):
         for prompt in [HAP_INPUT_DETECTION_PROMPT, PROMPT_INJECTION_INPUT_DETECTION_PROMPT]:
@@ -630,7 +632,7 @@ class TestGuardrailsOrchestratorAutoConfig:
     def test_guardrails_autoconfig_negative_detection(
         self,
         current_client_token,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         guardrails_orchestrator_route,
         openshift_ca_bundle_file,
     ):
@@ -679,7 +681,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
         current_client_token,
         minio_pod,
         minio_data_connection,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         prompt_injection_detector_route,
         hap_detector_route,
         openshift_ca_bundle_file,
@@ -694,7 +696,11 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
         assert "fms-guardrails-orchestr8" in response.text
 
     def test_guardrails_autoconfig_gateway_info_endpoint(
-        self, current_client_token, openshift_ca_bundle_file, qwen_isvc, guardrails_orchestrator_health_route
+        self,
+        current_client_token,
+        openshift_ca_bundle_file,
+        llm_d_inference_sim_isvc,
+        guardrails_orchestrator_health_route,
     ):
         verify_health_info_response(
             host=guardrails_orchestrator_health_route.host,
@@ -706,7 +712,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         guardrails_orchestrator_gateway_route,
     ):
         for prompt in [HAP_INPUT_DETECTION_PROMPT, PROMPT_INJECTION_INPUT_DETECTION_PROMPT]:
@@ -743,7 +749,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
     def test_guardrails_autoconfig_gateway_negative_detection(
         self,
         current_client_token,
-        qwen_isvc,
+        llm_d_inference_sim_isvc,
         guardrails_orchestrator_gateway_route,
         openshift_ca_bundle_file,
         url_path,
