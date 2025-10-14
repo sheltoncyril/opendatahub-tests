@@ -83,9 +83,6 @@ def qwen_isvc_url(qwen_isvc: InferenceService) -> str:
 def llm_d_inference_sim_serving_runtime(
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    minio_pod: Pod,
-    minio_service: Service,
-    minio_data_connection: Secret,
 ) -> Generator[ServingRuntime, Any, Any]:
     with ServingRuntime(
         client=admin_client,
@@ -148,9 +145,6 @@ def llm_d_inference_sim_serving_runtime(
 def llm_d_inference_sim_isvc(
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    minio_pod: Pod,
-    minio_service: Service,
-    minio_data_connection: Secret,
     llm_d_inference_sim_serving_runtime: ServingRuntime,
 ) -> Generator[InferenceService, Any, Any]:
     with create_isvc(

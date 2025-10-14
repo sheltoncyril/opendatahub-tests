@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from ocp_resources.resource import Resource
@@ -394,10 +394,4 @@ class LLMdInferenceSimConfig:
     name: str = LLM_D_INFERENCE_SIM_NAME
     port: int = 8032
     model_name: str = QWEN_MODEL_NAME
-    label: dict[str, str] = field(default_factory=lambda: {Labels.Openshift.APP: f"{LLM_D_INFERENCE_SIM_NAME}-label"})
-    route: str = "http://llm-d-inference-sim-route-test-guardrails-builtin.apps.ods-qe-psi-20.osp.rh-ods.com"
-    service_name: str = f"{LLM_D_INFERENCE_SIM_NAME}-service"
-    route_name: str = f"{LLM_D_INFERENCE_SIM_NAME}-route"
-    endpoint_name: str = f"{LLM_D_INFERENCE_SIM_NAME}-endpoint"
-    container_name: str = f"{LLM_D_INFERENCE_SIM_NAME}-container"
     serving_runtime_name: str = f"{LLM_D_INFERENCE_SIM_NAME}-serving-runtime"
