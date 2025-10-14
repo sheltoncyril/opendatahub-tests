@@ -110,13 +110,10 @@ def test_validate_guardrails_orchestrator_images(
 
 
 @pytest.mark.parametrize(
-    "model_namespace, minio_pod, minio_data_connection, "
-    "orchestrator_config, guardrails_gateway_config, guardrails_orchestrator",
+    "model_namespace, orchestrator_config, guardrails_gateway_config, guardrails_orchestrator",
     [
         pytest.param(
             {"name": "test-guardrails-builtin"},
-            MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
-            {"bucket": "llms"},
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
@@ -162,7 +159,7 @@ def test_validate_guardrails_orchestrator_images(
 @pytest.mark.usefixtures("guardrails_gateway_config")
 class TestGuardrailsOrchestratorWithBuiltInDetectors:
     """
-    Tests that the basic functionality of the GuardrailsOrchestrator work properly with the built-in (regex) detectors.
+    Tests if basic functions of the GuardrailsOrchestrator are working properly with the built-in (regex) detectors.
         1. Deploy an LLM using vLLM as a SR.
         2. Deploy the Guardrails Orchestrator.
         3. Check that the Orchestrator is healthy by querying the health and info endpoints of its /health route.
