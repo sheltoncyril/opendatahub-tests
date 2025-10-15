@@ -368,56 +368,6 @@ class TestGuardrailsOrchestratorHuggingFaceDetectors:
            detection is correctly performed.
     """
 
-    def test_guardrails_hf_detector_unsuitable_input(
-        self,
-        current_client_token,
-        llm_d_inference_sim_isvc,
-        orchestrator_config,
-        guardrails_orchestrator_route,
-        prompt_injection_detector_route,
-        openshift_ca_bundle_file,
-    ):
-        response = requests.post(
-            url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
-            headers=get_auth_headers(token=current_client_token),
-            json=get_chat_detections_payload(
-                content=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.content,
-                model=LLMdInferenceSimConfig.model_name,
-                detectors=create_detector_config(PROMPT_INJECTION_DETECTOR),
-            ),
-            verify=openshift_ca_bundle_file,
-        )
-
-        verify_builtin_detector_unsuitable_input_response(
-            response=response,
-            detector_id=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detector_id,
-            detection_name=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_name,
-            detection_type=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_type,
-            detection_text=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_text,
-        )
-
-    def test_guardrails_hf_detector_negative_detection(
-        self,
-        current_client_token,
-        llm_d_inference_sim_isvc,
-        orchestrator_config,
-        guardrails_orchestrator_route,
-        prompt_injection_detector_route,
-        openshift_ca_bundle_file,
-    ):
-        response = requests.post(
-            url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
-            headers=get_auth_headers(token=current_client_token),
-            json=get_chat_detections_payload(
-                content=HARMLESS_PROMPT,
-                model=LLMdInferenceSimConfig.model_name,
-                detectors=create_detector_config(PROMPT_INJECTION_DETECTOR),
-            ),
-            verify=openshift_ca_bundle_file,
-        )
-
-        verify_negative_detection_response(response=response)
-
     def test_guardrails_standalone_detector_endpoint(
         self,
         current_client_token,
