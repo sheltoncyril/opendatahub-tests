@@ -149,7 +149,7 @@ def llm_d_inference_sim_isvc(
 ) -> Generator[InferenceService, Any, Any]:
     with create_isvc(
         client=admin_client,
-        name=LLMdInferenceSimConfig.model_name,
+        name=LLMdInferenceSimConfig.isvc_name,
         namespace=model_namespace.name,
         deployment_mode=KServeDeploymentType.RAW_DEPLOYMENT,
         model_format=LLMdInferenceSimConfig.name,
@@ -169,5 +169,5 @@ def llm_d_inference_sim_isvc(
 def llm_d_inference_sim_isvc_url(llm_d_inference_sim_isvc: InferenceService) -> str:
     return (
         f"http://{llm_d_inference_sim_isvc.name}-predictor."
-        f"{llm_d_inference_sim_isvc.namespace}.svc.cluster.local:8032/v1"
+        f"{llm_d_inference_sim_isvc.namespace}.svc.cluster.local:{LLMdInferenceSimConfig.port}/v1"
     )

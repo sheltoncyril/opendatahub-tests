@@ -24,7 +24,7 @@ from tests.model_explainability.guardrails.utils import (
 from tests.model_explainability.utils import validate_tai_component_images
 from utilities.constants import (
     Timeout,
-    CHAT_GENERATION_CONFIG,
+    LLM_D_CHAT_GENERATION_CONFIG,
     BUILTIN_DETECTOR_CONFIG,
     QWEN_MODEL_NAME,
 )
@@ -88,7 +88,7 @@ def verify_health_info_response(host, token, ca_bundle_file):
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": CHAT_GENERATION_CONFIG,
+                        "openai": LLM_D_CHAT_GENERATION_CONFIG,
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -116,7 +116,7 @@ def test_validate_guardrails_orchestrator_images(
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": CHAT_GENERATION_CONFIG,
+                        "openai": LLM_D_CHAT_GENERATION_CONFIG,
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },

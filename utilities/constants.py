@@ -395,3 +395,9 @@ class LLMdInferenceSimConfig:
     port: int = 8032
     model_name: str = QWEN_MODEL_NAME
     serving_runtime_name: str = f"{LLM_D_INFERENCE_SIM_NAME}-serving-runtime"
+    isvc_name: str = f"{LLM_D_INFERENCE_SIM_NAME}-{QWEN_MODEL_NAME}"
+
+
+LLM_D_CHAT_GENERATION_CONFIG: Dict[str, Any] = {
+    "service": {"hostname": f"{LLMdInferenceSimConfig.isvc_name}-predictor", "port": 8032, "request_timeout": 600}
+}
