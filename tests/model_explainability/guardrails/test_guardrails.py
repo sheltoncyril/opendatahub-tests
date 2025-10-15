@@ -545,12 +545,10 @@ class TestGuardrailsOrchestratorWithMultipleDetectors:
 
 
 @pytest.mark.parametrize(
-    "model_namespace, minio_pod, minio_data_connection, guardrails_orchestrator",
+    "model_namespace, guardrails_orchestrator",
     [
         pytest.param(
             {"name": "test-guardrails-autoconfig"},
-            MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
-            {"bucket": "llms"},
             {
                 "auto_config": {
                     "inferenceServiceToGuardrail": QWEN_MODEL_NAME,
@@ -567,6 +565,16 @@ class TestGuardrailsOrchestratorAutoConfig:
     These tests verify that the GuardrailsOrchestrator works as expected when configured through the AutoConfig feature.
     """
 
+    @pytest.mark.parametrize(
+        "minio_pod, minio_data_connection",
+        [
+            pytest.param(
+                MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
+                {"bucket": "llms"},
+            )
+        ],
+        indirect=True,
+    )
     def test_guardrails_gateway_health_endpoint(
         self,
         current_client_token,
@@ -648,12 +656,10 @@ class TestGuardrailsOrchestratorAutoConfig:
 
 
 @pytest.mark.parametrize(
-    "model_namespace, minio_pod, minio_data_connection, guardrails_orchestrator",
+    "model_namespace, guardrails_orchestrator",
     [
         pytest.param(
             {"name": "test-autoconfig-gateway"},
-            MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
-            {"bucket": "llms"},
             {
                 "auto_config": {
                     "inferenceServiceToGuardrail": QWEN_MODEL_NAME,
@@ -673,6 +679,16 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
     through the AutoConfig feature in order to use the gateway route.
     """
 
+    @pytest.mark.parametrize(
+        "minio_pod, minio_data_connection",
+        [
+            pytest.param(
+                MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
+                {"bucket": "llms"},
+            )
+        ],
+        indirect=True,
+    )
     def test_guardrails_autoconfig_gateway_health_endpoint(
         self,
         current_client_token,
