@@ -368,36 +368,6 @@ class TestGuardrailsOrchestratorHuggingFaceDetectors:
            detection is correctly performed.
     """
 
-    def test_guardrails_standalone_detector_endpoint(
-        self,
-        current_client_token,
-        openshift_ca_bundle_file,
-        llm_d_inference_sim_isvc,
-        orchestrator_config,
-        guardrails_orchestrator_route,
-        hap_detector_route,
-    ):
-        url = f"https://{guardrails_orchestrator_route.host}/{STANDALONE_DETECTION_ENDPOINT}"
-        headers = get_auth_headers(token=current_client_token)
-        payload = {"detectors": {HAP_DETECTOR: {}}, "content": HAP_INPUT_DETECTION_PROMPT.content}
-
-        response = requests.post(
-            url=url,
-            headers=headers,
-            json=payload,
-            verify=openshift_ca_bundle_file,
-        )
-
-        assert response.status_code == http.HTTPStatus.OK, (
-            f"Unexpected status code: {response.status_code}, body: {response.text}"
-        )
-        data = response.json()
-
-        assert "detections" in data
-
-        score = data["detections"][0]["score"]
-        assert score > 0.9, f"Expected score > 0.9, got {score}"
-
     def test_guardrails_multi_detector_unsuitable_input(
         self,
         current_client_token,
@@ -438,6 +408,36 @@ class TestGuardrailsOrchestratorHuggingFaceDetectors:
         )
 
         verify_negative_detection_response(response=response)
+
+    def test_guardrails_standalone_detector_endpoint(
+        self,
+        current_client_token,
+        openshift_ca_bundle_file,
+        llm_d_inference_sim_isvc,
+        orchestrator_config,
+        guardrails_orchestrator_route,
+        hap_detector_route,
+    ):
+        url = f"https://{guardrails_orchestrator_route.host}/{STANDALONE_DETECTION_ENDPOINT}"
+        headers = get_auth_headers(token=current_client_token)
+        payload = {"detectors": {HAP_DETECTOR: {}}, "content": HAP_INPUT_DETECTION_PROMPT.content}
+
+        response = requests.post(
+            url=url,
+            headers=headers,
+            json=payload,
+            verify=openshift_ca_bundle_file,
+        )
+
+        assert response.status_code == http.HTTPStatus.OK, (
+            f"Unexpected status code: {response.status_code}, body: {response.text}"
+        )
+        data = response.json()
+
+        assert "detections" in data
+
+        score = data["detections"][0]["score"]
+        assert score > 0.9, f"Expected score > 0.9, got {score}"
 
 
 @pytest.mark.parametrize(
