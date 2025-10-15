@@ -155,9 +155,11 @@ def llm_d_inference_sim_isvc(
         model_format=LLMdInferenceSimConfig.name,
         runtime=llm_d_inference_sim_serving_runtime.name,
         wait_for_predictor_pods=True,
+        min_replicas=1,
+        max_replicas=1,
         resources={
-            "requests": {"cpu": "2", "memory": "1Gi"},
-            "limits": {"cpu": "2", "memory": "2Gi"},
+            "requests": {"cpu": "1", "memory": "1Gi"},
+            "limits": {"cpu": "1", "memory": "1Gi"},
         },
     ) as isvc:
         yield isvc

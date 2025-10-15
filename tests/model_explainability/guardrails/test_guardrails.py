@@ -26,7 +26,6 @@ from utilities.constants import (
     Timeout,
     CHAT_GENERATION_CONFIG,
     BUILTIN_DETECTOR_CONFIG,
-    MinIo,
     QWEN_MODEL_NAME,
 )
 from utilities.plugins.constant import OpenAIEnpoints
@@ -286,12 +285,10 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
 
 
 @pytest.mark.parametrize(
-    "model_namespace, minio_pod, minio_data_connection, orchestrator_config, guardrails_orchestrator",
+    "model_namespace, orchestrator_config, guardrails_orchestrator",
     [
         pytest.param(
             {"name": "test-guardrails-huggingface"},
-            MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
-            {"bucket": "llms"},
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
@@ -346,8 +343,6 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
     def test_guardrails_hf_detector_unsuitable_input(
         self,
         current_client_token,
-        minio_pod,
-        minio_data_connection,
         llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_route,
@@ -376,8 +371,6 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
     def test_guardrails_hf_detector_negative_detection(
         self,
         current_client_token,
-        minio_pod,
-        minio_data_connection,
         llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_route,
@@ -429,12 +422,10 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
 
 
 @pytest.mark.parametrize(
-    "model_namespace, minio_pod, minio_data_connection, orchestrator_config, guardrails_orchestrator",
+    "model_namespace, orchestrator_config, guardrails_orchestrator",
     [
         pytest.param(
             {"name": "test-guardrails-huggingface"},
-            MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
-            {"bucket": "llms"},
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
@@ -488,8 +479,6 @@ class TestGuardrailsOrchestratorWithMultipleDetectors:
     def test_guardrails_multi_detector_unsuitable_input(
         self,
         current_client_token,
-        minio_pod,
-        minio_data_connection,
         llm_d_inference_sim_isvc,
         guardrails_orchestrator_route,
         prompt_injection_detector_route,
@@ -521,8 +510,6 @@ class TestGuardrailsOrchestratorWithMultipleDetectors:
     def test_guardrails_multi_detector_negative_detection(
         self,
         current_client_token,
-        minio_pod,
-        minio_data_connection,
         llm_d_inference_sim_isvc,
         orchestrator_config,
         guardrails_orchestrator_route,
@@ -565,21 +552,9 @@ class TestGuardrailsOrchestratorAutoConfig:
     These tests verify that the GuardrailsOrchestrator works as expected when configured through the AutoConfig feature.
     """
 
-    @pytest.mark.parametrize(
-        "minio_pod, minio_data_connection",
-        [
-            pytest.param(
-                MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
-                {"bucket": "llms"},
-            )
-        ],
-        indirect=True,
-    )
     def test_guardrails_gateway_health_endpoint(
         self,
         current_client_token,
-        minio_pod,
-        minio_data_connection,
         llm_d_inference_sim_isvc,
         prompt_injection_detector_route,
         hap_detector_route,
@@ -679,21 +654,9 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
     through the AutoConfig feature in order to use the gateway route.
     """
 
-    @pytest.mark.parametrize(
-        "minio_pod, minio_data_connection",
-        [
-            pytest.param(
-                MinIo.PodConfig.QWEN_HAP_BPIV2_MINIO_CONFIG,
-                {"bucket": "llms"},
-            )
-        ],
-        indirect=True,
-    )
     def test_guardrails_autoconfig_gateway_health_endpoint(
         self,
         current_client_token,
-        minio_pod,
-        minio_data_connection,
         llm_d_inference_sim_isvc,
         prompt_injection_detector_route,
         hap_detector_route,
