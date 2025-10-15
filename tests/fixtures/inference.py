@@ -84,6 +84,19 @@ def llm_d_inference_sim_serving_runtime(
     admin_client: DynamicClient,
     model_namespace: Namespace,
 ) -> Generator[ServingRuntime, Any, Any]:
+    """Serving runtime for LLM-d Inference Simulator.
+
+    While llm-d-inference-sim supports any model name, the /tokenizers endpoint will only support two models
+        - qwen2.5-0.5b-instruct
+        - Qwen2.5-1.5B-Instruct
+
+    For other models, ensure:
+        - the correct write permissions on the Pod
+        - the model name matches what is available on HuggingFace (e.g., Qwen/Qwen2.5-1.5B-Instruct)
+        - you have set a writeable "--tokenizers-cache-dir"
+        - the cluster can pull from HuggingFace
+
+    """
     with ServingRuntime(
         client=admin_client,
         name=LLMdInferenceSimConfig.serving_runtime_name,
