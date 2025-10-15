@@ -176,11 +176,3 @@ def llm_d_inference_sim_isvc(
         },
     ) as isvc:
         yield isvc
-
-
-@pytest.fixture(scope="class")
-def llm_d_inference_sim_isvc_url(llm_d_inference_sim_isvc: InferenceService) -> str:
-    return (
-        f"http://{llm_d_inference_sim_isvc.name}-predictor."
-        f"{llm_d_inference_sim_isvc.namespace}.svc.cluster.local:{LLMdInferenceSimConfig.port}/v1"
-    )
