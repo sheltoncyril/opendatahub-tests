@@ -355,152 +355,139 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
     indirect=True,
 )
 @pytest.mark.rawdeployment
-class TestGuardrailsOrchestratorHuggingFace:
-    class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
-        """
-        These tests verify that the GuardrailsOrchestrator works as expected when using HuggingFace detectors
-        Steps:
-            - Deploy an LLM (Qwen2.5-0.5B-Instruct) using the vLLM SR.
-            - Deploy the GuardrailsOrchestrator.
-            - Deploy a prompt injection detector using the HuggingFace SR.
-            - Check that the detector works when we have an unsuitable input.
-            - Check that the detector works when we have a harmless input (no detection).
-             - Check the standalone detections by querying its /text/detection/content endpoint, verifying that input
-               detection is correctly performed.
-        """
+class TestGuardrailsOrchestratorHuggingFaceDetectors:
+    """
+    These tests verify that the GuardrailsOrchestrator works as expected when using HuggingFace detectors
+    Steps:
+        - Deploy an LLM (Qwen2.5-0.5B-Instruct) using the vLLM SR.
+        - Deploy the GuardrailsOrchestrator.
+        - Deploy a prompt injection detector using the HuggingFace SR.
+        - Check that the detector works when we have an unsuitable input.
+        - Check that the detector works when we have a harmless input (no detection).
+         - Check the standalone detections by querying its /text/detection/content endpoint, verifying that input
+           detection is correctly performed.
+    """
 
-        def test_guardrails_hf_detector_unsuitable_input(
-            self,
-            current_client_token,
-            llm_d_inference_sim_isvc,
-            orchestrator_config,
-            guardrails_orchestrator_route,
-            prompt_injection_detector_route,
-            openshift_ca_bundle_file,
-        ):
-            response = requests.post(
-                url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
-                headers=get_auth_headers(token=current_client_token),
-                json=get_chat_detections_payload(
-                    content=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.content,
-                    model=LLMdInferenceSimConfig.model_name,
-                    detectors=create_detector_config(PROMPT_INJECTION_DETECTOR),
-                ),
-                verify=openshift_ca_bundle_file,
-            )
+    def test_guardrails_hf_detector_unsuitable_input(
+        self,
+        current_client_token,
+        llm_d_inference_sim_isvc,
+        orchestrator_config,
+        guardrails_orchestrator_route,
+        prompt_injection_detector_route,
+        openshift_ca_bundle_file,
+    ):
+        response = requests.post(
+            url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
+            headers=get_auth_headers(token=current_client_token),
+            json=get_chat_detections_payload(
+                content=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.content,
+                model=LLMdInferenceSimConfig.model_name,
+                detectors=create_detector_config(PROMPT_INJECTION_DETECTOR),
+            ),
+            verify=openshift_ca_bundle_file,
+        )
 
-            verify_builtin_detector_unsuitable_input_response(
-                response=response,
-                detector_id=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detector_id,
-                detection_name=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_name,
-                detection_type=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_type,
-                detection_text=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_text,
-            )
+        verify_builtin_detector_unsuitable_input_response(
+            response=response,
+            detector_id=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detector_id,
+            detection_name=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_name,
+            detection_type=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_type,
+            detection_text=PROMPT_INJECTION_INPUT_DETECTION_PROMPT.detection_text,
+        )
 
-        def test_guardrails_hf_detector_negative_detection(
-            self,
-            current_client_token,
-            llm_d_inference_sim_isvc,
-            orchestrator_config,
-            guardrails_orchestrator_route,
-            prompt_injection_detector_route,
-            openshift_ca_bundle_file,
-        ):
-            response = requests.post(
-                url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
-                headers=get_auth_headers(token=current_client_token),
-                json=get_chat_detections_payload(
-                    content=HARMLESS_PROMPT,
-                    model=LLMdInferenceSimConfig.model_name,
-                    detectors=create_detector_config(PROMPT_INJECTION_DETECTOR),
-                ),
-                verify=openshift_ca_bundle_file,
-            )
+    def test_guardrails_hf_detector_negative_detection(
+        self,
+        current_client_token,
+        llm_d_inference_sim_isvc,
+        orchestrator_config,
+        guardrails_orchestrator_route,
+        prompt_injection_detector_route,
+        openshift_ca_bundle_file,
+    ):
+        response = requests.post(
+            url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
+            headers=get_auth_headers(token=current_client_token),
+            json=get_chat_detections_payload(
+                content=HARMLESS_PROMPT,
+                model=LLMdInferenceSimConfig.model_name,
+                detectors=create_detector_config(PROMPT_INJECTION_DETECTOR),
+            ),
+            verify=openshift_ca_bundle_file,
+        )
 
-            verify_negative_detection_response(response=response)
+        verify_negative_detection_response(response=response)
 
-        def test_guardrails_standalone_detector_endpoint(
-            self,
-            current_client_token,
-            openshift_ca_bundle_file,
-            llm_d_inference_sim_isvc,
-            orchestrator_config,
-            guardrails_orchestrator_route,
-            hap_detector_route,
-        ):
-            url = f"https://{guardrails_orchestrator_route.host}/{STANDALONE_DETECTION_ENDPOINT}"
-            headers = get_auth_headers(token=current_client_token)
-            payload = {"detectors": {HAP_DETECTOR: {}}, "content": HAP_INPUT_DETECTION_PROMPT.content}
+    def test_guardrails_standalone_detector_endpoint(
+        self,
+        current_client_token,
+        openshift_ca_bundle_file,
+        llm_d_inference_sim_isvc,
+        orchestrator_config,
+        guardrails_orchestrator_route,
+        hap_detector_route,
+    ):
+        url = f"https://{guardrails_orchestrator_route.host}/{STANDALONE_DETECTION_ENDPOINT}"
+        headers = get_auth_headers(token=current_client_token)
+        payload = {"detectors": {HAP_DETECTOR: {}}, "content": HAP_INPUT_DETECTION_PROMPT.content}
 
-            response = requests.post(
-                url=url,
-                headers=headers,
-                json=payload,
-                verify=openshift_ca_bundle_file,
-            )
+        response = requests.post(
+            url=url,
+            headers=headers,
+            json=payload,
+            verify=openshift_ca_bundle_file,
+        )
 
-            assert response.status_code == http.HTTPStatus.OK, (
-                f"Unexpected status code: {response.status_code}, body: {response.text}"
-            )
-            data = response.json()
+        assert response.status_code == http.HTTPStatus.OK, (
+            f"Unexpected status code: {response.status_code}, body: {response.text}"
+        )
+        data = response.json()
 
-            assert "detections" in data
+        assert "detections" in data
 
-            score = data["detections"][0]["score"]
-            assert score > 0.9, f"Expected score > 0.9, got {score}"
+        score = data["detections"][0]["score"]
+        assert score > 0.9, f"Expected score > 0.9, got {score}"
 
-    class TestGuardrailsOrchestratorWithMultipleDetectors:
-        """
-        These tests verify that the GuardrailsOrchestrator works as expected when using two HuggingFace detectors
-        (prompt injection and hap).
-        Steps:
-            - Deploy an LLM (Qwen2.5-0.5B-Instruct) using the vLLM SR.
-            - Deploy the GuardrailsOrchestrator.
-            - Deploy a prompt injection detector and HAP detectors using the HuggingFace SR.
-            - Check that the detectors work when we have an unsuitable input.
-            - Check that the detector works when we have a harmless input (no detection).
-        """
+    def test_guardrails_multi_detector_unsuitable_input(
+        self,
+        current_client_token,
+        llm_d_inference_sim_isvc,
+        guardrails_orchestrator_route,
+        prompt_injection_detector_route,
+        hap_detector_route,
+        openshift_ca_bundle_file,
+        orchestrator_config,
+        guardrails_orchestrator,
+    ):
+        check_unsuitable_inputs_for_prompts(
+            current_client_token=current_client_token,
+            guardrails_orchestrator_route=guardrails_orchestrator_route,
+            openshift_ca_bundle_file=openshift_ca_bundle_file,
+            prompts=[HAP_INPUT_DETECTION_PROMPT, PROMPT_INJECTION_INPUT_DETECTION_PROMPT],
+        )
 
-        def test_guardrails_multi_detector_unsuitable_input(
-            self,
-            current_client_token,
-            llm_d_inference_sim_isvc,
-            guardrails_orchestrator_route,
-            prompt_injection_detector_route,
-            hap_detector_route,
-            openshift_ca_bundle_file,
-            orchestrator_config,
-            guardrails_orchestrator,
-        ):
-            check_unsuitable_inputs_for_prompts(
-                current_client_token=current_client_token,
-                guardrails_orchestrator_route=guardrails_orchestrator_route,
-                openshift_ca_bundle_file=openshift_ca_bundle_file,
-                prompts=[HAP_INPUT_DETECTION_PROMPT, PROMPT_INJECTION_INPUT_DETECTION_PROMPT],
-            )
+    def test_guardrails_multi_detector_negative_detection(
+        self,
+        current_client_token,
+        llm_d_inference_sim_isvc,
+        orchestrator_config,
+        guardrails_orchestrator_route,
+        hap_detector_route,
+        prompt_injection_detector_route,
+        openshift_ca_bundle_file,
+    ):
+        response = requests.post(
+            url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
+            headers=get_auth_headers(token=current_client_token),
+            json=get_chat_detections_payload(
+                content=HARMLESS_PROMPT,
+                model=LLMdInferenceSimConfig.model_name,
+                detectors=create_detector_config(PROMPT_INJECTION_DETECTOR, HAP_DETECTOR),
+            ),
+            verify=openshift_ca_bundle_file,
+        )
 
-        def test_guardrails_multi_detector_negative_detection(
-            self,
-            current_client_token,
-            llm_d_inference_sim_isvc,
-            orchestrator_config,
-            guardrails_orchestrator_route,
-            hap_detector_route,
-            prompt_injection_detector_route,
-            openshift_ca_bundle_file,
-        ):
-            response = requests.post(
-                url=f"https://{guardrails_orchestrator_route.host}/{CHAT_COMPLETIONS_DETECTION_ENDPOINT}",
-                headers=get_auth_headers(token=current_client_token),
-                json=get_chat_detections_payload(
-                    content=HARMLESS_PROMPT,
-                    model=LLMdInferenceSimConfig.model_name,
-                    detectors=create_detector_config(PROMPT_INJECTION_DETECTOR, HAP_DETECTOR),
-                ),
-                verify=openshift_ca_bundle_file,
-            )
-
-            verify_negative_detection_response(response=response)
+        verify_negative_detection_response(response=response)
 
 
 @pytest.mark.parametrize(
