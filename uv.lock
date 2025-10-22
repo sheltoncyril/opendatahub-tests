@@ -1,4 +1,5 @@
 version = 1
+revision = 2
 requires-python = "==3.13.*"
 
 [[package]]
@@ -1253,7 +1254,7 @@ requires-dist = [
     { name = "marshmallow", specifier = "==3.26.1,<4" },
     { name = "model-registry", specifier = ">=0.2.13" },
     { name = "openshift-python-utilities", specifier = ">=5.0.71" },
-    { name = "openshift-python-wrapper", specifier = ">=11.0.94" },
+    { name = "openshift-python-wrapper", specifier = ">=11.0.99" },
     { name = "portforward", specifier = ">=0.7.1" },
     { name = "protobuf" },
     { name = "pygithub", specifier = ">=2.5.0" },
@@ -1318,7 +1319,7 @@ dependencies = [
     { name = "timeout-sampler" },
     { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c8/6c/25b7051ef632fd5f365b56afb84e9d36195af755febb0606c60b52ce8d36/openshift_python_wrapper-11.0.99.tar.gz", hash = "sha256:8faab684833156bbbd119d5d7ebeecc695737e3eb9b9a8f5b30e5fda46bf3c42", size = 7079838 }
+sdist = { url = "https://files.pythonhosted.org/packages/c8/6c/25b7051ef632fd5f365b56afb84e9d36195af755febb0606c60b52ce8d36/openshift_python_wrapper-11.0.99.tar.gz", hash = "sha256:8faab684833156bbbd119d5d7ebeecc695737e3eb9b9a8f5b30e5fda46bf3c42", size = 7079838, upload-time = "2025-10-20T12:44:30.601Z" }
 
 [[package]]
 name = "openshift-python-wrapper-data-collector"
