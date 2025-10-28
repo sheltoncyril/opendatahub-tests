@@ -13,6 +13,7 @@ from ocp_resources.secret import Secret
 from ocp_resources.service import Service
 from pytest import Config, FixtureRequest
 
+from tests.model_explainability.lm_eval.constants import ARC_EASY_DATASET_IMAGE, FLAN_T5_IMAGE
 from tests.model_explainability.lm_eval.utils import get_lmevaljob_pod
 from utilities.constants import Labels, MinIo, Protocols, Timeout
 from utilities.exceptions import MissingParameter
@@ -144,7 +145,7 @@ def lmeval_data_pvc(
         name="lmeval-data",
         namespace=model_namespace.name,
         label={"lmevaltests": "vllm"},
-        accessmodes=PersistentVolumeClaim.AccessMode.RWO,
+        accessmodes=PersistentVolumeClaim.AccessMode.RWX,
         size="20Gi",
     ) as pvc:
         yield pvc
@@ -165,9 +166,13 @@ def lmeval_data_downloader_pod(
         security_context={"fsGroup": 1000, "seccompProfile": {"type": "RuntimeDefault"}},
         containers=[
             {
-                "name": "data",
-                "image": request.param.get("image"),
-                "command": ["/bin/sh", "-c", "cp -r /mnt/data/. /mnt/pvc/ && chmod -R g+w /mnt/pvc/datasets"],
+                "name": "dataset-copy-to-pvc",
+                "image": request.param.get("dataset_image"),
+                "command": [
+                    "/bin/sh",
+                    "-c",
+                    "cp --verbose -r /mnt/data/datasets /mnt/pvc/datasets && chmod -R g+w /mnt/pvc/datasets",
+                ],
                 "securityContext": {
                     "runAsUser": 1000,
                     "runAsNonRoot": True,
@@ -175,7 +180,19 @@ def lmeval_data_downloader_pod(
                     "capabilities": {"drop": ["ALL"]},
                 },
                 "volumeMounts": [{"mountPath": "/mnt/pvc", "name": "pvc-volume"}],
-            }
+            },
+            {
+                "name": "flan-data-copy-to-pvc",
+                "image": request.param.get("flan_model_image"),
+                "command": ["/bin/sh", "-c", "cp --verbose -r /mnt/data/flan /mnt/pvc/flan"],
+                "securityContext": {
+                    "runAsUser": 1000,
+                    "runAsNonRoot": True,
+                    "allowPrivilegeEscalation": False,
+                    "capabilities": {"drop": ["ALL"]},
+                },
+                "volumeMounts": [{"mountPath": "/mnt/pvc", "name": "pvc-volume"}],
+            },
         ],
         restart_policy="Never",
         volumes=[{"name": "pvc-volume", "persistentVolumeClaim": {"claimName": "lmeval-data"}}],
@@ -310,11 +327,10 @@ def lmeval_minio_copy_pod(
         volumes=[{"name": "shared-data", "emptyDir": {}}],
         init_containers=[
             {
-                "name": "copy-data",
-                "image": "quay.io/trustyai_testing/lmeval-assets-flan-arceasy"
-                "@sha256:c627e1fb19252f307bfc4c7de8a3b74442d702789313a428f8a3094b1423c325",
+                "name": "copy-dataset-data",
+                "image": ARC_EASY_DATASET_IMAGE,
                 "command": ["/bin/sh", "-c"],
-                "args": ["cp -r /mnt/data /shared"],
+                "args": ["cp -r /mnt/data/datasets /shared/datasets"],
                 "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
                 "securityContext": {
                     "allowPrivilegeEscalation": False,
@@ -322,7 +338,20 @@ def lmeval_minio_copy_pod(
                     "runAsNonRoot": True,
                     "seccompProfile": {"type": "RuntimeDefault"},
                 },
-            }
+            },
+            {
+                "name": "copy-flan-model-data",
+                "image": FLAN_T5_IMAGE,
+                "command": ["/bin/sh", "-c"],
+                "args": ["cp -r /mnt/data/flan /shared/flan"],
+                "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
+                "securityContext": {
+                    "allowPrivilegeEscalation": False,
+                    "capabilities": {"drop": ["ALL"]},
+                    "runAsNonRoot": True,
+                    "seccompProfile": {"type": "RuntimeDefault"},
+                },
+            },
         ],
         containers=[
             {
