@@ -330,7 +330,7 @@ def lmeval_minio_copy_pod(
                 "name": "copy-dataset-data",
                 "image": ARC_EASY_DATASET_IMAGE,
                 "command": ["/bin/sh", "-c"],
-                "args": ["cp -r /mnt/data/datasets /shared/datasets"],
+                "args": ["cp --verbose -r /mnt/data/datasets /shared/datasets"],
                 "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
                 "securityContext": {
                     "allowPrivilegeEscalation": False,
@@ -343,7 +343,7 @@ def lmeval_minio_copy_pod(
                 "name": "copy-flan-model-data",
                 "image": FLAN_T5_IMAGE,
                 "command": ["/bin/sh", "-c"],
-                "args": ["cp -r /mnt/data/flan /shared/flan"],
+                "args": ["cp --verbose -r /mnt/data/flan /shared/flan"],
                 "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
                 "securityContext": {
                     "allowPrivilegeEscalation": False,
