@@ -145,7 +145,7 @@ def lmeval_data_pvc(
         name="lmeval-data",
         namespace=model_namespace.name,
         label={"lmevaltests": "vllm"},
-        accessmodes=PersistentVolumeClaim.AccessMode.RWX,
+        accessmodes=PersistentVolumeClaim.AccessMode.RWO,
         size="20Gi",
     ) as pvc:
         yield pvc
@@ -164,6 +164,20 @@ def lmeval_data_downloader_pod(
         name="lmeval-downloader",
         label={"lmevaltests": "vllm"},
         security_context={"fsGroup": 1000, "seccompProfile": {"type": "RuntimeDefault"}},
+        init_containers=[
+            {
+                "name": "flan-data-copy-to-pvc",
+                "image": FLAN_T5_IMAGE,
+                "command": ["/bin/sh", "-c", "cp --verbose -r /mnt/data/flan /mnt/pvc/flan"],
+                "securityContext": {
+                    "runAsUser": 1000,
+                    "runAsNonRoot": True,
+                    "allowPrivilegeEscalation": False,
+                    "capabilities": {"drop": ["ALL"]},
+                },
+                "volumeMounts": [{"mountPath": "/mnt/pvc", "name": "pvc-volume"}],
+            }
+        ],
         containers=[
             {
                 "name": "dataset-copy-to-pvc",
@@ -173,18 +187,6 @@ def lmeval_data_downloader_pod(
                     "-c",
                     "cp --verbose -r /mnt/data/datasets /mnt/pvc/datasets && chmod -R g+w /mnt/pvc/datasets",
                 ],
-                "securityContext": {
-                    "runAsUser": 1000,
-                    "runAsNonRoot": True,
-                    "allowPrivilegeEscalation": False,
-                    "capabilities": {"drop": ["ALL"]},
-                },
-                "volumeMounts": [{"mountPath": "/mnt/pvc", "name": "pvc-volume"}],
-            },
-            {
-                "name": "flan-data-copy-to-pvc",
-                "image": request.param.get("flan_model_image"),
-                "command": ["/bin/sh", "-c", "cp --verbose -r /mnt/data/flan /mnt/pvc/flan"],
                 "securityContext": {
                     "runAsUser": 1000,
                     "runAsNonRoot": True,

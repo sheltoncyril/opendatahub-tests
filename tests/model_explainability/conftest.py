@@ -18,7 +18,7 @@ def pvc_minio_namespace(
         client=admin_client,
         name="minio-pvc",
         namespace=minio_namespace.name,
-        accessmodes=PersistentVolumeClaim.AccessMode.RWX,
+        accessmodes=PersistentVolumeClaim.AccessMode.RWO,
         volume_mode=PersistentVolumeClaim.VolumeMode.FILE,
         size="10Gi",
     ) as pvc:

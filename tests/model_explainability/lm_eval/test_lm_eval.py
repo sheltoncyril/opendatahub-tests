@@ -4,7 +4,6 @@ from typing import List
 from tests.model_explainability.lm_eval.constants import (
     LLMAAJ_TASK_DATA,
     CUSTOM_UNITXT_TASK_DATA,
-    FLAN_T5_IMAGE,
     ARC_EASY_DATASET_IMAGE,
 )
 from tests.model_explainability.utils import validate_tai_component_images
@@ -56,7 +55,7 @@ def test_lmeval_huggingface_model(admin_client, model_namespace, lmevaljob_hf_po
     [
         pytest.param(
             {"name": "test-lmeval-local-offline-builtin"},
-            {"dataset_image": ARC_EASY_DATASET_IMAGE, "flan_model_image": FLAN_T5_IMAGE},
+            {"dataset_image": ARC_EASY_DATASET_IMAGE},
             {"task_list": {"taskNames": ["arc_easy"]}},
         )
     ],
@@ -80,8 +79,7 @@ def test_lmeval_local_offline_builtin_tasks_flan_arceasy(
             {"name": "test-lmeval-local-offline-unitxt"},
             {
                 "dataset_image": "quay.io/trustyai_testing/lmeval-assets-20newsgroups"
-                "@sha256:106023a7ee0c93afad5d27ae50130809ccc232298b903c8b12ea452e9faafce2",
-                "flan_model_image": FLAN_T5_IMAGE,
+                "@sha256:106023a7ee0c93afad5d27ae50130809ccc232298b903c8b12ea452e9faafce2"
             },
             {
                 "task_list": {
