@@ -20,8 +20,6 @@ DATASET_FILENAME = "example-dk-bench-input-bmo.jsonl"
 DATASET_PATH_IN_DRIVER = f"/opt/app-root/src/hf_home/{DATASET_FILENAME}"
 
 
-
-
 @pytest.fixture(scope="class")
 def trustyai_operator_deployment(admin_client: DynamicClient) -> Deployment:
     return Deployment(
@@ -95,13 +93,15 @@ def dataset_upload(dataset_pvc, admin_client, model_namespace) -> str:
         client=admin_client,
         name="dataset-storage-uploader",
         namespace=model_namespace.name,
-        containers=[{
-            "name": "uploader",
-            "image": "quay.io/prometheus/busybox:latest",
-            "command": ["/bin/sh", "-c", "sleep 300"],  # short-lived
-            "volumeMounts": [{"name": "dataset-storage", "mountPath": remote_dir}],
-            "securityContext": {"runAsUser": 0},  # write permissions
-        }],
+        containers=[
+            {
+                "name": "uploader",
+                "image": "quay.io/prometheus/busybox:latest",
+                "command": ["/bin/sh", "-c", "sleep 300"],  # short-lived
+                "volumeMounts": [{"name": "dataset-storage", "mountPath": remote_dir}],
+                "securityContext": {"runAsUser": 0},  # write permissions
+            }
+        ],
         volumes=[{"name": "dataset-storage", "persistentVolumeClaim": {"claimName": dataset_pvc.name}}],
         restart_policy="Never",
     ) as pod:

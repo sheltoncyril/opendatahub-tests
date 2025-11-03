@@ -8,6 +8,7 @@ from timeout_sampler import TimeoutSampler
 TRUSTYAI_LMEVAL_ARCEASY = f"{LlamaStackProviders.Eval.TRUSTYAI_LMEVAL}::arc_easy"
 TRUSTYAI_LMEVAL_CUSTOM = f"{LlamaStackProviders.Eval.TRUSTYAI_LMEVAL}::dk-bench"
 
+
 @pytest.mark.parametrize(
     "model_namespace, minio_pod, minio_data_connection, llama_stack_server_config",
     [
@@ -102,14 +103,13 @@ class TestLlamaStackLMEvalCustomBenchmark:
     using a preloaded dataset in a PVC.
     """
 
-    def test_lmeval_register_custom_benchmark(self, minio_pod, minio_data_connection, dataset_pvc, dataset_upload, llama_stack_client):
-
+    def test_lmeval_register_custom_benchmark(
+        self, minio_pod, minio_data_connection, dataset_pvc, dataset_upload, llama_stack_client
+    ):
         dataset_path = dataset_upload
         # Register model first
         llama_stack_client.models.register(
-            provider_id=LlamaStackProviders.Inference.VLLM_INFERENCE,
-            model_type="llm",
-            model_id=QWEN_MODEL_NAME
+            provider_id=LlamaStackProviders.Inference.VLLM_INFERENCE, model_type="llm", model_id=QWEN_MODEL_NAME
         )
 
         # Register DK-Bench benchmark pointing to the dataset in PVC
@@ -148,7 +148,13 @@ class TestLlamaStackLMEvalCustomBenchmark:
         # assert any(b.identifier == TRUSTYAI_LMEVAL_CUSTOM for b in benchmarks)
 
     def test_llamastack_run_custom_eval(
-        self, minio_pod, minio_data_connection, dataset_pvc, dataset_upload, patched_dsc_lmeval_allow_all, llama_stack_client
+        self,
+        minio_pod,
+        minio_data_connection,
+        dataset_pvc,
+        dataset_upload,
+        patched_dsc_lmeval_allow_all,
+        llama_stack_client,
     ):
         job = llama_stack_client.eval.run_eval(
             benchmark_id=TRUSTYAI_LMEVAL_CUSTOM,
