@@ -131,7 +131,7 @@ def dataset_upload(dataset_pvc, admin_client, model_namespace) -> str:
         subprocess.run(  # noqa
             ["oc", "exec", "-n", model_namespace.name, pod.name, "--", "mkdir", "-p", remote_dir],
             check=True,
-        )  # noqa
+        )
 
         # Write JSONL dataset
         subprocess.run(  # noqa
