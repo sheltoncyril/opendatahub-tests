@@ -104,7 +104,7 @@ class TestLlamaStackLMEvalCustomBenchmark:
     """
 
     def test_lmeval_register_custom_benchmark(
-        self, minio_pod, minio_data_connection, dataset_pvc, dataset_upload, llama_stack_client
+        self, minio_pod, minio_data_connection, dataset_pvc, dataset_upload, llama_stack_client, qwen_isvc_url
     ):
         dataset_path = dataset_upload
         # Register model first
@@ -124,13 +124,13 @@ class TestLlamaStackLMEvalCustomBenchmark:
                     "git": {
                         "url": "https://github.com/trustyai-explainability/lm-eval-tasks.git",
                         "branch": "main",
-                        "commit": "8220e2d73c187471acbe71659c98bccecfe77958",
+                        "commit": "8220e2d73c187471acbe71659c98bccecfe77958",  # pragma: allowlist secret
                         "path": "tasks/",
                     }
                 },
                 "env": {
                     "DK_BENCH_DATASET_PATH": dataset_path,
-                    "JUDGE_MODEL_URL": "http://qwen-predictor:8080/v1/chat/completions",
+                    "JUDGE_MODEL_URL": f"{qwen_isvc_url}/chat/completions",
                     "JUDGE_MODEL_NAME": QWEN_MODEL_NAME,
                     "JUDGE_API_KEY": "",
                 },
@@ -156,7 +156,7 @@ class TestLlamaStackLMEvalCustomBenchmark:
         patched_dsc_lmeval_allow_all,
         llama_stack_client,
     ):
-        job = llama_stack_client.eval.run_eval(
+        job = llama_stack_client.alpha.eval.run_eval(
             benchmark_id=TRUSTYAI_LMEVAL_CUSTOM,
             benchmark_config={
                 "eval_candidate": {
@@ -173,7 +173,7 @@ class TestLlamaStackLMEvalCustomBenchmark:
         samples = TimeoutSampler(
             wait_timeout=Timeout.TIMEOUT_10MIN,
             sleep=30,
-            func=lambda: llama_stack_client.eval.jobs.status(
+            func=lambda: llama_stack_client.alpha.eval.jobs.status(
                 job_id=job.job_id, benchmark_id=TRUSTYAI_LMEVAL_CUSTOM
             ).status,
         )

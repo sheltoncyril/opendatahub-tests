@@ -54,7 +54,7 @@ def patched_dsc_lmeval_allow_all(
             }
         }
     ):
-        num_replicas: int = trustyai_operator_deployment.replicas
+        num_replicas: int = trustyai_operator_deployment.instance.spec.replicas
         trustyai_operator_deployment.scale_replicas(replica_count=0)
         trustyai_operator_deployment.scale_replicas(replica_count=num_replicas)
         trustyai_operator_deployment.wait_for_replicas()
@@ -111,26 +111,30 @@ def dataset_upload(dataset_pvc, admin_client, model_namespace) -> str:
         dataset_lines = [
             {
                 "user_input": "what is the meaning of verifying the identity of a person or an entity",
-                "reference": "It means to use methods to ensure that the information in an identification document or from other informational sources matches the information that the person or entity provided.",
-                "response": "Verifying identity is the process of obtaining, recording, and maintaining information to confirm a person or entity's identity.",
+                "reference": "It means to use methods to ensure that the information in an identification document or "
+                "from other informational sources matches the information that the person or entity "
+                "provided.",
+                "response": "Verifying identity is the process of obtaining, recording, and maintaining information to "
+                "confirm a person or entity's identity.",
             },
             {
                 "user_input": "Why is it important to verify identity?",
-                "reference": "Verifying identity is a foundational element of Canada's anti-money laundering and anti-terrorist financing regime.",
+                "reference": "Verifying identity is a foundational element of Canada's anti-money laundering and "
+                "anti-terrorist financing regime.",
                 "response": "Verifying identity is a critical step in maintaining security and preventing fraud.",
             },
         ]
 
         jsonl_content = "\n".join(json.dumps(line) for line in dataset_lines)
 
-        # Ensure directory exists inside the PVC mount
-        subprocess.run(
+        # Ensure a directory exists inside the PVC mount
+        subprocess.run(  # noqa
             ["oc", "exec", "-n", model_namespace.name, pod.name, "--", "mkdir", "-p", remote_dir],
             check=True,
-        )
+        )  # noqa
 
         # Write JSONL dataset
-        subprocess.run(
+        subprocess.run(  # noqa
             ["oc", "exec", "-i", "-n", model_namespace.name, pod.name, "--", "sh", "-c", f"cat > {remote_path}"],
             input=jsonl_content.encode("utf-8"),
             check=True,
