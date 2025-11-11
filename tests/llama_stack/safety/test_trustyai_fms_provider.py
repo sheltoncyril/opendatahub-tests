@@ -61,7 +61,7 @@ class TestLlamaStackFMSGuardrailsProvider:
         shield_params = {
             "type": "content",
             "confidence_threshold": 0.5,
-            "message_types": ["system"],
+            "message_types": ["system", "user"],
             "auth_token": current_client_token,
             "verify_ssl": True,
             "ssl_cert_path": "/etc/llama/certs/orch-certificate.crt",
@@ -104,3 +104,18 @@ class TestLlamaStackFMSGuardrailsProvider:
         assert run_shields_response.violation.metadata["shield_id"] == SECURE_SHIELD_ID, (
             f"Expected shield_id to be {SECURE_SHIELD_ID}"
         )
+
+    def test_fms_moderations(self, minio_pod, minio_data_connection, llama_stack_client):
+        """Test to check if moderations API works with the registered shield above.
+        refer: https://github.com/m-misiura/demos/tree/main/fms_safety_provider_lllamastack
+        """
+        moderations_response = llama_stack_client.moderations.create(
+            input="My email is juandoe@example.com", model=SECURE_SHIELD_ID
+        )
+        assert len(moderations_response.results) > 0, "Moderation response results was empty."
+        assert moderations_response.model == SECURE_SHIELD_ID, "Moderation shield_id did not match the model."
+        assert moderations_response.results[0].categories["pii"], "The pii moderation category was not triggered."
+        assert moderations_response.results[0].flagged, "The moderation was not flagged."
+        assert moderations_response.results[0].metadata["status"] == "violation"
+        assert moderations_response.results[0].metadata["results"][0]["detection_type"] == "pii"
+        assert moderations_response.results[0].metadata["text"] == "My email is juandoe@example.com"
