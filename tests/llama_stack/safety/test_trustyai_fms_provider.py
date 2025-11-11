@@ -1,5 +1,6 @@
 import pytest
 import yaml
+from llama_stack_client.types.chat.completion_create_params import MessageOpenAIUserMessageParam
 from simple_logger.logger import get_logger
 
 from tests.llama_stack.constants import LlamaStackProviders
@@ -86,10 +87,10 @@ class TestLlamaStackFMSGuardrailsProvider:
         run_shields_response = llama_stack_client.safety.run_shield(
             shield_id=SECURE_SHIELD_ID,
             messages=[
-                {
-                    "content": "My email is johndoe@example.com",
-                    "role": "system",
-                },
+                MessageOpenAIUserMessageParam(
+                    content="My email is johndoe@example.com",
+                    role="user",
+                )
             ],
             params={},
         )
@@ -117,5 +118,5 @@ class TestLlamaStackFMSGuardrailsProvider:
         assert moderations_response.results[0].categories["pii"], "The pii moderation category was not triggered."
         assert moderations_response.results[0].flagged, "The moderation was not flagged."
         assert moderations_response.results[0].metadata["status"] == "violation"
-        assert moderations_response.results[0].metadata["results"][0]["detection_type"] == "pii"
+        assert moderations_response.results[0].metadata["detection_type"] == "pii"
         assert moderations_response.results[0].metadata["text"] == "My email is juandoe@example.com"
