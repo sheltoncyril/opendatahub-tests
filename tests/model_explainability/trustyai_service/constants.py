@@ -18,6 +18,8 @@ MLSERVER_RUNTIME_NAME: str = f"{MLSERVER}-1.x"
 XGBOOST: str = "xgboost"
 LIGHTGBM: str = "lightgbm"
 MLFLOW: str = "mlflow"
+CATBOOST: str = "catboost"
+HUGGINGFACE: str = "huggingface"
 
 GAUSSIAN_CREDIT_MODEL: str = "gaussian-credit-model"
 GAUSSIAN_CREDIT_MODEL_STORAGE_PATH: str = f"{SKLEARN}/{GAUSSIAN_CREDIT_MODEL.replace('-', '_')}/1"
@@ -28,14 +30,16 @@ GAUSSIAN_CREDIT_MODEL_RESOURCES: Dict[str, Dict[str, str]] = {
 
 KSERVE_MLSERVER: str = f"kserve-{MLSERVER}"
 KSERVE_MLSERVER_SUPPORTED_MODEL_FORMATS: List[Dict[str, Any]] = [
-    {"name": "sklearn", "version": "0", "autoSelect": True, "priority": 2},
-    {"name": "sklearn", "version": "1", "autoSelect": True, "priority": 2},
-    {"name": "xgboost", "version": "1", "autoSelect": True, "priority": 2},
-    {"name": "xgboost", "version": "2", "autoSelect": True, "priority": 2},
-    {"name": "lightgbm", "version": "3", "autoSelect": True, "priority": 2},
-    {"name": "lightgbm", "version": "4", "autoSelect": True, "priority": 2},
-    {"name": "mlflow", "version": "1", "autoSelect": True, "priority": 1},
-    {"name": "mlflow", "version": "2", "autoSelect": True, "priority": 1},
+    {"name": SKLEARN, "version": "0", "autoSelect": True, "priority": 2},
+    {"name": SKLEARN, "version": "1", "autoSelect": True, "priority": 2},
+    {"name": XGBOOST, "version": "1", "autoSelect": True, "priority": 2},
+    {"name": XGBOOST, "version": "2", "autoSelect": True, "priority": 2},
+    {"name": LIGHTGBM, "version": "3", "autoSelect": True, "priority": 2},
+    {"name": LIGHTGBM, "version": "4", "autoSelect": True, "priority": 2},
+    {"name": MLFLOW, "version": "1", "autoSelect": True, "priority": 1},
+    {"name": MLFLOW, "version": "2", "autoSelect": True, "priority": 1},
+    {"name": CATBOOST, "version": "1", "autoSelect": True, "priority": 1},
+    {"name": HUGGINGFACE, "version": "1", "autoSelect": True, "priority": 1},
 ]
 KSERVE_MLSERVER_CONTAINERS: List[Dict[str, Any]] = [
     {
@@ -43,12 +47,17 @@ KSERVE_MLSERVER_CONTAINERS: List[Dict[str, Any]] = [
         "image": "quay.io/trustyai_testing/mlserver"
         "@sha256:68a4cd74fff40a3c4f29caddbdbdc9e54888aba54bf3c5f78c8ffd577c3a1c89",
         "env": [
-            {"name": "MLSERVER_MODEL_IMPLEMENTATION", "value": "{{.Labels.modelClass}}"},
             {"name": "MLSERVER_HTTP_PORT", "value": str(Ports.REST_PORT)},
             {"name": "MLSERVER_GRPC_PORT", "value": "9000"},
             {"name": "MODELS_DIR", "value": "/mnt/models/"},
         ],
         "resources": {"requests": {"cpu": "1", "memory": "2Gi"}, "limits": {"cpu": "1", "memory": "2Gi"}},
+        "securityContext": {
+            "allowPrivilegeEscalation": False,
+            "capabilities": {"drop": ["ALL"]},
+            "privileged": False,
+            "runAsNonRoot": True,
+        },
     }
 ]
 KSERVE_MLSERVER_ANNOTATIONS: Dict[str, str] = {
@@ -56,7 +65,7 @@ KSERVE_MLSERVER_ANNOTATIONS: Dict[str, str] = {
     f"{ApiGroups.OPENDATAHUB_IO}/template-display-name": "KServe MLServer",
     "prometheus.kserve.io/path": "/metrics",
     "prometheus.io/port": str(Ports.REST_PORT),
-    "openshift.io/display-name": "mlserver-1.x",
+    "openshift.io/display-name": MLSERVER_RUNTIME_NAME,
 }
 
 ISVC_GETTER: str = "isvc-getter"
