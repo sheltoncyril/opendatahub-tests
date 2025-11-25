@@ -1,5 +1,6 @@
 import pytest
 import yaml
+from llama_stack_client.types import CreateResponse
 from llama_stack_client.types.chat.completion_create_params import MessageOpenAIUserMessageParam
 from simple_logger.logger import get_logger
 
@@ -110,7 +111,7 @@ class TestLlamaStackFMSGuardrailsProvider:
         """Test to check if moderations API works with the registered shield above.
         refer: https://github.com/m-misiura/demos/tree/main/fms_safety_provider_lllamastack
         """
-        moderations_response = llama_stack_client.moderations.create(
+        moderations_response: CreateResponse = llama_stack_client.moderations.create(
             input="My email is juandoe@example.com", model=SECURE_SHIELD_ID
         )
         assert len(moderations_response.results) > 0, "Moderation response results was empty."
