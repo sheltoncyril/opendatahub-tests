@@ -12,7 +12,7 @@ LOGGER = get_logger(name=__name__)
 
 
 class TestSourcesEndpoint:
-    """Test class for the model catalog sources endpoint status and error fields, RHOAIENG-41849."""
+    """Test class for the model catalog sources endpoint."""
 
     @pytest.mark.smoke
     def test_available_source_status(
@@ -22,7 +22,7 @@ class TestSourcesEndpoint:
         model_registry_rest_headers: dict[str, str],
     ):
         """
-        Test that the sources endpoint returns no error for available sources.
+        RHOAIENG-41849: Test that the sources endpoint returns no error for available sources.
         """
         response = execute_get_command(url=f"{model_catalog_rest_url[0]}sources", headers=model_registry_rest_headers)
         items = response.get("items", [])
@@ -47,6 +47,7 @@ class TestSourcesEndpoint:
         model_registry_rest_headers: dict[str, str],
     ):
         """
+        RHOAIENG-41849:
         This test disables an existing catalog and verifies:
         - status field is "disabled"
         - error field is null or empty
@@ -72,4 +73,36 @@ class TestSourcesEndpoint:
             f"ID: {disabled_catalog.get('id')}, "
             f"Status: {disabled_catalog.get('status')}, "
             f"Error: {error_value}"
+        )
+
+    @pytest.mark.parametrize("disabled_catalog_source", ["redhat_ai_models"], indirect=True)
+    @pytest.mark.sanity
+    def test_sources_endpoint_returns_all_sources_regardless_of_enabled_field(
+        self,
+        enabled_model_catalog_config_map: ConfigMap,
+        disabled_catalog_source: str,
+        model_catalog_rest_url: list[str],
+        model_registry_rest_headers: dict[str, str],
+    ):
+        """
+        RHOAIENG-41633: Test that sources endpoint returns ALL sources regardless of enabled field value.
+        """
+        response = execute_get_command(url=f"{model_catalog_rest_url[0]}sources", headers=model_registry_rest_headers)
+        items = response.get("items", [])
+
+        assert len(items) > 1, "Expected multiple sources to be returned"
+
+        # Verify we have at least one enabled source
+        enabled_sources = [item for item in items if item.get("status") == "available"]
+        assert enabled_sources, "Expected at least one enabled source"
+
+        # Verify we have at least one disabled source
+        disabled_sources = [item for item in items if item.get("status") == "disabled"]
+        assert disabled_sources, "Expected at least one disabled source"
+
+        assert len(enabled_sources) + len(disabled_sources) == len(items), "Expected all sources to be returned"
+
+        LOGGER.info(
+            f"Sources endpoint returned {len(items)} total sources: "
+            f"{len(enabled_sources)} enabled, {len(disabled_sources)} disabled"
         )
