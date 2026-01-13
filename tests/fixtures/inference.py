@@ -1,4 +1,3 @@
-import time
 from typing import Generator, Any
 
 import pytest
@@ -21,6 +20,8 @@ from utilities.constants import (
     QWEN_MODEL_NAME,
     LLMdInferenceSimConfig,
 )
+from timeout_sampler import retry
+
 from utilities.inference_utils import create_isvc
 from utilities.infra import get_data_science_cluster, wait_for_dsc_status_ready
 from utilities.serving_runtime import ServingRuntimeFromTemplate
@@ -204,14 +205,28 @@ def patched_dsc_kserve_headed(
     admin_client, kserve_controller_manager_deployment: Deployment
 ) -> Generator[DataScienceCluster, None, None]:
     """Configure KServe Services to work in Headed mode i.e. using the Service port instead of the Pod port"""
+
+    def _kserve_last_transition_time(dsc_resource: DataScienceCluster) -> str:
+        return next(filter(lambda x: x["type"] == "KserveReady", dsc_resource.instance.status["conditions"]))[
+            "lastTransitionTime"
+        ]
+
+    @retry(wait_timeout=30, sleep=5)
+    def _wait_for_headed_entities_status_ready(kserve_last_transition_time: str, dsc_resource: DataScienceCluster):
+        if kserve_last_transition_time == _kserve_last_transition_time(dsc_resource):
+            return False
+        kserve_controller_manager_deployment.wait_for_replicas()
+        wait_for_dsc_status_ready(dsc_resource=dsc_resource)
+        return True
+
     dsc = get_data_science_cluster(client=admin_client)
     if not dsc.instance.spec.components.kserve.rawDeploymentServiceConfig == "Headed":
         with ResourceEditor(
             patches={dsc: {"spec": {"components": {"kserve": {"rawDeploymentServiceConfig": "Headed"}}}}}
         ):
-            time.sleep(20)  # noqa: FCN001
-            kserve_controller_manager_deployment.wait_for_replicas()
-            wait_for_dsc_status_ready(dsc_resource=dsc)
+            _wait_for_headed_entities_status_ready(
+                kserve_last_transition_time=_kserve_last_transition_time(dsc), dsc_resource=dsc
+            )
             yield dsc
     else:
         LOGGER.info("DSC already configured for Headed mode")
