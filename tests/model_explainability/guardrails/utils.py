@@ -7,14 +7,10 @@ from simple_logger.logger import get_logger
 from typing import Dict, Any, List, Optional
 
 from timeout_sampler import retry
-
+from utilities.guardrails import get_auth_headers
 from tests.model_explainability.guardrails.constants import GuardrailsDetectionPrompt
 
 LOGGER = get_logger(name=__name__)
-
-
-def get_auth_headers(token: str) -> Dict[str, str]:
-    return {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
 
 
 def get_chat_detections_payload(content: str, model: str, detectors: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -131,7 +127,9 @@ def verify_builtin_detector_unsuitable_input_response(
 
     warnings = response_data.get("warnings", [])
     unsuitable_input_warning: str = "UNSUITABLE_INPUT"
-    if len(warnings) != 1:
+    if warnings is None:
+        errors.append("Expected warnings in response, got None")
+    elif len(warnings) != 1:
         errors.append(f"Expected 1 warning in response, got {len(warnings)}")
     elif warnings[0]["type"] != unsuitable_input_warning:
         errors.append(f"Expected warning type {unsuitable_input_warning}, got {warnings[0]['type']}")
@@ -239,20 +237,6 @@ def create_detector_config(*detector_names: str) -> Dict[str, Dict[str, Any]]:
     }
 
 
-@retry(exceptions_dict={TimeoutError: []}, wait_timeout=120, sleep=10)
-def check_guardrails_health_endpoint(
-    host,
-    token,
-    ca_bundle_file,
-):
-    response = requests.get(url=f"https://{host}/health", headers=get_auth_headers(token=token), verify=ca_bundle_file)
-    if response.status_code == http.HTTPStatus.OK:
-        return response
-    raise TimeoutError(
-        f"Timeout waiting GuardrailsOrchestrator to be healthy. Response status code: {response.status_code}"
-    )
-
-
 def verify_health_info_response(host, token, ca_bundle_file):
     response = requests.get(url=f"https://{host}/info", headers=get_auth_headers(token=token), verify=ca_bundle_file)
     assert response.status_code == http.HTTPStatus.OK
@@ -300,7 +284,7 @@ def send_chat_detections_request(
     )
 
 
-@retry(exceptions_dict={TimeoutError: []}, wait_timeout=120, sleep=1)
+@retry(exceptions_dict={TimeoutError: []}, wait_timeout=120, sleep=4)
 def send_and_verify_unsuitable_input_detection(
     url: str,
     token: str,
