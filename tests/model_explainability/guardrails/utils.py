@@ -7,6 +7,8 @@ from simple_logger.logger import get_logger
 from typing import Dict, Any, List, Optional
 
 from timeout_sampler import retry
+
+from utilities.exceptions import UnexpectedValueError
 from utilities.guardrails import get_auth_headers
 from tests.model_explainability.guardrails.constants import GuardrailsDetectionPrompt
 
@@ -125,10 +127,14 @@ def verify_builtin_detector_unsuitable_input_response(
     response_data = verify_and_parse_response(response=response)
     errors = []
 
-    warnings = response_data.get("warnings", [])
+    if not response_data:
+        raise UnexpectedValueError("Expected non-empty response data but got an empty response.")
+
+    warnings = response_data.get("warnings")
     unsuitable_input_warning: str = "UNSUITABLE_INPUT"
+
     if warnings is None:
-        errors.append("Expected warnings in response, got None")
+        raise UnexpectedValueError("Expected warnings in response, got None")
     elif len(warnings) != 1:
         errors.append(f"Expected 1 warning in response, got {len(warnings)}")
     elif warnings[0]["type"] != unsuitable_input_warning:

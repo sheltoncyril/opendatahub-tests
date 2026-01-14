@@ -207,9 +207,9 @@ def patched_dsc_kserve_headed(
     """Configure KServe Services to work in Headed mode i.e. using the Service port instead of the Pod port"""
 
     def _kserve_last_transition_time(dsc_resource: DataScienceCluster) -> str:
-        return next(filter(lambda x: x["type"] == "KserveReady", dsc_resource.instance.status["conditions"]))[
-            "lastTransitionTime"
-        ]
+        return next(
+            filter(lambda condition: condition["type"] == "KserveReady", dsc_resource.instance.status["conditions"])
+        )["lastTransitionTime"]
 
     @retry(wait_timeout=30, sleep=5)
     def _wait_for_headed_entities_status_ready(kserve_last_transition_time: str, dsc_resource: DataScienceCluster):
@@ -221,11 +221,12 @@ def patched_dsc_kserve_headed(
 
     dsc = get_data_science_cluster(client=admin_client)
     if not dsc.instance.spec.components.kserve.rawDeploymentServiceConfig == "Headed":
+        kserve_pre_transition_time = _kserve_last_transition_time(dsc_resource=dsc)
         with ResourceEditor(
             patches={dsc: {"spec": {"components": {"kserve": {"rawDeploymentServiceConfig": "Headed"}}}}}
         ):
             _wait_for_headed_entities_status_ready(
-                kserve_last_transition_time=_kserve_last_transition_time(dsc), dsc_resource=dsc
+                kserve_last_transition_time=kserve_pre_transition_time, dsc_resource=dsc
             )
             yield dsc
     else:
