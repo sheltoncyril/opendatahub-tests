@@ -47,6 +47,7 @@ def create_llama_stack_distribution(
         server=server,
         wait_for_resource=True,
         teardown=teardown,
+        network={"allowedFrom": {"namespaces": ["*"]}},
     ) as llama_stack_distribution:
         yield llama_stack_distribution
 

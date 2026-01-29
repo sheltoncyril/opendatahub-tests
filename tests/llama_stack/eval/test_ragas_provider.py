@@ -97,7 +97,7 @@ class TestLlamaStackRagasInlineProvider:
 
 
 @pytest.mark.parametrize(
-    "model_namespace, minio_pod, minio_data_connection, llama_stack_server_config",
+    "model_namespace, minio_pod, minio_data_connection, llama_stack_server_config, unprivileged_model_namespace",
     [
         pytest.param(
             {"name": "test-llamastack-ragas-remote"},
@@ -110,6 +110,7 @@ class TestLlamaStackRagasInlineProvider:
                 "trustyai_embedding_model": "granite-embedding-125m-english",
                 "enable_ragas_remote": True,
             },
+            {"name": "test-llamastack-models", "randomize_name": True},
         )
     ],
     indirect=True,
@@ -121,7 +122,7 @@ class TestLlamaStackRagasRemoteProvider:
 
     def test_ragas_remote_register_dataset(self, minio_pod, minio_data_connection, llama_stack_client):
         """Register a RAG evaluation dataset with sample question-answer data."""
-        response = llama_stack_client.datasets.register(
+        response = llama_stack_client.beta.datasets.register(
             dataset_id=RAGAS_DATASET_ID,
             purpose="eval/question-answer",
             source={"type": "rows", "rows": RAGAS_TEST_DATASET},
@@ -139,14 +140,14 @@ class TestLlamaStackRagasRemoteProvider:
 
     def test_ragas_remote_register_benchmark(self, minio_pod, minio_data_connection, llama_stack_client):
         """Register a Ragas benchmark with answer relevancy scoring function using remote provider."""
-        llama_stack_client.benchmarks.register(
+        llama_stack_client.alpha.benchmarks.register(
             benchmark_id=RAGAS_REMOTE_BENCHMARK_ID,
             dataset_id=RAGAS_DATASET_ID,
             scoring_functions=["answer_relevancy"],
             provider_id=LlamaStackProviders.Eval.TRUSTYAI_RAGAS_REMOTE,
         )
 
-        response = llama_stack_client.benchmarks.list()
+        response = llama_stack_client.alpha.benchmarks.list()
         assert response[0].dataset_id == RAGAS_DATASET_ID
         assert response[0].identifier == RAGAS_REMOTE_BENCHMARK_ID
         assert response[0].provider_id == LlamaStackProviders.Eval.TRUSTYAI_RAGAS_REMOTE
