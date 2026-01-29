@@ -12,11 +12,9 @@ from ocp_resources.inference_service import InferenceService
 from ocp_resources.maria_db import MariaDB
 from ocp_resources.mariadb_operator import MariadbOperator
 from ocp_resources.namespace import Namespace
-from ocp_resources.pod import Pod
 from ocp_resources.role import Role
 from ocp_resources.role_binding import RoleBinding
 from ocp_resources.secret import Secret
-from ocp_resources.service import Service
 from ocp_resources.service_account import ServiceAccount
 from ocp_resources.serving_runtime import ServingRuntime
 from ocp_resources.trustyai_service import TrustyAIService
@@ -245,7 +243,6 @@ def trustyai_db_ca_secret(
 def mlserver_runtime(
     pytestconfig: pytest.Config,
     admin_client: DynamicClient,
-    minio_data_connection: Secret,
     model_namespace: Namespace,
     teardown_resources: bool,
 ) -> Generator[ServingRuntime, Any, Any]:
@@ -278,9 +275,6 @@ def gaussian_credit_model(
     pytestconfig: pytest.Config,
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    minio_pod: Pod,
-    minio_service: Service,
-    minio_data_connection: Secret,
     mlserver_runtime: ServingRuntime,
     kserve_raw_config: ConfigMap,
     kserve_logger_ca_bundle: ConfigMap,

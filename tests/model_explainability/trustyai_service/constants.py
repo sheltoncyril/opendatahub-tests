@@ -40,7 +40,7 @@ KSERVE_MLSERVER_SUPPORTED_MODEL_FORMATS: List[Dict[str, Any]] = [
 KSERVE_MLSERVER_CONTAINERS: List[Dict[str, Any]] = [
     {
         "name": "kserve-container",
-        "image": "quay.io/syedali/mlserver:debug-model-car-v10",
+        "image": "quay.io/syedali/mlserver:debug-model-car-v12",
         "env": [
             {"name": "MLSERVER_MODEL_IMPLEMENTATION", "value": "{{.Labels.modelClass}}"},
             {"name": "MLSERVER_HTTP_PORT", "value": str(Ports.REST_PORT)},
