@@ -295,7 +295,8 @@ def gaussian_credit_model(
             deployment_mode=KServeDeploymentType.RAW_DEPLOYMENT,
             model_format=XGBOOST,
             runtime=mlserver_runtime.name,
-            storage_uri="oci://quay.io/trustyai_testing/gaussian-credit-model-modelcar:v0.3",
+            storage_uri="oci://quay.io/trustyai_testing/gaussian-credit-model-modelcar"
+            "@sha256:323dbb70c980c7f57bb6a884f5d46ee1c620c0b193368d13a469b49e7c9054c4",
             enable_auth=True,
             external_route=True,
             wait_for_predictor_pods=False,
