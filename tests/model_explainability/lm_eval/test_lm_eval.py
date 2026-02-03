@@ -161,3 +161,37 @@ def test_verify_lmeval_pod_images(lmevaljob_s3_offline_pod, trustyai_operator_co
     validate_tai_component_images(
         pod=lmevaljob_s3_offline_pod, tai_operator_configmap=trustyai_operator_configmap, include_init_containers=True
     )
+
+
+@pytest.mark.parametrize(
+    "model_namespace, lmeval_data_downloader_pod, lmevaljob_local_offline",
+    [
+        pytest.param(
+            {"name": "test-lmeval-local-offline-unitxt"},
+            {
+                "dataset_image": "quay.io/trustyai_testing/lmeval-assets-20newsgroups"
+                "@sha256:106023a7ee0c93afad5d27ae50130809ccc232298b903c8b12ea452e9faafce2"
+            },
+            {
+                "task_list": {
+                    "taskRecipes": [
+                        {
+                            "card": {"name": "cards.20_newsgroups_short"},
+                            "template": {"name": "templates.classification.multi_class.title"},
+                        }
+                    ]
+                }
+            },
+        )
+    ],
+    indirect=True,
+)
+@pytest.mark.usefixtures("oci_secret_for_async_job, oci_registry_pod_with_minio")
+def test_lmeval_local_offline_unitxt_tasks_flan_20newsgroups_oci_artifacts(
+    admin_client,
+    model_namespace,
+    lmeval_data_downloader_pod,
+    lmevaljob_local_offline_pod_oci,
+):
+    """Test that verifies that LMEval can run successfully in local, offline mode using unitxt"""
+    validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_local_offline_pod_oci)
