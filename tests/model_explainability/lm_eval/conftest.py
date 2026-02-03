@@ -102,6 +102,47 @@ def lmevaljob_local_offline(
 
 
 @pytest.fixture(scope="function")
+def lmevaljob_local_offline_oci(
+    request: FixtureRequest,
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    patched_dsc_lmeval_allow_all: DataScienceCluster,
+    oci_secret_for_async_job: Secret,
+    lmeval_data_downloader_pod: Pod,
+) -> Generator[LMEvalJob, Any, Any]:
+    with LMEvalJob(
+        client=admin_client,
+        name=LMEVALJOB_NAME,
+        namespace=model_namespace.name,
+        model="hf",
+        model_args=[{"name": "pretrained", "value": "/opt/app-root/src/hf_home/flan"}],
+        task_list=request.param.get("task_list"),
+        limit="0.01",
+        log_samples=True,
+        offline={"storage": {"pvcName": "lmeval-data"}},
+        pod={
+            "container": {
+                "env": [
+                    {"name": "HF_HUB_VERBOSITY", "value": "debug"},
+                    {"name": "UNITXT_DEFAULT_VERBOSITY", "value": "debug"},
+                ]
+            }
+        },
+        label={Labels.OpenDataHub.DASHBOARD: "true", "lmevaltests": "vllm"},
+        outputs={
+            "pvcManaged": {"size": "5Gi"},
+            "oci": {
+                "registry": {"name": oci_secret_for_async_job.instance.name, "key": "OCI_HOST"},
+                "repository": "trustyai_testing/lmeval_offline_job_oci",
+                "tag": "latest",
+                "dockerConfigJson": {"name": oci_secret_for_async_job.instance.name, "key": "OCI_HOST"},
+            },
+        },
+    ) as job:
+        yield job
+
+
+@pytest.fixture(scope="function")
 def lmevaljob_vllm_emulator(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -428,6 +469,13 @@ def lmevaljob_local_offline_pod(
     admin_client: DynamicClient, lmevaljob_local_offline: LMEvalJob
 ) -> Generator[Pod, Any, Any]:
     yield get_lmevaljob_pod(client=admin_client, lmevaljob=lmevaljob_local_offline)
+
+
+@pytest.fixture(scope="function")
+def lmevaljob_local_offline_pod_oci(
+    admin_client: DynamicClient, lmevaljob_local_offline_oci: LMEvalJob
+) -> Generator[Pod, Any, Any]:
+    yield get_lmevaljob_pod(client=admin_client, lmevaljob=lmevaljob_local_offline_oci)
 
 
 @pytest.fixture(scope="function")
