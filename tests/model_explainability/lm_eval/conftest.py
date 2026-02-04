@@ -1,3 +1,4 @@
+import json
 from typing import Any, Generator
 
 import pytest
@@ -15,8 +16,9 @@ from pytest import Config, FixtureRequest
 
 from tests.model_explainability.lm_eval.constants import ARC_EASY_DATASET_IMAGE, FLAN_T5_IMAGE
 from tests.model_explainability.lm_eval.utils import get_lmevaljob_pod
-from utilities.constants import Labels, MinIo, Protocols, Timeout
+from utilities.constants import Labels, MinIo, Protocols, Timeout, ApiGroups
 from utilities.exceptions import MissingParameter
+from utilities.general import b64_encoded_string
 
 VLLM_EMULATOR: str = "vllm-emulator"
 VLLM_EMULATOR_PORT: int = 8000
@@ -101,13 +103,56 @@ def lmevaljob_local_offline(
         yield job
 
 
+@pytest.fixture(scope="class")
+def oci_credentials_secret(
+    admin_client: DynamicClient,
+    oci_registry_host: str,
+    model_namespace: Namespace,
+) -> Generator[Secret, Any, Any]:
+    """Create OCI registry data connection for async upload job"""
+
+    # Create anonymous dockerconfig for OCI registry (no authentication)
+    dockerconfig = {
+        "auths": {
+            f"{oci_registry_host}": {
+                "auth": "",
+                "email": "user@example.com",
+            }
+        }
+    }
+
+    data_dict = {
+        ".dockerconfigjson": b64_encoded_string(json.dumps(dockerconfig)),
+        "ACCESS_TYPE": b64_encoded_string(json.dumps(["Push", "Pull"])),
+        "OCI_HOST": b64_encoded_string(oci_registry_host),
+    }
+
+    with Secret(
+        client=admin_client,
+        name="my-oci-credentials",
+        namespace=model_namespace.name,
+        data_dict=data_dict,
+        label={
+            Labels.OpenDataHub.DASHBOARD: "true",
+            Labels.OpenDataHubIo.MANAGED: "true",
+        },
+        annotations={
+            f"{ApiGroups.OPENDATAHUB_IO}/connection-type-ref": "oci-v1",
+            "openshift.io/display-name": "My OCI Credentials",
+        },
+        type="kubernetes.io/dockerconfigjson",
+    ) as secret:
+        yield secret
+
+
 @pytest.fixture(scope="function")
 def lmevaljob_local_offline_oci(
     request: FixtureRequest,
     admin_client: DynamicClient,
     model_namespace: Namespace,
     patched_dsc_lmeval_allow_all: DataScienceCluster,
-    oci_secret_for_async_job: Secret,
+    oci_credentials_secret: Secret,
+    oci_registry_pod_with_minio: Pod,
     lmeval_data_downloader_pod: Pod,
 ) -> Generator[LMEvalJob, Any, Any]:
     with LMEvalJob(
@@ -132,10 +177,11 @@ def lmevaljob_local_offline_oci(
         outputs={
             "pvcManaged": {"size": "5Gi"},
             "oci": {
-                "registry": {"name": oci_secret_for_async_job.instance.name, "key": "OCI_HOST"},
-                "repository": "trustyai_testing/lmeval_offline_job_oci",
-                "tag": "latest",
-                "dockerConfigJson": {"name": oci_secret_for_async_job.instance.name, "key": "OCI_HOST"},
+                "registry": {"name": oci_credentials_secret.name, "key": "OCI_HOST"},
+                "repository": "lmeval/offline-oci",
+                "tag": "v1",
+                "dockerConfigJson": {"name": oci_credentials_secret.name, "key": ".dockerconfigjson"},
+                "verifySSL": False,
             },
         },
     ) as job:

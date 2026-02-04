@@ -9,6 +9,7 @@ from tests.model_explainability.lm_eval.constants import (
 from tests.model_explainability.utils import validate_tai_component_images
 
 from tests.model_explainability.lm_eval.utils import get_lmeval_tasks, validate_lmeval_job_pod_and_logs
+from utilities.constants import OCIRegistry
 
 LMEVALJOB_COMPLETE_STATE: str = "Complete"
 
@@ -164,10 +165,11 @@ def test_verify_lmeval_pod_images(lmevaljob_s3_offline_pod, trustyai_operator_co
 
 
 @pytest.mark.parametrize(
-    "model_namespace, lmeval_data_downloader_pod, lmevaljob_local_offline",
+    "model_namespace, oci_registry_pod_with_minio, lmeval_data_downloader_pod, lmevaljob_local_offline_oci",
     [
         pytest.param(
             {"name": "test-lmeval-local-offline-unitxt"},
+            OCIRegistry.PodConfig.REGISTRY_BASE_CONFIG,
             {
                 "dataset_image": "quay.io/trustyai_testing/lmeval-assets-20newsgroups"
                 "@sha256:106023a7ee0c93afad5d27ae50130809ccc232298b903c8b12ea452e9faafce2"
@@ -186,7 +188,6 @@ def test_verify_lmeval_pod_images(lmevaljob_s3_offline_pod, trustyai_operator_co
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("oci_secret_for_async_job, oci_registry_pod_with_minio")
 def test_lmeval_local_offline_unitxt_tasks_flan_20newsgroups_oci_artifacts(
     admin_client,
     model_namespace,
