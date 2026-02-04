@@ -1,6 +1,7 @@
 import pytest
 from typing import List
 
+from model_explainability.lm_eval.constants import LMEVAL_OCI_REPO, LMEVAL_OCI_TAG
 from tests.model_explainability.lm_eval.constants import (
     LLMAAJ_TASK_DATA,
     CUSTOM_UNITXT_TASK_DATA,
@@ -10,6 +11,9 @@ from tests.model_explainability.utils import validate_tai_component_images
 
 from tests.model_explainability.lm_eval.utils import get_lmeval_tasks, validate_lmeval_job_pod_and_logs
 from utilities.constants import OCIRegistry
+from utilities.registry_utils import pull_manifest_from_oci_registry
+
+from simple_logger.logger import get_logger
 
 LMEVALJOB_COMPLETE_STATE: str = "Complete"
 
@@ -18,6 +22,8 @@ TIER1_LMEVAL_TASKS: List[str] = get_lmeval_tasks(min_downloads=10000)
 TIER2_LMEVAL_TASKS: List[str] = list(
     set(get_lmeval_tasks(min_downloads=0.70, max_downloads=10000)) - set(TIER1_LMEVAL_TASKS)
 )
+
+LOGGER = get_logger(name=__name__)
 
 
 @pytest.mark.skip_on_disconnected
@@ -70,39 +76,6 @@ def test_lmeval_local_offline_builtin_tasks_flan_arceasy(
     lmevaljob_local_offline_pod,
 ):
     """Test that verifies that LMEval can run successfully in local, offline mode using builtin tasks"""
-    validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_local_offline_pod)
-
-
-@pytest.mark.parametrize(
-    "model_namespace, lmeval_data_downloader_pod, lmevaljob_local_offline",
-    [
-        pytest.param(
-            {"name": "test-lmeval-local-offline-unitxt"},
-            {
-                "dataset_image": "quay.io/trustyai_testing/lmeval-assets-20newsgroups"
-                "@sha256:106023a7ee0c93afad5d27ae50130809ccc232298b903c8b12ea452e9faafce2"
-            },
-            {
-                "task_list": {
-                    "taskRecipes": [
-                        {
-                            "card": {"name": "cards.20_newsgroups_short"},
-                            "template": {"name": "templates.classification.multi_class.title"},
-                        }
-                    ]
-                }
-            },
-        )
-    ],
-    indirect=True,
-)
-def test_lmeval_local_offline_unitxt_tasks_flan_20newsgroups(
-    admin_client,
-    model_namespace,
-    lmeval_data_downloader_pod,
-    lmevaljob_local_offline_pod,
-):
-    """Test that verifies that LMEval can run successfully in local, offline mode using unitxt"""
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_local_offline_pod)
 
 
@@ -189,10 +162,12 @@ def test_verify_lmeval_pod_images(lmevaljob_s3_offline_pod, trustyai_operator_co
     indirect=True,
 )
 def test_lmeval_local_offline_unitxt_tasks_flan_20newsgroups_oci_artifacts(
-    admin_client,
-    model_namespace,
-    lmeval_data_downloader_pod,
-    lmevaljob_local_offline_pod_oci,
+    admin_client, model_namespace, lmeval_data_downloader_pod, lmevaljob_local_offline_pod_oci, oci_registry_host
 ):
     """Test that verifies that LMEval can run successfully in local, offline mode using unitxt"""
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_local_offline_pod_oci)
+    LOGGER.info("Verifying OCI registry upload")
+    registry_url = f"http://{oci_registry_host}"
+    LOGGER.info(f"Verifying artifact in OCI registry: {registry_url}/v2/{LMEVAL_OCI_REPO}/manifests/{LMEVAL_OCI_TAG}")
+    pull_manifest_from_oci_registry(registry_url=registry_url, repo=LMEVAL_OCI_REPO, tag=LMEVAL_OCI_TAG)
+    LOGGER.info("Manifest found in OCI registry")

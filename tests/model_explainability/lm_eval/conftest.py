@@ -14,7 +14,12 @@ from ocp_resources.secret import Secret
 from ocp_resources.service import Service
 from pytest import Config, FixtureRequest
 
-from tests.model_explainability.lm_eval.constants import ARC_EASY_DATASET_IMAGE, FLAN_T5_IMAGE
+from tests.model_explainability.lm_eval.constants import (
+    ARC_EASY_DATASET_IMAGE,
+    FLAN_T5_IMAGE,
+    LMEVAL_OCI_TAG,
+    LMEVAL_OCI_REPO,
+)
 from tests.model_explainability.lm_eval.utils import get_lmevaljob_pod
 from utilities.constants import Labels, MinIo, Protocols, Timeout, ApiGroups
 from utilities.exceptions import MissingParameter
@@ -178,8 +183,8 @@ def lmevaljob_local_offline_oci(
             "pvcManaged": {"size": "5Gi"},
             "oci": {
                 "registry": {"name": oci_credentials_secret.name, "key": "OCI_HOST"},
-                "repository": "lmeval/offline-oci",
-                "tag": "v1",
+                "repository": LMEVAL_OCI_REPO,
+                "tag": LMEVAL_OCI_TAG,
                 "dockerConfigJson": {"name": oci_credentials_secret.name, "key": ".dockerconfigjson"},
                 "verifySSL": False,
             },
