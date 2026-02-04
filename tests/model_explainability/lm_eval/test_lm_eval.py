@@ -1,6 +1,10 @@
 import pytest
 from typing import List
 
+from kubernetes.dynamic import DynamicClient
+from ocp_resources.namespace import Namespace
+from ocp_resources.pod import Pod
+
 from tests.model_explainability.lm_eval.constants import LMEVAL_OCI_REPO, LMEVAL_OCI_TAG
 from tests.model_explainability.lm_eval.constants import (
     LLMAAJ_TASK_DATA,
@@ -162,9 +166,13 @@ def test_verify_lmeval_pod_images(lmevaljob_s3_offline_pod, trustyai_operator_co
     indirect=True,
 )
 def test_lmeval_local_offline_unitxt_tasks_flan_20newsgroups_oci_artifacts(
-    admin_client, model_namespace, lmeval_data_downloader_pod, lmevaljob_local_offline_pod_oci, oci_registry_host
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    lmeval_data_downloader_pod: Pod,
+    lmevaljob_local_offline_pod_oci: Pod,
+    oci_registry_host: str,
 ):
-    """Test that verifies that LMEval can run successfully in local, offline mode using unitxt"""
+    """Test that verifies LMEval can run successfully in local, offline mode using unitxt tasks with OCI artifacts."""
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_local_offline_pod_oci)
     LOGGER.info("Verifying OCI registry upload")
     registry_url = f"http://{oci_registry_host}"
