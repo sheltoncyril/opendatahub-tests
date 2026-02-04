@@ -1,7 +1,7 @@
 import pytest
 from typing import List
 
-from model_explainability.lm_eval.constants import LMEVAL_OCI_REPO, LMEVAL_OCI_TAG
+from tests.model_explainability.lm_eval.constants import LMEVAL_OCI_REPO, LMEVAL_OCI_TAG
 from tests.model_explainability.lm_eval.constants import (
     LLMAAJ_TASK_DATA,
     CUSTOM_UNITXT_TASK_DATA,
