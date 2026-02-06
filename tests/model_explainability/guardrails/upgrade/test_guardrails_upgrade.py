@@ -87,6 +87,13 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPreUpgrade:
         guardrails_orchestrator_health_route,
         guardrails_healthcheck,
     ):
+        """Verify guardrails orchestrator health/info endpoint is responsive before upgrade.
+
+        Given: A guardrails orchestrator is deployed with built-in detectors.
+        When: The health info endpoint is queried.
+        Then: A valid health/info response is returned.
+        """
+
         verify_health_info_response(
             host=guardrails_orchestrator_health_route.host,
             token=current_client_token,
@@ -103,6 +110,12 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPreUpgrade:
         guardrails_orchestrator_gateway_route,
         guardrails_healthcheck,
     ):
+        """Verify built-in regex detectors block unsuitable input before upgrade.
+
+        Given: A guardrails orchestrator with regex detectors for PII (email, ssn).
+        When: A prompt containing PII patterns is sent as input.
+        Then: The orchestrator detects and blocks the unsuitable input.
+        """
         send_and_verify_unsuitable_input_detection(
             url=f"https://{guardrails_orchestrator_gateway_route.host}{PII_ENDPOINT}{OpenAIEnpoints.CHAT_COMPLETIONS}",
             token=current_client_token,
@@ -121,6 +134,12 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPreUpgrade:
         guardrails_orchestrator_gateway_route,
         guardrails_healthcheck,
     ):
+        """Verify built-in regex detectors block unsuitable output before upgrade.
+
+        Given: A guardrails orchestrator with regex detectors for PII (email, ssn).
+        When: A prompt triggers the model to generate output containing PII patterns.
+        Then: The orchestrator detects and blocks the unsuitable output.
+        """
         send_and_verify_unsuitable_output_detection(
             url=f"https://{guardrails_orchestrator_gateway_route.host}{PII_ENDPOINT}{OpenAIEnpoints.CHAT_COMPLETIONS}",
             token=current_client_token,
@@ -152,6 +171,17 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPreUpgrade:
         url_path,
         guardrails_healthcheck,
     ):
+        """Verify harmless prompts pass through without detection before upgrade.
+
+        Given: A guardrails orchestrator with regex detectors for PII.
+        When: A harmless prompt (no PII) is sent via the PII endpoint,
+              or a PII-containing prompt is sent via the passthrough endpoint.
+        Then: The request is forwarded to the model and a response is returned.
+
+        Test cases:
+            - harmless_input: Safe content through the PII detection route.
+            - passthrough_endpoint: PII content through the passthrough route (no detection).
+        """
         send_and_verify_negative_detection(
             url=f"https://{guardrails_orchestrator_gateway_route.host}{url_path}{OpenAIEnpoints.CHAT_COMPLETIONS}",
             token=current_client_token,
@@ -173,6 +203,17 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPreUpgrade:
 @pytest.mark.rawdeployment
 @pytest.mark.usefixtures("guardrails_gateway_config")
 class TestGuardrailsOrchestratorWithBuiltInDetectorsPostUpgrade:
+    """
+    Tests that the GuardrailsOrchestrator functionality persists after an ODH upgrade.
+
+    Validates that pre-existing guardrails deployments continue to function correctly
+    after the platform upgrade, ensuring:
+        1. The orchestrator health endpoints remain responsive.
+        2. Built-in regex detectors still detect unsuitable input.
+        3. Built-in regex detectors still detect unsuitable output.
+        4. Passthrough and harmless prompt handling is preserved.
+    """
+
     @pytest.mark.post_upgrade
     def test_guardrails_info_endpoint(
         self,
@@ -183,6 +224,12 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPostUpgrade:
         guardrails_orchestrator_health_route,
         guardrails_healthcheck,
     ):
+        """Verify guardrails orchestrator health/info endpoint is responsive after upgrade.
+
+        Given: A guardrails orchestrator deployed before the ODH upgrade.
+        When: The health info endpoint is queried after upgrade.
+        Then: A valid health/info response is returned, confirming the service survived the upgrade.
+        """
         verify_health_info_response(
             host=guardrails_orchestrator_health_route.host,
             token=current_client_token,
@@ -199,6 +246,12 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPostUpgrade:
         guardrails_orchestrator_gateway_route,
         guardrails_healthcheck,
     ):
+        """Verify built-in regex detectors block unsuitable input after upgrade.
+
+        Given: A guardrails orchestrator with regex detectors deployed before the ODH upgrade.
+        When: A prompt containing PII patterns is sent as input after upgrade.
+        Then: The orchestrator detects and blocks the unsuitable input.
+        """
         send_and_verify_unsuitable_input_detection(
             url=f"https://{guardrails_orchestrator_gateway_route.host}{PII_ENDPOINT}{OpenAIEnpoints.CHAT_COMPLETIONS}",
             token=current_client_token,
@@ -217,6 +270,12 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPostUpgrade:
         guardrails_orchestrator_gateway_route,
         guardrails_healthcheck,
     ):
+        """Verify built-in regex detectors block unsuitable output after upgrade.
+
+        Given: A guardrails orchestrator with regex detectors deployed before the ODH upgrade.
+        When: A prompt triggers the model to generate output containing PII patterns after upgrade.
+        Then: The orchestrator detects and blocks the unsuitable output.
+        """
         send_and_verify_unsuitable_output_detection(
             url=f"https://{guardrails_orchestrator_gateway_route.host}{PII_ENDPOINT}{OpenAIEnpoints.CHAT_COMPLETIONS}",
             token=current_client_token,
@@ -248,6 +307,17 @@ class TestGuardrailsOrchestratorWithBuiltInDetectorsPostUpgrade:
         url_path,
         guardrails_healthcheck,
     ):
+        """Verify harmless prompts pass through without detection after upgrade.
+
+        Given: A guardrails orchestrator with regex detectors deployed before the ODH upgrade.
+        When: A harmless prompt (no PII) is sent via the PII endpoint after upgrade,
+              or a PII-containing prompt is sent via the passthrough endpoint after upgrade.
+        Then: The request is forwarded to the model and a response is returned.
+
+        Test cases:
+            - harmless_input: Safe content through the PII detection route.
+            - passthrough_endpoint: PII content through the passthrough route (no detection).
+        """
         send_and_verify_negative_detection(
             url=f"https://{guardrails_orchestrator_gateway_route.host}{url_path}{OpenAIEnpoints.CHAT_COMPLETIONS}",
             token=current_client_token,
