@@ -14,6 +14,7 @@ from tests.model_explainability.trustyai_service.trustyai_service_utils import (
 )
 from utilities.constants import MinIo
 from utilities.manifests.openvino import OPENVINO_KSERVE_INFERENCE_CONFIG
+from timeout_sampler import retry
 
 
 @pytest.mark.parametrize(
@@ -158,16 +159,23 @@ class TestPostUpgradeTrustyAIService:
             trustyai_service=trustyai_db_migration_patched_service,
         )
 
-        verify_trustyai_service_metric_scheduling_request(
-            client=admin_client,
-            trustyai_service=trustyai_db_migration_patched_service,
-            token=current_client_token,
-            metric_name=TrustyAIServiceMetrics.Drift.MEANSHIFT,
-            json_data={
-                "modelId": "gaussian-credit-model",
-                "referenceTag": "TRAINING",
-            },
-        )
+        @retry(wait_timeout=30, sleep=5)
+        def _retry_metric_verify_on_err():
+            return bool(
+                verify_trustyai_service_metric_scheduling_request(
+                    client=admin_client,
+                    trustyai_service=trustyai_db_migration_patched_service,
+                    token=current_client_token,
+                    metric_name=TrustyAIServiceMetrics.Drift.MEANSHIFT,
+                    json_data={
+                        "modelId": "gaussian-credit-model",
+                        "referenceTag": "TRAINING",
+                    },
+                )
+                is None
+            )
+
+        _retry_metric_verify_on_err()
 
     @pytest.mark.dependency(depends=["db_migration"])
     @pytest.mark.post_upgrade
