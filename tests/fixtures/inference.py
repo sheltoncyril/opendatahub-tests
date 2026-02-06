@@ -224,7 +224,7 @@ def patched_dsc_kserve_headed(
 ) -> Generator[DataScienceCluster, None, None]:
     """Configure KServe Services to work in Headed mode i.e. using the Service port instead of the Pod port"""
 
-    def _kserve_status(dsc_resource: DataScienceCluster) -> dict:
+    def _kserve_status(dsc_resource: DataScienceCluster) -> str:
         return next(
             filter(lambda condition: condition["type"] == "KserveReady", dsc_resource.instance.status["conditions"])
         )["status"]
