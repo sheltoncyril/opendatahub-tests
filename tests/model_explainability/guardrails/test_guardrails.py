@@ -37,6 +37,7 @@ from utilities.plugins.constant import OpenAIEnpoints
 
 LOGGER = get_logger(name=__name__)
 
+
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "model_namespace, orchestrator_config, guardrails_orchestrator",
@@ -67,6 +68,7 @@ def test_validate_guardrails_orchestrator_images(
     Checks if the image tag from the ConfigMap is used within the Pod and if it's pinned using a sha256 digest.
     """
     validate_tai_component_images(pod=guardrails_orchestrator_pod, tai_operator_configmap=trustyai_operator_configmap)
+
 
 @pytest.mark.smoke
 @pytest.mark.parametrize(
@@ -208,6 +210,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             content=str(message),
             model=LLMdInferenceSimConfig.model_name,
         )
+
 
 @pytest.mark.smoke
 @pytest.mark.parametrize(
