@@ -21,7 +21,7 @@ from tests.model_explainability.trustyai_service.utils import (
 )
 from utilities.constants import MinIo
 
-
+@pytest.mark.tier1
 @pytest.mark.parametrize(
     "model_namespace",
     [
@@ -44,7 +44,7 @@ def test_trustyai_service_with_invalid_db_cert(
         label_selector=f"app.kubernetes.io/instance={trustyai_service_with_invalid_db_cert.name}",
     )
 
-
+@pytest.mark.smoke
 @pytest.mark.parametrize(
     "model_namespace, trustyai_service",
     [
@@ -55,7 +55,6 @@ def test_trustyai_service_with_invalid_db_cert(
     ],
     indirect=True,
 )
-@pytest.mark.smoke
 def test_validate_trustyai_service_image(
     admin_client,
     model_namespace: Namespace,
@@ -71,7 +70,7 @@ def test_validate_trustyai_service_image(
         trustyai_operator_configmap=trustyai_operator_configmap,
     )
 
-
+@pytest.mark.tier1
 @pytest.mark.parametrize(
     "model_namespace, minio_pod, minio_data_connection, trustyai_service",
     [

@@ -28,16 +28,13 @@ LOGGER = get_logger(name=__name__)
 
 
 @pytest.mark.skip_on_disconnected
+@pytest.mark.tier1
 @pytest.mark.parametrize(
     "model_namespace, lmevaljob_hf",
     [
         pytest.param(
             {"name": "test-lmeval-hf-tier1"},
             {"task_list": {"taskNames": TIER1_LMEVAL_TASKS}},
-        ),
-        pytest.param(
-            {"name": "test-lmeval-hf-tier2"},
-            {"task_list": {"taskNames": TIER2_LMEVAL_TASKS}},
         ),
         pytest.param(
             {"name": "test-lmeval-hf-custom-task"},
@@ -57,6 +54,23 @@ def test_lmeval_huggingface_model(admin_client, model_namespace, lmevaljob_hf_po
     On each test we run a different evaluation task, limiting it to 0.5% of the questions on each eval."""
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_hf_pod)
 
+@pytest.mark.skip_on_disconnected
+@pytest.mark.tier2
+@pytest.mark.parametrize(
+    "model_namespace, lmevaljob_hf",
+    [
+
+        pytest.param(
+            {"name": "test-lmeval-hf-tier2"},
+            {"task_list": {"taskNames": TIER2_LMEVAL_TASKS}},
+        ),
+    ],
+    indirect=True,
+)
+def test_lmeval_huggingface_model_tier2(admin_client, model_namespace, lmevaljob_hf_pod):
+    """Tests that verify running common evaluations (and a custom one) on a model pulled directly from HuggingFace.
+    On each test we run a different evaluation task, limiting it to 0.5% of the questions on each eval."""
+    validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_hf_pod)
 
 @pytest.mark.parametrize(
     "model_namespace, lmeval_data_downloader_pod, lmevaljob_local_offline",
@@ -80,6 +94,7 @@ def test_lmeval_local_offline_builtin_tasks_flan_arceasy(
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_local_offline_pod)
 
 
+@pytest.mark.tier1
 @pytest.mark.parametrize(
     "model_namespace",
     [
@@ -95,6 +110,7 @@ def test_lmeval_vllm_emulator(admin_client, model_namespace, lmevaljob_vllm_emul
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_vllm_emulator_pod)
 
 
+@pytest.mark.tier1
 @pytest.mark.parametrize(
     "model_namespace, minio_data_connection",
     [
@@ -137,7 +153,7 @@ def test_verify_lmeval_pod_images(lmevaljob_s3_offline_pod, trustyai_operator_co
         pod=lmevaljob_s3_offline_pod, tai_operator_configmap=trustyai_operator_configmap, include_init_containers=True
     )
 
-
+@pytest.mark.tier1
 @pytest.mark.parametrize(
     "model_namespace, oci_registry_pod_with_minio, lmeval_data_downloader_pod, lmevaljob_local_offline_oci",
     [

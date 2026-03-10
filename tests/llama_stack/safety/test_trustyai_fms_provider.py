@@ -8,7 +8,7 @@ from utilities.constants import BUILTIN_DETECTOR_CONFIG, CHAT_GENERATION_CONFIG,
 LOGGER = get_logger(name=__name__)
 SECURE_SHIELD_ID: str = "secure_shield"
 
-
+@pytest.mark.tier1
 @pytest.mark.parametrize(
     "model_namespace, minio_pod, minio_data_connection, "
     "orchestrator_config, guardrails_orchestrator, llama_stack_server_config",
