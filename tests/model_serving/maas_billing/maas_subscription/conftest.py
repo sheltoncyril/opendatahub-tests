@@ -809,3 +809,19 @@ def revoked_api_key_id(
     assert revoke_body.get("status") == "revoked", f"Expected status='revoked' in DELETE response, got: {revoke_body}"
     LOGGER.info(f"revoked_api_key_id: revoked key id={active_api_key_id}")
     return active_api_key_id
+
+
+@pytest.fixture(scope="function")
+def short_expiration_api_key_id(
+    request_session_http: requests.Session,
+    base_url: str,
+    ocp_token_for_actor: str,
+) -> Generator[str, Any, Any]:
+    """Create an API key with 1-hour expiration, yield its ID, and revoke on teardown."""
+    yield from create_and_yield_api_key_id(
+        request_session_http=request_session_http,
+        base_url=base_url,
+        ocp_user_token=ocp_token_for_actor,
+        key_name_prefix="e2e-exp-short",
+        expires_in="1h",
+    )
