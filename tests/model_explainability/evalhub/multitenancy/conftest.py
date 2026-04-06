@@ -20,6 +20,7 @@ from tests.model_explainability.evalhub.constants import (
     EVALHUB_JOBS_WRITER_CLUSTERROLE,
     EVALHUB_MT_CR_NAME,
     EVALHUB_TENANT_LABEL_KEY,
+    EVALHUB_USER_ROLE_RULES,
     EVALHUB_VLLM_EMULATOR_PORT,
 )
 from utilities.certificates_utils import create_ca_bundle_file
@@ -201,21 +202,6 @@ def tenant_a_rbac_ready(
 # ---------------------------------------------------------------------------
 # ServiceAccount and RBAC (only in tenant-a)
 # ---------------------------------------------------------------------------
-
-# Mirrors the user RBAC template from resources/evalhub-user-rbac-template.yaml.
-# evaluations/collections/providers are virtual SAR resources — not real CRDs.
-EVALHUB_USER_ROLE_RULES: list[dict[str, list[str]]] = [
-    {
-        "apiGroups": ["trustyai.opendatahub.io"],
-        "resources": ["evaluations", "collections", "providers"],
-        "verbs": ["get", "list", "create", "update", "delete"],
-    },
-    {
-        "apiGroups": ["mlflow.kubeflow.org"],
-        "resources": ["experiments"],
-        "verbs": ["create", "get"],
-    },
-]
 
 
 @pytest.fixture(scope="class")

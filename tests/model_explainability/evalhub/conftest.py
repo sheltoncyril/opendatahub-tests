@@ -20,6 +20,7 @@ from tests.model_explainability.evalhub.constants import (
     EVALHUB_JOB_SA_SUFFIX,
     EVALHUB_TENANT_LABEL_KEY,
     EVALHUB_TENANT_LABEL_VALUE,
+    EVALHUB_USER_ROLE_RULES,
 )
 from tests.model_explainability.evalhub.utils import wait_for_service_account
 from utilities.certificates_utils import create_ca_bundle_file
@@ -239,18 +240,7 @@ def tenant_user_role(
         client=admin_client,
         name="evalhub-evaluator",
         namespace=tenant_namespace.name,
-        rules=[
-            {
-                "apiGroups": ["trustyai.opendatahub.io"],
-                "resources": ["evaluations", "collections", "providers"],
-                "verbs": ["get", "list", "create", "update", "delete"],
-            },
-            {
-                "apiGroups": ["mlflow.kubeflow.org"],
-                "resources": ["experiments"],
-                "verbs": ["create", "get"],
-            },
-        ],
+        rules=EVALHUB_USER_ROLE_RULES,
         wait_for_resource=True,
     ) as role:
         yield role

@@ -648,35 +648,18 @@ def wait_for_job_completion(
     poll_interval: int = GARAK_JOB_POLL_INTERVAL,
 ) -> dict:
     """Poll for garak job completion, returning the final job status."""
-    terminal_states = {"completed", "failed", "error"}
-
-    def _check_job_status() -> dict | None:
-        data = _get_job_status(
-            host=host,
-            token=token,
-            ca_bundle_file=ca_bundle_file,
-            tenant=tenant_namespace,
-            job_id=job_id,
-        )
-        status_field = data.get("status", {})
-        status = (status_field.get("state", "") if isinstance(status_field, dict) else str(status_field)).lower()
-        LOGGER.info(f"Job {job_id} status: {status}")
-        if status in terminal_states:
-            return data
-        return None
-
-    for result in TimeoutSampler(
-        wait_timeout=timeout,
+    result = wait_for_evalhub_job(
+        host=host,
+        token=token,
+        ca_bundle_file=ca_bundle_file,
+        tenant=tenant_namespace,
+        job_id=job_id,
+        timeout=timeout,
         sleep=poll_interval,
-        func=_check_job_status,
-    ):
-        if result is not None:
-            status_field = result.get("status", {})
-            status = (status_field.get("state", "") if isinstance(status_field, dict) else str(status_field)).lower()
-            assert status == "completed", f"Job {job_id} ended with status '{status}': {result}"
-            return result
-
-    return {}
+    )
+    state = result.get("status", {}).get("state", "")
+    assert state == "completed", f"Job {job_id} ended with status '{state}': {result}"
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -698,7 +681,10 @@ def wait_for_service_account(
             sa = ServiceAccount(client=admin_client, name=sa_name, namespace=namespace)
             if sa.exists:
                 return sa
-        except ValueError, AttributeError:
+        except (
+            ValueError,
+            AttributeError,
+        ):
             pass
         return None
 

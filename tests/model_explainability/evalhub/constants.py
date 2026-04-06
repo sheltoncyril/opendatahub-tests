@@ -28,6 +28,20 @@ EVALHUB_VLLM_EMULATOR_PORT: int = 8000
 EVALHUB_JOBS_WRITER_CLUSTERROLE: str = "trustyai-service-operator-evalhub-jobs-writer"
 EVALHUB_JOB_CONFIG_CLUSTERROLE: str = "trustyai-service-operator-evalhub-job-config"
 
+# Shared RBAC rules for EvalHub user access
+EVALHUB_USER_ROLE_RULES: list[dict[str, list[str]]] = [
+    {
+        "apiGroups": ["trustyai.opendatahub.io"],
+        "resources": ["evaluations", "collections", "providers"],
+        "verbs": ["get", "list", "create", "update", "delete"],
+    },
+    {
+        "apiGroups": ["mlflow.kubeflow.org"],
+        "resources": ["experiments"],
+        "verbs": ["create", "get"],
+    },
+]
+
 # Garak provider
 GARAK_PROVIDER_ID: str = "garak-kfp"
 GARAK_BENCHMARK_ID: str = "quick"
