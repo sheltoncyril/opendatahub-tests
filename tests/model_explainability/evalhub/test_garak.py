@@ -77,6 +77,7 @@ class TestGarakBenchmark:
         dsp_access_for_job_sa,
         garak_sim_isvc: InferenceService,
         garak_sim_isvc_url: str,
+        garak_sim_isvc_ready: None,
     ) -> None:
         """Submit a garak quick benchmark evaluation job using LLM-d inference simulator."""
         kfp_endpoint = f"https://ds-pipeline-dspa.{tenant_namespace.name}.svc.cluster.local:8443"

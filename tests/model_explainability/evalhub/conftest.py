@@ -448,6 +448,8 @@ def garak_sim_serving_runtime(
                     LLMdInferenceSimConfig.model_name,
                     "--port",
                     str(LLMdInferenceSimConfig.port),
+                    "--max-model-len",
+                    str(LLMdInferenceSimConfig.max_model_len),
                 ],
                 "ports": [{"containerPort": LLMdInferenceSimConfig.port, "protocol": "TCP"}],
                 "securityContext": {"allowPrivilegeEscalation": False},
@@ -491,8 +493,31 @@ def garak_sim_isvc(
 
 @pytest.fixture(scope="class")
 def garak_sim_isvc_url(garak_sim_isvc: InferenceService) -> str:
-    """Get the internal service URL for the LLM-d inference simulator."""
+    """Get the internal service URL for the LLM-d inference simulator.
+
+    Uses the KServe Service port (80) instead of the container port,
+    since KFP pods in the tenant namespace connect via the Service.
+    """
     return (
         f"http://{garak_sim_isvc.name}-predictor.{garak_sim_isvc.namespace}"
-        f".svc.cluster.local:{LLMdInferenceSimConfig.port}/v1"
+        f".svc.cluster.local/v1"
     )
+
+
+@pytest.fixture(scope="class")
+def garak_sim_isvc_ready(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    garak_sim_isvc: InferenceService,
+) -> None:
+    """Wait for the LLM-d inference simulator deployment to have ready replicas.
+
+    Needed because wait_for_predictor_pods=False is used in create_isvc
+    (the standard wait utility does not support the 'Standard' deployment mode).
+    """
+    deployment = Deployment(
+        client=admin_client,
+        name=f"{garak_sim_isvc.name}-predictor",
+        namespace=model_namespace.name,
+    )
+    deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
