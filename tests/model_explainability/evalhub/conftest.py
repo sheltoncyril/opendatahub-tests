@@ -1,3 +1,4 @@
+import base64
 from collections.abc import Generator
 from typing import Any
 
@@ -325,8 +326,6 @@ def dspa_secret_patch(
     tenant_dspa: DataSciencePipelinesApplication,
 ) -> Secret:
     """Patch the auto-created DSPA S3 secret with additional fields required by garak-kfp."""
-    import base64
-
     secret = Secret(
         client=admin_client,
         name="ds-pipeline-s3-dspa",
