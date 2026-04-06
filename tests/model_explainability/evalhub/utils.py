@@ -698,7 +698,7 @@ def wait_for_service_account(
             sa = ServiceAccount(client=admin_client, name=sa_name, namespace=namespace)
             if sa.exists:
                 return sa
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             pass
         return None
 
