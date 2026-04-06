@@ -106,7 +106,6 @@ def mlflow_instance(
     with MLflow(
         client=admin_client,
         name="mlflow",
-        namespace=py_config["applications_namespace"],
         storage={
             "accessModes": ["ReadWriteOnce"],
             "resources": {"requests": {"storage": "10Gi"}},
