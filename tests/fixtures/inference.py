@@ -245,3 +245,38 @@ def patched_dsc_kserve_headed(
     else:
         LOGGER.info("DSC already configured for Headed mode")
         yield dsc
+
+@pytest.fixture(scope="class")
+def patched_dsc_garak_kfp(admin_client) -> Generator[DataScienceCluster]:
+    """Configure the DataScienceCluster for Garak and KFP (Kubeflow Pipelines) testing.
+
+    This fixture patches the DataScienceCluster to enable:
+        - KServe in Headed mode (using Service port instead of Pod port)
+        - AI Pipelines component in Managed state
+        - MLflow operator in Managed state
+
+    Waits for the DSC to be ready before yielding.
+    """
+
+    dsc = get_data_science_cluster(client=admin_client)
+    with ResourceEditor(
+            patches={
+                dsc: {
+                    "spec": {
+                        "components": {
+                            "kserve": {
+                                "rawDeploymentServiceConfig": "Headed"
+                            },
+                            "aipipelines": {
+                                "managementState": "Managed"
+                            },
+                            "mlflowoperator": {
+                                "managementState": "Managed"
+                            }
+                        }
+                    }
+                }
+            }
+        ):
+            wait_for_dsc_status_ready(dsc_resource=dsc)
+            yield dsc
