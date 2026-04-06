@@ -15,10 +15,13 @@ from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 from ocp_resources.service_account import ServiceAccount
 from pytest_testconfig import config as py_config
+from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
 from tests.model_explainability.evalhub.constants import (
+    EVALHUB_JOB_CONFIG_CLUSTERROLE,
     EVALHUB_JOB_SA_PREFIX,
     EVALHUB_JOB_SA_SUFFIX,
+    EVALHUB_JOBS_WRITER_CLUSTERROLE,
     EVALHUB_TENANT_LABEL_KEY,
     EVALHUB_TENANT_LABEL_VALUE,
     EVALHUB_USER_ROLE_RULES,
@@ -199,6 +202,49 @@ def tenant_namespace(
         labels={EVALHUB_TENANT_LABEL_KEY: EVALHUB_TENANT_LABEL_VALUE},
     ) as ns:
         yield ns
+
+
+@pytest.fixture(scope="class")
+def garak_tenant_rbac_ready(
+    admin_client: DynamicClient,
+    tenant_namespace: Namespace,
+    garak_evalhub_cr: EvalHub,
+) -> None:
+    """Wait for the operator to provision job RBAC in the garak tenant namespace.
+
+    The operator creates jobs-writer and job-config RoleBindings when it detects
+    a namespace with the tenant label. The job-config RoleBinding grants the
+    EvalHub service SA permission to create configmaps in the tenant namespace,
+    which is required before submitting KFP jobs.
+    """
+    cr_name = garak_evalhub_cr.name
+
+    def _rbac_ready() -> bool:
+        rbs = list(RoleBinding.get(client=admin_client, namespace=tenant_namespace.name))
+        has_job_config = any(
+            rb.instance.roleRef.name == EVALHUB_JOB_CONFIG_CLUSTERROLE and rb.name.startswith(cr_name) for rb in rbs
+        )
+        has_job_writer = any(
+            rb.instance.roleRef.name == EVALHUB_JOBS_WRITER_CLUSTERROLE and rb.name.startswith(cr_name) for rb in rbs
+        )
+        return has_job_config and has_job_writer
+
+    try:
+        for ready in TimeoutSampler(
+            wait_timeout=120,
+            sleep=5,
+            func=_rbac_ready,
+        ):
+            if ready:
+                LOGGER.info(f"Operator RBAC provisioned in {tenant_namespace.name}")
+                return
+    except TimeoutExpiredError as err:
+        msg = (
+            f"Operator RBAC not provisioned in '{tenant_namespace.name}' within timeout: "
+            f"missing job-config or jobs-writer RoleBinding for '{cr_name}'"
+        )
+        LOGGER.error(msg)
+        raise RuntimeError(msg) from err
 
 
 @pytest.fixture(scope="class")

@@ -74,6 +74,7 @@ class TestGarakBenchmark:
         tenant_dspa: DataSciencePipelinesApplication,
         dspa_secret_patch: Secret,
         dsp_access_for_job_sa,
+        garak_tenant_rbac_ready: None,
         garak_sim_isvc_url: str,
     ) -> None:
         """Submit a garak quick benchmark evaluation job using LLM-d inference simulator."""
