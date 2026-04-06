@@ -349,23 +349,17 @@ def patched_dsc_garak_kfp(admin_client) -> Generator[DataScienceCluster]:
 
     dsc = get_data_science_cluster(client=admin_client)
     with ResourceEditor(
-            patches={
-                dsc: {
-                    "spec": {
-                        "components": {
-                            "kserve": {
-                                "rawDeploymentServiceConfig": "Headed"
-                            },
-                            "aipipelines": {
-                                "managementState": "Managed"
-                            },
-                            "mlflowoperator": {
-                                "managementState": "Managed"
-                            }
-                        }
+        patches={
+            dsc: {
+                "spec": {
+                    "components": {
+                        "kserve": {"rawDeploymentServiceConfig": "Headed"},
+                        "aipipelines": {"managementState": "Managed"},
+                        "mlflowoperator": {"managementState": "Managed"},
                     }
                 }
             }
-        ):
-            wait_for_dsc_status_ready(dsc_resource=dsc)
-            yield dsc
+        }
+    ):
+        wait_for_dsc_status_ready(dsc_resource=dsc)
+        yield dsc

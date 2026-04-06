@@ -54,23 +54,6 @@ def test_lmeval_huggingface_model(admin_client, model_namespace, lmevaljob_hf_po
     On each test we run a different evaluation task, limiting it to 0.5% of the questions on each eval."""
     validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_hf_pod)
 
-@pytest.mark.skip_on_disconnected
-@pytest.mark.tier2
-@pytest.mark.parametrize(
-    "model_namespace, lmevaljob_hf",
-    [
-
-        pytest.param(
-            {"name": "test-lmeval-hf-tier2"},
-            {"task_list": {"taskNames": TIER2_LMEVAL_TASKS}},
-        ),
-    ],
-    indirect=True,
-)
-def test_lmeval_huggingface_model_tier2(admin_client, model_namespace, lmevaljob_hf_pod):
-    """Tests that verify running common evaluations (and a custom one) on a model pulled directly from HuggingFace.
-    On each test we run a different evaluation task, limiting it to 0.5% of the questions on each eval."""
-    validate_lmeval_job_pod_and_logs(lmevaljob_pod=lmevaljob_hf_pod)
 
 @pytest.mark.skip_on_disconnected
 @pytest.mark.tier2
@@ -170,6 +153,7 @@ def test_verify_lmeval_pod_images(lmevaljob_s3_offline_pod, trustyai_operator_co
     validate_tai_component_images(
         pod=lmevaljob_s3_offline_pod, tai_operator_configmap=trustyai_operator_configmap, include_init_containers=True
     )
+
 
 @pytest.mark.tier1
 @pytest.mark.parametrize(

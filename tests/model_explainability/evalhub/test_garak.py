@@ -7,13 +7,13 @@ from tests.model_explainability.evalhub.constants import (
     GARAK_BENCHMARK_ID,
     GARAK_PROVIDER_ID,
 )
-from utilities.constants import LLMdInferenceSimConfig
 from tests.model_explainability.evalhub.utils import (
     submit_garak_job,
     validate_evalhub_health,
     validate_evalhub_providers,
     wait_for_job_completion,
 )
+from utilities.constants import LLMdInferenceSimConfig
 
 
 @pytest.mark.parametrize(

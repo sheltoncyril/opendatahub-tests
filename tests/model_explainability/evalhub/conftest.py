@@ -8,13 +8,11 @@ from ocp_resources.data_science_pipelines_application import DataSciencePipeline
 from ocp_resources.deployment import Deployment
 from ocp_resources.inference_service import InferenceService
 from ocp_resources.namespace import Namespace
-from ocp_resources.project_project_openshift_io import Project
 from ocp_resources.role import Role
 from ocp_resources.role_binding import RoleBinding
 from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 from ocp_resources.service_account import ServiceAccount
-from ocp_resources.serving_runtime import ServingRuntime
 from pytest_testconfig import config as py_config
 
 from tests.model_explainability.evalhub.constants import (
@@ -204,9 +202,7 @@ def tenant_namespace(
 
 @pytest.fixture(scope="class")
 def evalhub_job_service_account(
-    admin_client: DynamicClient,
-    model_namespace: Namespace,
-    tenant_namespace: Namespace
+    admin_client: DynamicClient, model_namespace: Namespace, tenant_namespace: Namespace
 ) -> ServiceAccount:
     """Wait for the auto-created EvalHub job ServiceAccount in the tenant namespace."""
     sa_name = f"{EVALHUB_JOB_SA_PREFIX}{model_namespace.name}{EVALHUB_JOB_SA_SUFFIX}"
@@ -364,10 +360,12 @@ def dspa_secret_patch(
         "AWS_DEFAULT_REGION": "us-east-1",
     }
 
-    secret.update(resource_dict={
-        "metadata": {"name": secret.name, "namespace": tenant_namespace.name},
-        "stringData": secret_data,
-    })
+    secret.update(
+        resource_dict={
+            "metadata": {"name": secret.name, "namespace": tenant_namespace.name},
+            "stringData": secret_data,
+        }
+    )
     LOGGER.info(f"Patched DSPA S3 secret with additional fields in {tenant_namespace.name}")
     return secret
 
@@ -380,20 +378,21 @@ def dsp_access_for_job_sa(
     tenant_dspa: DataSciencePipelinesApplication,
 ) -> Generator[tuple[Role, RoleBinding, RoleBinding], Any, Any]:
     """Grant the EvalHub job ServiceAccount access to the DSP API and pipeline management."""
-    with Role(
-        client=admin_client,
-        name="evalhub-jobs-dspa-api",
-        namespace=tenant_namespace.name,
-        rules=[
-            {
-                "apiGroups": ["datasciencepipelinesapplications.opendatahub.io"],
-                "resources": ["datasciencepipelinesapplications/api"],
-                "verbs": ["get", "create"],
-            },
-        ],
-        wait_for_resource=True,
-    ) as role:
-        with RoleBinding(
+    with (
+        Role(
+            client=admin_client,
+            name="evalhub-jobs-dspa-api",
+            namespace=tenant_namespace.name,
+            rules=[
+                {
+                    "apiGroups": ["datasciencepipelinesapplications.opendatahub.io"],
+                    "resources": ["datasciencepipelinesapplications/api"],
+                    "verbs": ["get", "create"],
+                },
+            ],
+            wait_for_resource=True,
+        ) as role,
+        RoleBinding(
             client=admin_client,
             name="evalhub-jobs-dspa-api",
             namespace=tenant_namespace.name,
@@ -403,20 +402,20 @@ def dsp_access_for_job_sa(
             subjects_name=evalhub_job_service_account.name,
             subjects_namespace=tenant_namespace.name,
             wait_for_resource=True,
-        ) as api_binding:
-            with RoleBinding(
-                client=admin_client,
-                name="evalhub-jobs-pipeline-management",
-                namespace=tenant_namespace.name,
-                role_ref_kind="Role",
-                role_ref_name="ds-pipeline-dspa",
-                subjects_kind="ServiceAccount",
-                subjects_name=evalhub_job_service_account.name,
-                subjects_namespace=tenant_namespace.name,
-                wait_for_resource=True,
-            ) as pipeline_binding:
-                yield role, api_binding, pipeline_binding
-
+        ) as api_binding,
+        RoleBinding(
+            client=admin_client,
+            name="evalhub-jobs-pipeline-management",
+            namespace=tenant_namespace.name,
+            role_ref_kind="Role",
+            role_ref_name="ds-pipeline-dspa",
+            subjects_kind="ServiceAccount",
+            subjects_name=evalhub_job_service_account.name,
+            subjects_namespace=tenant_namespace.name,
+            wait_for_resource=True,
+        ) as pipeline_binding,
+    ):
+        yield role, api_binding, pipeline_binding
 
 
 # ---------------------------------------------------------------------------
@@ -427,7 +426,4 @@ def dsp_access_for_job_sa(
 @pytest.fixture(scope="class")
 def garak_sim_isvc_url(llm_d_inference_sim_isvc: InferenceService) -> str:
     """Get the internal service URL for the LLM-d inference simulator."""
-    return (
-        f"http://{llm_d_inference_sim_isvc.name}-predictor.{llm_d_inference_sim_isvc.namespace}"
-        f".svc.cluster.local/v1"
-    )
+    return f"http://{llm_d_inference_sim_isvc.name}-predictor.{llm_d_inference_sim_isvc.namespace}.svc.cluster.local/v1"
