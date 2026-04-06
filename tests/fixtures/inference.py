@@ -198,7 +198,7 @@ def llm_d_inference_sim_isvc(
             deployment_mode=KServeDeploymentType.RAW_DEPLOYMENT,
             model_format=LLMdInferenceSimConfig.name,
             runtime=llm_d_inference_sim_serving_runtime.name,
-            wait_for_predictor_pods=True,
+            wait_for_predictor_pods=False,
             min_replicas=1,
             max_replicas=1,
             resources={
@@ -207,6 +207,12 @@ def llm_d_inference_sim_isvc(
             },
             teardown=teardown_resources,
         ) as isvc:
+            deployment = Deployment(
+                client=admin_client,
+                name=f"{isvc.name}-predictor",
+                namespace=model_namespace.name,
+            )
+            deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_2MIN)
             yield isvc
 
 

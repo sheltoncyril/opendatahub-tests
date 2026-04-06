@@ -1,6 +1,5 @@
 import pytest
 from ocp_resources.data_science_pipelines_application import DataSciencePipelinesApplication
-from ocp_resources.inference_service import InferenceService
 from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 
@@ -75,9 +74,7 @@ class TestGarakBenchmark:
         tenant_dspa: DataSciencePipelinesApplication,
         dspa_secret_patch: Secret,
         dsp_access_for_job_sa,
-        garak_sim_isvc: InferenceService,
         garak_sim_isvc_url: str,
-        garak_sim_isvc_ready: None,
     ) -> None:
         """Submit a garak quick benchmark evaluation job using LLM-d inference simulator."""
         kfp_endpoint = f"https://ds-pipeline-dspa.{tenant_namespace.name}.svc.cluster.local:8443"

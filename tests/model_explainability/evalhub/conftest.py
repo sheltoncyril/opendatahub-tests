@@ -25,8 +25,7 @@ from tests.model_explainability.evalhub.constants import (
 )
 from tests.model_explainability.evalhub.utils import wait_for_service_account
 from utilities.certificates_utils import create_ca_bundle_file
-from utilities.constants import KServeDeploymentType, LLMdInferenceSimConfig, Timeout
-from utilities.inference_utils import create_isvc
+from utilities.constants import Timeout
 from utilities.infra import create_inference_token, create_ns
 from utilities.resources.evalhub import EvalHub
 from utilities.resources.mlflow import MLflow
@@ -193,7 +192,7 @@ def tenant_namespace(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     garak_evalhub_deployment: Deployment,
-) -> Generator[Namespace | Project, Any, Any]:
+) -> Generator[Namespace, Any, Any]:
     """Create a tenant namespace labeled for EvalHub multi-tenancy."""
     with create_ns(
         admin_client=admin_client,
@@ -207,7 +206,7 @@ def tenant_namespace(
 def evalhub_job_service_account(
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    tenant_namespace: Namespace | Project,
+    tenant_namespace: Namespace
 ) -> ServiceAccount:
     """Wait for the auto-created EvalHub job ServiceAccount in the tenant namespace."""
     sa_name = f"{EVALHUB_JOB_SA_PREFIX}{model_namespace.name}{EVALHUB_JOB_SA_SUFFIX}"
@@ -419,106 +418,16 @@ def dsp_access_for_job_sa(
                 yield role, api_binding, pipeline_binding
 
 
+
 # ---------------------------------------------------------------------------
-# LLM-d Inference Simulator model fixtures
+# LLM-d Inference Simulator URL fixture
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
-def garak_sim_serving_runtime(
-    admin_client: DynamicClient,
-    model_namespace: Namespace,
-) -> Generator[ServingRuntime, Any, Any]:
-    """Create an LLM-d inference simulator serving runtime for garak testing."""
-    with ServingRuntime(
-        client=admin_client,
-        name=LLMdInferenceSimConfig.serving_runtime_name,
-        namespace=model_namespace.name,
-        annotations={
-            "description": "LLM-d Simulator KServe",
-            "serving.kserve.io/enable-agent": "false",
-        },
-        containers=[
-            {
-                "name": "kserve-container",
-                "image": "quay.io/trustyai_testing/llm-d-inference-sim-dataset-builtin"
-                "@sha256:79e525cfd57a0d72b7e71d5f1e2dd398eca9315cfbd061d9d3e535b1ae736239",
-                "imagePullPolicy": "Always",
-                "args": [
-                    "--model",
-                    LLMdInferenceSimConfig.model_name,
-                    "--port",
-                    str(LLMdInferenceSimConfig.port),
-                    "--max-model-len",
-                    str(LLMdInferenceSimConfig.max_model_len),
-                ],
-                "ports": [{"containerPort": LLMdInferenceSimConfig.port, "protocol": "TCP"}],
-                "securityContext": {"allowPrivilegeEscalation": False},
-                "readinessProbe": {
-                    "httpGet": {"path": "/health", "port": LLMdInferenceSimConfig.port, "scheme": "HTTP"},
-                    "initialDelaySeconds": 5,
-                    "periodSeconds": 10,
-                },
-            }
-        ],
-        multi_model=False,
-        supported_model_formats=[{"autoSelect": True, "name": LLMdInferenceSimConfig.name}],
-    ) as serving_runtime:
-        yield serving_runtime
-
-
-@pytest.fixture(scope="class")
-def garak_sim_isvc(
-    admin_client: DynamicClient,
-    model_namespace: Namespace,
-    garak_sim_serving_runtime: ServingRuntime,
-) -> Generator[InferenceService, Any, Any]:
-    """Deploy the LLM-d inference simulator for garak testing."""
-    with create_isvc(
-        client=admin_client,
-        name=LLMdInferenceSimConfig.isvc_name,
-        namespace=model_namespace.name,
-        deployment_mode=KServeDeploymentType.RAW_DEPLOYMENT,
-        model_format=LLMdInferenceSimConfig.name,
-        runtime=garak_sim_serving_runtime.name,
-        wait_for_predictor_pods=False,
-        min_replicas=1,
-        max_replicas=1,
-        resources={
-            "requests": {"cpu": "1", "memory": "1Gi"},
-            "limits": {"cpu": "1", "memory": "1Gi"},
-        },
-    ) as isvc:
-        yield isvc
-
-
-@pytest.fixture(scope="class")
-def garak_sim_isvc_url(garak_sim_isvc: InferenceService) -> str:
-    """Get the internal service URL for the LLM-d inference simulator.
-
-    Uses the KServe Service port (80) instead of the container port,
-    since KFP pods in the tenant namespace connect via the Service.
-    """
+def garak_sim_isvc_url(llm_d_inference_sim_isvc: InferenceService) -> str:
+    """Get the internal service URL for the LLM-d inference simulator."""
     return (
-        f"http://{garak_sim_isvc.name}-predictor.{garak_sim_isvc.namespace}"
+        f"http://{llm_d_inference_sim_isvc.name}-predictor.{llm_d_inference_sim_isvc.namespace}"
         f".svc.cluster.local/v1"
     )
-
-
-@pytest.fixture(scope="class")
-def garak_sim_isvc_ready(
-    admin_client: DynamicClient,
-    model_namespace: Namespace,
-    garak_sim_isvc: InferenceService,
-) -> None:
-    """Wait for the LLM-d inference simulator deployment to have ready replicas.
-
-    Needed because wait_for_predictor_pods=False is used in create_isvc
-    (the standard wait utility does not support the 'Standard' deployment mode).
-    """
-    deployment = Deployment(
-        client=admin_client,
-        name=f"{garak_sim_isvc.name}-predictor",
-        namespace=model_namespace.name,
-    )
-    deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
