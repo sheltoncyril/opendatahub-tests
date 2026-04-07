@@ -3,6 +3,7 @@ from collections.abc import Generator
 from typing import Any
 
 import pytest
+import requests
 import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.config_map import ConfigMap
@@ -109,14 +110,12 @@ def evalhub_mt_ready(
     has fully configured the backend, causing 503 errors. This fixture
     polls the health endpoint until it responds successfully.
     """
-    import requests as _requests
-
     url = f"https://{evalhub_mt_route.host}{EVALHUB_HEALTH_PATH}"
     try:
         for sample in TimeoutSampler(
             wait_timeout=120,
             sleep=5,
-            func=lambda: _requests.get(url, verify=evalhub_mt_ca_bundle_file, timeout=10),
+            func=lambda: requests.get(url, verify=evalhub_mt_ca_bundle_file, timeout=10),
             exceptions_dict={Exception: []},
         ):
             if sample.ok:
