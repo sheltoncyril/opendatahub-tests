@@ -7,15 +7,15 @@ import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.data_science_pipelines_application import DataSciencePipelinesApplication
 from ocp_resources.deployment import Deployment
+from ocp_resources.evalhub import EvalHub
 from ocp_resources.inference_service import InferenceService
+from ocp_resources.mlflow import MLflow
 from ocp_resources.namespace import Namespace
 from ocp_resources.role import Role
 from ocp_resources.role_binding import RoleBinding
 from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 from ocp_resources.service_account import ServiceAccount
-from ocp_resources.evalhub import EvalHub
-from ocp_resources.mlflow import MLflow
 from pytest_testconfig import config as py_config
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
