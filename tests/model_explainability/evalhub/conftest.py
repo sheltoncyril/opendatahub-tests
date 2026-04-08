@@ -14,6 +14,8 @@ from ocp_resources.role_binding import RoleBinding
 from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 from ocp_resources.service_account import ServiceAccount
+from ocp_resources.evalhub import EvalHub
+from ocp_resources.mlflow import MLflow
 from pytest_testconfig import config as py_config
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
@@ -30,8 +32,6 @@ from tests.model_explainability.evalhub.utils import wait_for_service_account
 from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import Timeout
 from utilities.infra import create_inference_token, create_ns
-from utilities.resources.evalhub import EvalHub
-from utilities.resources.mlflow import MLflow
 
 LOGGER = structlog.get_logger(name=__name__)
 

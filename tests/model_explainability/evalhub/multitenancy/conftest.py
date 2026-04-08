@@ -14,6 +14,7 @@ from ocp_resources.role_binding import RoleBinding
 from ocp_resources.route import Route
 from ocp_resources.service import Service
 from ocp_resources.service_account import ServiceAccount
+from ocp_resources.evalhub import EvalHub
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
 from tests.model_explainability.evalhub.constants import (
@@ -28,7 +29,6 @@ from tests.model_explainability.evalhub.constants import (
 from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import Labels, Protocols, Timeout
 from utilities.infra import create_inference_token, create_ns
-from utilities.resources.evalhub import EvalHub
 
 LOGGER = structlog.get_logger(name=__name__)
 
