@@ -25,7 +25,6 @@ from utilities.constants import MinIo
 
 
 @pytest.mark.smoke
-@pytest.mark.component_health
 @pytest.mark.model_explainability
 def test_trustyaiservice_crd_exists(
     admin_client: DynamicClient,

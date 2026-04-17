@@ -16,7 +16,6 @@ from tests.model_explainability.evalhub.constants import (
 
 
 @pytest.mark.smoke
-@pytest.mark.component_health
 @pytest.mark.model_explainability
 def test_evalhub_crd_exists(
     admin_client: DynamicClient,

@@ -41,7 +41,6 @@ LOGGER = structlog.get_logger(name=__name__)
 
 
 @pytest.mark.smoke
-@pytest.mark.component_health
 @pytest.mark.model_explainability
 def test_guardrailsorchestrator_crd_exists(
     admin_client: DynamicClient,
