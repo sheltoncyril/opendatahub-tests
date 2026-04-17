@@ -13,7 +13,7 @@ from tests.model_explainability.evalhub.utils import validate_evalhub_health
     ],
     indirect=True,
 )
-@pytest.mark.smoke
+@pytest.mark.tier1
 @pytest.mark.model_explainability
 class TestEvalHubHealth:
     """Tests for basic EvalHub service health and availability."""
