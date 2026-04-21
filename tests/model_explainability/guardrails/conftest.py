@@ -8,6 +8,7 @@ from kubernetes.dynamic.exceptions import ResourceNotFoundError
 from ocp_resources.cluster_service_version import ClusterServiceVersion
 from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
+from ocp_resources.guardrails_orchestrator import GuardrailsOrchestrator
 from ocp_resources.inference_service import InferenceService
 from ocp_resources.namespace import Namespace
 from ocp_resources.open_telemetry_collector import OpenTelemetryCollector
@@ -456,9 +457,6 @@ def guardrails_orchestrator_with_tls(
     """
     Creates a GuardrailsOrchestrator with custom TLS secrets mounted.
     """
-    from ocp_resources.deployment import Deployment
-    from ocp_resources.guardrails_orchestrator import GuardrailsOrchestrator
-
     params = getattr(request, "param", {})
     tls_secrets = params.get("tls_secrets", [])
 
