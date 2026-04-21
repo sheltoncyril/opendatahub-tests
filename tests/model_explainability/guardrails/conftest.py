@@ -504,24 +504,6 @@ def guardrails_orchestrator_pod_with_tls(
 
 
 @pytest.fixture(scope="class")
-def guardrails_orchestrator_with_tls_route(
-    model_namespace: Namespace,
-    guardrails_orchestrator_with_tls,
-):
-    """
-    Retrieves the Route for the Guardrails Orchestrator with custom TLS.
-    """
-    from ocp_resources.route import Route
-
-    return Route(
-        name=GUARDRAILS_ORCHESTRATOR_NAME,
-        namespace=model_namespace.name,
-        wait_for_resource=True,
-        ensure_exists=True,
-    )
-
-
-@pytest.fixture(scope="class")
 def minio_pvc_otel(
     admin_client: DynamicClient,
     model_namespace: Namespace,
