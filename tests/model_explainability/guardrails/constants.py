@@ -95,8 +95,7 @@ QJ5x7QJ5x7QJ5x7Qg==
 
 # Test TLS private key for custom TLS mounting tests
 # This is a self-signed test fixture with no real-world validity
-# pragma: allowlist secret
-TEST_TLS_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----
+TEST_TLS_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----  # pragma: allowlist secret
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDXEqntUncv3Eon
 krwndAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
 tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH

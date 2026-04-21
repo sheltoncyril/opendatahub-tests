@@ -4,6 +4,7 @@ import structlog
 import yaml
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.custom_resource_definition import CustomResourceDefinition
+from ocp_resources.namespace import Namespace
 from timeout_sampler import retry
 
 from tests.model_explainability.guardrails.constants import (
@@ -651,13 +652,17 @@ class TestGuardrailsOrchestratorCustomTLS:
         # Verify the volume references the correct secret
         volumes = [v for v in pod.instance.spec.volumes if v.name == volume_mounts[0].name]
         assert volumes, f"Volume {volume_mounts[0].name} not found in pod volumes"
-        assert volumes[0].secret.secretName == "custom-tls-cert", "Volume does not reference the correct secret"
+        assert volumes[0].secret.secretName == "custom-tls-cert", (  # pragma: allowlist secret
+            "Volume does not reference the correct secret"
+        )
 
         # Verify certificate files exist in the pod
-        cert_check_cmd = "ls -la /etc/tls/custom-tls-cert/tls.crt /etc/tls/custom-tls-cert/tls.key"
+        cert_check_cmd = (
+            "ls -la /etc/tls/custom-tls-cert/tls.crt /etc/tls/custom-tls-cert/tls.key"  # pragma: allowlist secret
+        )
         result = pod.execute(command=["sh", "-c", cert_check_cmd])
 
         assert "tls.crt" in result, "TLS certificate file not found in mounted path"
-        assert "tls.key" in result, "TLS key file not found in mounted path"
+        assert "tls.key" in result, "TLS key file not found in mounted path"  # pragma: allowlist secret
 
         LOGGER.info(f"Custom TLS secret successfully mounted at /etc/tls/custom-tls-cert in pod {pod.name}")
