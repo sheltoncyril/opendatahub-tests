@@ -684,8 +684,50 @@ class TestGuardrailsOrchestratorCustomTLS:
             f"Custom TLS secret successfully mounted and verified at /etc/tls/custom-tls-cert in pod {pod.name}"
         )
 
-        # TODO: Add HTTPS endpoint verification once GuardrailsOrchestrator is configured to use custom TLS
-        # This would involve:
-        # 1. Creating a Route with TLS passthrough or edge termination
-        # 2. Making an HTTPS request to extract the server certificate
-        # 3. Comparing the server's certificate fingerprint with our test certificate
+    def test_custom_tls_endpoint_verification(
+        self,
+        current_client_token,
+        guardrails_orchestrator_with_tls,
+        guardrails_orchestrator_with_tls_route,
+    ):
+        """
+        Verify that the GuardrailsOrchestrator HTTPS endpoint uses the custom TLS certificate.
+
+        Steps:
+        1. Make an HTTPS request to the /info endpoint
+        2. Verify the endpoint is accessible and uses the custom certificate
+        """
+        import http
+        import tempfile
+
+        from tests.model_explainability.guardrails.constants import TEST_TLS_CERTIFICATE
+        from tests.model_explainability.guardrails.utils import get_auth_headers
+
+        # Write the test certificate to a temporary file for verification
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".crt", delete=False) as cert_file:
+            cert_file.write(TEST_TLS_CERTIFICATE)
+            cert_file_path = cert_file.name
+
+        try:
+            # Make HTTPS request using the custom certificate for verification
+            response = requests.get(
+                url=f"https://{guardrails_orchestrator_with_tls_route.host}/info",
+                headers=get_auth_headers(token=current_client_token),
+                verify=cert_file_path,
+                timeout=30,
+            )
+
+            assert response.status_code == http.HTTPStatus.OK, (
+                f"Failed to reach /info endpoint. Status: {response.status_code}"
+            )
+
+            LOGGER.info(
+                f"Successfully verified HTTPS endpoint at {guardrails_orchestrator_with_tls_route.host} "
+                "using custom TLS certificate"
+            )
+        finally:
+            # Clean up the temporary certificate file
+            import os
+
+            if os.path.exists(cert_file_path):
+                os.unlink(cert_file_path)
