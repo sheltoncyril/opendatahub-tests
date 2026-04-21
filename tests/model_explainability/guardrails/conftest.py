@@ -26,6 +26,8 @@ from tests.model_explainability.guardrails.constants import (
     OTEL_EXPORTER_PORT,
     SUPER_SECRET,
     TEMPO,
+    TEST_TLS_CERTIFICATE,
+    TEST_TLS_PRIVATE_KEY,
 )
 from utilities.constants import (
     KServeDeploymentType,
@@ -107,77 +109,19 @@ def custom_tls_secret(
     model_namespace: Namespace,
 ) -> Generator[Secret, Any, Any]:
     """
-    Creates a test TLS secret with hard-coded certificate data.
+    Creates a test TLS secret with self-signed certificate data from constants.
     This secret will be mounted to the Guardrails Orchestrator to test custom TLS mounting.
+
+    Note: The certificate and key are test fixtures defined in constants.py with
+    no real-world validity. Security scanners should ignore these test credentials.
     """
-    # Hard-coded self-signed certificate for testing
-    tls_cert = """-----BEGIN CERTIFICATE-----
-MIIDXTCCAkWgAwIBAgIJAKJ5PqwH7dL5MA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
-BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
-aWRnaXRzIFB0eSBMdGQwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjBF
-MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
-ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
-CgKCAQEA1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
-x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
-5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7Q
-J5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
-QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
-7QJ5x7QJ5x7QJ5x7QJ5x7QIDAQABo1AwTjAdBgNVHQ4EFgQU1xKp7VJ3L9xKJ5K8
-J3QJ5x7QJ5wwHwYDVR0jBBgwFoAU1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5wwDAYDVR0T
-BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEA1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5x7
-QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
-7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
-x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
-5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7Q
-J5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
-QJ5x7QJ5x7QJ5x7Qg==
------END CERTIFICATE-----"""
-
-    tls_key = """-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDXEqntUncv3Eon
-krwndAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
-tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
-tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
-tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
-tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAgMBAAECggEBANcS
-qe1Sdy/cSieSvCd0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
-e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
-e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
-e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
-e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
-e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
-e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
-e0Cece0Cece0ECgYEA1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
-QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
-7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
-x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
-5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7Q
-J5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
-QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
-7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
-x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
-5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QKBgQDX
-EqntUncv3EonkrwndAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
-nHtAnnHtAnnHtAnnHtAg==
------END PRIVATE KEY-----"""
-
     with Secret(
         client=admin_client,
         name="custom-tls-cert",
         namespace=model_namespace.name,
         string_data={
-            "tls.crt": tls_cert,
-            "tls.key": tls_key,
+            "tls.crt": TEST_TLS_CERTIFICATE,
+            "tls.key": TEST_TLS_PRIVATE_KEY,
         },
         type="kubernetes.io/tls",
     ) as secret:
