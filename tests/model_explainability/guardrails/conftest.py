@@ -459,7 +459,8 @@ def guardrails_orchestrator_with_tls(
     from ocp_resources.deployment import Deployment
     from ocp_resources.guardrails_orchestrator import GuardrailsOrchestrator
 
-    tls_secrets = request.param.get("tls_secrets", [])
+    params = getattr(request, "param", {})
+    tls_secrets = params.get("tls_secrets", [])
 
     with GuardrailsOrchestrator(
         client=admin_client,
@@ -473,7 +474,9 @@ def guardrails_orchestrator_with_tls(
         tls_secrets=tls_secrets,
         wait_for_resource=True,
     ) as gorch:
-        gorch_deployment = Deployment(name=gorch.name, namespace=gorch.namespace, wait_for_resource=True)
+        gorch_deployment = Deployment(
+            client=admin_client, name=gorch.name, namespace=gorch.namespace, wait_for_resource=True
+        )
         gorch_deployment.wait_for_replicas()
         yield gorch
 
@@ -488,7 +491,9 @@ def guardrails_orchestrator_pod_with_tls(
     Retrieves the Guardrails Orchestrator pod for TLS testing.
     """
     pods = Pod.get(
-        namespace=model_namespace.name, label_selector=f"app.kubernetes.io/instance={GUARDRAILS_ORCHESTRATOR_NAME}"
+        client=admin_client,
+        namespace=model_namespace.name,
+        label_selector=f"app.kubernetes.io/instance={GUARDRAILS_ORCHESTRATOR_NAME}",
     )
     pod = next(iter(pods), None)
     if pod is None:
