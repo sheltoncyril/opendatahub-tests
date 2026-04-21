@@ -683,3 +683,44 @@ class TestGuardrailsOrchestratorCustomTLS:
         LOGGER.info(
             f"Custom TLS secret successfully mounted and verified at /etc/tls/custom-tls-cert in pod {pod.name}"
         )
+
+    def test_custom_tls_communication(
+        self,
+        admin_client: DynamicClient,
+        model_namespace: Namespace,
+        guardrails_orchestrator_pod_with_tls,
+        https_test_server_pod,
+        https_test_server_service,
+    ):
+        """
+        Verify that the GuardrailsOrchestrator can communicate with an HTTPS endpoint using the custom TLS cert.
+
+        Steps:
+        1. Set up an HTTPS test server using the custom TLS certificate
+        2. From the orchestrator pod, make a curl request to the HTTPS server using the custom cert
+        3. Verify the TLS connection succeeds
+        """
+        orchestrator_pod = guardrails_orchestrator_pod_with_tls
+
+        # Construct curl command to make HTTPS request using the custom cert
+        # The curl command verifies the server cert using our custom CA cert
+        service_url = f"https://https-test-server.{model_namespace.name}.svc.cluster.local:8443/"
+        curl_cmd = (
+            f'curl -s --cacert /etc/tls/custom-tls-cert/tls.crt "{service_url}"'
+        )
+
+        # Execute curl from the orchestrator pod
+        result = orchestrator_pod.execute(
+            command=["sh", "-c", curl_cmd],
+            timeout=30,
+        )
+
+        # Verify we got a successful response
+        assert "TLS connection successful" in result, (
+            f"Failed to establish TLS connection. Response: {result}"
+        )
+
+        LOGGER.info(
+            f"Successfully verified TLS communication from orchestrator pod {orchestrator_pod.name} "
+            f"to HTTPS test server using custom certificate"
+        )

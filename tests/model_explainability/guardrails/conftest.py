@@ -504,6 +504,122 @@ def guardrails_orchestrator_pod_with_tls(
 
 
 @pytest.fixture(scope="class")
+def https_test_server_pod(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    custom_tls_secret: Secret,
+) -> Generator[Pod, Any, Any]:
+    """
+    Creates a simple HTTPS test server pod using the custom TLS certificate.
+    This pod serves a basic HTTP response over HTTPS for testing TLS connectivity.
+    """
+    from ocp_resources.pod import Pod
+
+    pod_name = "https-test-server"
+
+    # Create a simple Python HTTPS server pod
+    pod_dict = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "name": pod_name,
+            "namespace": model_namespace.name,
+        },
+        "spec": {
+            "containers": [
+                {
+                    "name": "https-server",
+                    "image": "python:3.11-slim",
+                    "command": [
+                        "python3",
+                        "-c",
+                        """
+import http.server
+import ssl
+import json
+
+class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        response = {'status': 'ok', 'message': 'TLS connection successful'}
+        self.wfile.write(json.dumps(response).encode())
+
+    def log_message(self, format, *args):
+        pass  # Suppress logs
+
+server_address = ('', 8443)
+httpd = http.server.HTTPServer(server_address, SimpleHTTPRequestHandler)
+context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+context.load_cert_chain('/etc/tls/custom-tls-cert/tls.crt', '/etc/tls/custom-tls-cert/tls.key')
+httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+print('HTTPS server running on port 8443')
+httpd.serve_forever()
+                        """,
+                    ],
+                    "ports": [{"containerPort": 8443, "protocol": "TCP"}],
+                    "volumeMounts": [
+                        {
+                            "name": "tls-cert",
+                            "mountPath": "/etc/tls/custom-tls-cert",
+                            "readOnly": True,
+                        }
+                    ],
+                }
+            ],
+            "volumes": [
+                {
+                    "name": "tls-cert",
+                    "secret": {"secretName": custom_tls_secret.name},
+                }
+            ],
+        },
+    }
+
+    with Pod(**pod_dict, client=admin_client) as pod:
+        pod.wait_for_status(status=Pod.Status.RUNNING, timeout=120)
+        # Give the server a moment to start listening
+        import time
+        time.sleep(5)
+        yield pod
+
+
+@pytest.fixture(scope="class")
+def https_test_server_service(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    https_test_server_pod: Pod,
+) -> Generator[Any, Any, Any]:
+    """
+    Creates a Service for the HTTPS test server pod.
+    """
+    from ocp_resources.service import Service
+
+    service_dict = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": {
+            "name": "https-test-server",
+            "namespace": model_namespace.name,
+        },
+        "spec": {
+            "selector": {"name": https_test_server_pod.name},
+            "ports": [
+                {
+                    "protocol": "TCP",
+                    "port": 8443,
+                    "targetPort": 8443,
+                }
+            ],
+        },
+    }
+
+    with Service(**service_dict, client=admin_client) as service:
+        yield service
+
+
+@pytest.fixture(scope="class")
 def minio_pvc_otel(
     admin_client: DynamicClient,
     model_namespace: Namespace,
