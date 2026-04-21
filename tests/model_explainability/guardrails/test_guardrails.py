@@ -589,3 +589,71 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
             content=str(message),
             model=LLMdInferenceSimConfig.model_name,
         )
+
+
+@pytest.mark.tier1
+@pytest.mark.parametrize(
+    "model_namespace, orchestrator_config, guardrails_orchestrator_with_tls",
+    [
+        pytest.param(
+            {"name": "test-guardrails-custom-tls"},
+            {
+                "orchestrator_config_data": {
+                    "config.yaml": yaml.dump({
+                        "openai": LLM_D_CHAT_GENERATION_CONFIG,
+                        "detectors": BUILTIN_DETECTOR_CONFIG,
+                    })
+                },
+            },
+            {"tls_secrets": ["custom-tls-cert"]},
+        )
+    ],
+    indirect=True,
+)
+@pytest.mark.rawdeployment
+@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+class TestGuardrailsOrchestratorCustomTLS:
+    """
+    Tests custom TLS certificate mounting for the GuardrailsOrchestrator.
+    Verifies that custom TLS secrets specified in the CR are correctly mounted
+    to the orchestrator deployment at /etc/tls/$SECRET_NAME.
+    """
+
+    def test_custom_tls_secret_mounted(
+        self,
+        admin_client: DynamicClient,
+        model_namespace: Namespace,
+        custom_tls_secret,
+        guardrails_orchestrator_with_tls,
+        guardrails_orchestrator_pod_with_tls,
+    ):
+        """
+        Verify that custom TLS secret is mounted to the Guardrails Orchestrator pod.
+
+        Steps:
+        1. Create a GuardrailsOrchestrator with a custom TLS secret
+        2. Verify the secret is mounted at /etc/tls/custom-tls-cert
+        3. Verify the certificate files exist in the mounted path
+        """
+        pod = guardrails_orchestrator_pod_with_tls
+
+        # Verify the volume mount exists in the pod spec
+        container = pod.instance.spec.containers[0]
+        volume_mounts = [vm for vm in container.volumeMounts if vm.mountPath == "/etc/tls/custom-tls-cert"]
+
+        assert volume_mounts, "Custom TLS volume mount not found in pod spec"
+        assert volume_mounts[0].name, "Volume mount has no name"
+
+        # Verify the volume references the correct secret
+        volumes = [v for v in pod.instance.spec.volumes if v.name == volume_mounts[0].name]
+        assert volumes, f"Volume {volume_mounts[0].name} not found in pod volumes"
+        assert volumes[0].secret.secretName == "custom-tls-cert", "Volume does not reference the correct secret"
+
+        # Verify certificate files exist in the pod
+        cert_check_cmd = "ls -la /etc/tls/custom-tls-cert/tls.crt /etc/tls/custom-tls-cert/tls.key"
+        result = pod.execute(command=["sh", "-c", cert_check_cmd])
+
+        assert "tls.crt" in result, "TLS certificate file not found in mounted path"
+        assert "tls.key" in result, "TLS key file not found in mounted path"
+
+        LOGGER.info(f"Custom TLS secret successfully mounted at /etc/tls/custom-tls-cert in pod {pod.name}")

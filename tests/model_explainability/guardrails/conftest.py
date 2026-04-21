@@ -102,6 +102,89 @@ def prompt_injection_detector_route(
 
 
 @pytest.fixture(scope="class")
+def custom_tls_secret(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+) -> Generator[Secret, Any, Any]:
+    """
+    Creates a test TLS secret with hard-coded certificate data.
+    This secret will be mounted to the Guardrails Orchestrator to test custom TLS mounting.
+    """
+    # Hard-coded self-signed certificate for testing
+    tls_cert = """-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAKJ5PqwH7dL5MA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
+aWRnaXRzIFB0eSBMdGQwHhcNMjQwMTAxMDAwMDAwWhcNMjUwMTAxMDAwMDAwWjBF
+MQswCQYDVQQGEwJBVTETMBEGA1UECAwKU29tZS1TdGF0ZTEhMB8GA1UECgwYSW50
+ZXJuZXQgV2lkZ2l0cyBQdHkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIB
+CgKCAQEA1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
+x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
+5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7Q
+J5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
+QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
+7QJ5x7QJ5x7QJ5x7QJ5x7QIDAQABo1AwTjAdBgNVHQ4EFgQU1xKp7VJ3L9xKJ5K8
+J3QJ5x7QJ5wwHwYDVR0jBBgwFoAU1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5wwDAYDVR0T
+BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEA1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5x7
+QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
+7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
+x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
+5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7Q
+J5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
+QJ5x7QJ5x7QJ5x7Qg==
+-----END CERTIFICATE-----"""
+
+    tls_key = """-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDXEqntUncv3Eon
+krwndAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
+tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
+tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
+tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnH
+tAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAgMBAAECggEBANcS
+qe1Sdy/cSieSvCd0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
+e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
+e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
+e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
+e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
+e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
+e0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cece0Cec
+e0Cece0Cece0ECgYEA1xKp7VJ3L9xKJ5K8J3QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
+QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
+7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
+x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
+5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7Q
+J5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7
+QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x
+7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5
+x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ
+5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QJ5x7QKBgQDX
+EqntUncv3EonkrwndAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAnnHtAn
+nHtAnnHtAnnHtAnnHtAg==
+-----END PRIVATE KEY-----"""
+
+    with Secret(
+        client=admin_client,
+        name="custom-tls-cert",
+        namespace=model_namespace.name,
+        string_data={
+            "tls.crt": tls_cert,
+            "tls.key": tls_key,
+        },
+        type="kubernetes.io/tls",
+    ) as secret:
+        yield secret
+
+
+@pytest.fixture(scope="class")
 def hap_detector_isvc(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -415,6 +498,59 @@ def wait_for_pods_by_label(
             condition=Pod.Condition.READY,
             status="True",
         )
+
+
+@pytest.fixture(scope="class")
+def guardrails_orchestrator_with_tls(
+    request,
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    custom_tls_secret: Secret,
+    orchestrator_config: ConfigMap,
+) -> Generator[Any, Any]:
+    """
+    Creates a GuardrailsOrchestrator with custom TLS secrets mounted.
+    """
+    from ocp_resources.deployment import Deployment
+    from ocp_resources.guardrails_orchestrator import GuardrailsOrchestrator
+
+    tls_secrets = request.param.get("tls_secrets", [])
+
+    with GuardrailsOrchestrator(
+        client=admin_client,
+        name=GUARDRAILS_ORCHESTRATOR_NAME,
+        namespace=model_namespace.name,
+        log_level="DEBUG",
+        replicas=1,
+        orchestrator_config=orchestrator_config.name,
+        enable_built_in_detectors=False,
+        enable_guardrails_gateway=False,
+        tls_secrets=tls_secrets,
+        wait_for_resource=True,
+    ) as gorch:
+        gorch_deployment = Deployment(name=gorch.name, namespace=gorch.namespace, wait_for_resource=True)
+        gorch_deployment.wait_for_replicas()
+        yield gorch
+
+
+@pytest.fixture(scope="class")
+def guardrails_orchestrator_pod_with_tls(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    guardrails_orchestrator_with_tls,
+) -> Pod:
+    """
+    Retrieves the Guardrails Orchestrator pod for TLS testing.
+    """
+    pods = Pod.get(
+        namespace=model_namespace.name, label_selector=f"app.kubernetes.io/instance={GUARDRAILS_ORCHESTRATOR_NAME}"
+    )
+    pod = next(iter(pods), None)
+    if pod is None:
+        raise RuntimeError(
+            f"No guardrails orchestrator pod found with label app.kubernetes.io/instance={GUARDRAILS_ORCHESTRATOR_NAME}"
+        )
+    return pod
 
 
 @pytest.fixture(scope="class")
