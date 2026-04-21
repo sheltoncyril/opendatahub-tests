@@ -637,11 +637,15 @@ class TestGuardrailsOrchestratorCustomTLS:
         """
         pod = guardrails_orchestrator_pod_with_tls
 
-        # Verify the volume mount exists in the pod spec
-        container = pod.instance.spec.containers[0]
-        volume_mounts = [vm for vm in container.volumeMounts if vm.mountPath == "/etc/tls/custom-tls-cert"]
+        # Verify the volume mount exists in the pod spec (scan all containers to handle sidecars)
+        volume_mounts = [
+            vm
+            for container in pod.instance.spec.containers
+            for vm in (container.volumeMounts or [])
+            if vm.mountPath == "/etc/tls/custom-tls-cert"
+        ]
 
-        assert volume_mounts, "Custom TLS volume mount not found in pod spec"
+        assert volume_mounts, "Custom TLS volume mount not found in any container"
         assert volume_mounts[0].name, "Volume mount has no name"
 
         # Verify the volume references the correct secret
