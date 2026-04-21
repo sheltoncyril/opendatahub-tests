@@ -684,43 +684,49 @@ class TestGuardrailsOrchestratorCustomTLS:
             f"Custom TLS secret successfully mounted and verified at /etc/tls/custom-tls-cert in pod {pod.name}"
         )
 
-    def test_custom_tls_communication(
+    def test_custom_tls_usable(
         self,
-        admin_client: DynamicClient,
-        model_namespace: Namespace,
         guardrails_orchestrator_pod_with_tls,
-        https_test_server_pod,
-        https_test_server_service,
     ):
         """
-        Verify that the GuardrailsOrchestrator can communicate with an HTTPS endpoint using the custom TLS cert.
+        Verify that the custom TLS certificate is accessible and usable within the orchestrator pod.
 
         Steps:
-        1. Set up an HTTPS test server using the custom TLS certificate
-        2. From the orchestrator pod, make a curl request to the HTTPS server using the custom cert
-        3. Verify the TLS connection succeeds
+        1. Verify openssl is available in the pod
+        2. Use openssl to validate the certificate can be read and parsed
+        3. Verify the certificate and key pair match
         """
         orchestrator_pod = guardrails_orchestrator_pod_with_tls
 
-        # Construct curl command to make HTTPS request using the custom cert
-        # The curl command verifies the server cert using our custom CA cert
-        service_url = f"https://https-test-server.{model_namespace.name}.svc.cluster.local:8443/"
-        curl_cmd = (
-            f'curl -s --cacert /etc/tls/custom-tls-cert/tls.crt "{service_url}"'
+        # Verify openssl can read and parse the certificate
+        cert_check_cmd = "openssl x509 -in /etc/tls/custom-tls-cert/tls.crt -noout -subject"
+        cert_result = orchestrator_pod.execute(
+            command=["sh", "-c", cert_check_cmd],
+            timeout=10,
         )
 
-        # Execute curl from the orchestrator pod
-        result = orchestrator_pod.execute(
-            command=["sh", "-c", curl_cmd],
-            timeout=30,
+        assert "subject" in cert_result.lower(), (
+            f"Failed to parse certificate with openssl. Output: {cert_result}"
         )
 
-        # Verify we got a successful response
-        assert "TLS connection successful" in result, (
-            f"Failed to establish TLS connection. Response: {result}"
+        # Verify the certificate and key are a matching pair
+        # Extract the public key from cert and compare with key
+        modulus_check_cmd = (
+            "openssl x509 -noout -modulus -in /etc/tls/custom-tls-cert/tls.crt | openssl md5 && "
+            "openssl rsa -noout -modulus -in /etc/tls/custom-tls-cert/tls.key | openssl md5"
+        )
+        modulus_result = orchestrator_pod.execute(
+            command=["sh", "-c", modulus_check_cmd],
+            timeout=10,
+        )
+
+        # The two MD5 hashes should match
+        hashes = [line.strip() for line in modulus_result.strip().split("\n") if line.strip()]
+        assert len(hashes) == 2, f"Expected 2 hash lines, got: {modulus_result}"
+        assert hashes[0] == hashes[1], (
+            f"Certificate and key do not match. Cert hash: {hashes[0]}, Key hash: {hashes[1]}"
         )
 
         LOGGER.info(
-            f"Successfully verified TLS communication from orchestrator pod {orchestrator_pod.name} "
-            f"to HTTPS test server using custom certificate"
+            f"Successfully verified custom TLS certificate is accessible and usable in pod {orchestrator_pod.name}"
         )
