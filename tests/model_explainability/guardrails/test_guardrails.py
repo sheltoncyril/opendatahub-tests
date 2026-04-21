@@ -18,6 +18,7 @@ from tests.model_explainability.guardrails.constants import (
     PII_OUTPUT_DETECTION_PROMPT,
     PROMPT_INJECTION_INPUT_DETECTION_PROMPT,
     STANDALONE_DETECTION_ENDPOINT,
+    TEST_TLS_CERTIFICATE,
 )
 from tests.model_explainability.guardrails.utils import (
     create_detector_config,
@@ -666,8 +667,6 @@ class TestGuardrailsOrchestratorCustomTLS:
         assert "tls.key" in result, "TLS key file not found in mounted path"  # pragma: allowlist secret
 
         # Verify the certificate content matches what we expect
-        from tests.model_explainability.guardrails.constants import TEST_TLS_CERTIFICATE
-
         cert_content_cmd = "cat /etc/tls/custom-tls-cert/tls.crt"
         cert_content = pod.execute(command=["sh", "-c", cert_content_cmd])
 
