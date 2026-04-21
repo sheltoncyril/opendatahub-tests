@@ -665,4 +665,27 @@ class TestGuardrailsOrchestratorCustomTLS:
         assert "tls.crt" in result, "TLS certificate file not found in mounted path"
         assert "tls.key" in result, "TLS key file not found in mounted path"  # pragma: allowlist secret
 
-        LOGGER.info(f"Custom TLS secret successfully mounted at /etc/tls/custom-tls-cert in pod {pod.name}")
+        # Verify the certificate content matches what we expect
+        from tests.model_explainability.guardrails.constants import TEST_TLS_CERTIFICATE
+
+        cert_content_cmd = "cat /etc/tls/custom-tls-cert/tls.crt"
+        cert_content = pod.execute(command=["sh", "-c", cert_content_cmd])
+
+        # Normalize whitespace for comparison
+        expected_cert = TEST_TLS_CERTIFICATE.strip()
+        actual_cert = cert_content.strip()
+
+        assert actual_cert == expected_cert, (
+            f"Mounted certificate content does not match expected test certificate. "
+            f"Expected length: {len(expected_cert)}, Actual length: {len(actual_cert)}"
+        )
+
+        LOGGER.info(
+            f"Custom TLS secret successfully mounted and verified at /etc/tls/custom-tls-cert in pod {pod.name}"
+        )
+
+        # TODO: Add HTTPS endpoint verification once GuardrailsOrchestrator is configured to use custom TLS
+        # This would involve:
+        # 1. Creating a Route with TLS passthrough or edge termination
+        # 2. Making an HTTPS request to extract the server certificate
+        # 3. Comparing the server's certificate fingerprint with our test certificate
