@@ -658,13 +658,14 @@ class TestGuardrailsOrchestratorCustomTLS:
         )
 
         # Verify certificate files exist in the pod
-        cert_check_cmd = (
-            "ls -la /etc/tls/custom-tls-cert/tls.crt /etc/tls/custom-tls-cert/tls.key"  # pragma: allowlist secret
-        )
-        result = pod.execute(command=["sh", "-c", cert_check_cmd])
+        # Use test -f for authoritative file existence checks
+        cert_file_check = "test -f /etc/tls/custom-tls-cert/tls.crt && echo 'cert_exists'"
+        cert_result = pod.execute(command=["sh", "-c", cert_file_check])
+        assert "cert_exists" in cert_result, "TLS certificate file not found in mounted path"
 
-        assert "tls.crt" in result, "TLS certificate file not found in mounted path"
-        assert "tls.key" in result, "TLS key file not found in mounted path"  # pragma: allowlist secret
+        key_file_check = "test -f /etc/tls/custom-tls-cert/tls.key && echo 'key_exists'"  # pragma: allowlist secret
+        key_result = pod.execute(command=["sh", "-c", key_file_check])
+        assert "key_exists" in key_result, "TLS key file not found in mounted path"  # pragma: allowlist secret
 
         # Verify the certificate content matches what we expect
         cert_content_cmd = "cat /etc/tls/custom-tls-cert/tls.crt"
