@@ -619,9 +619,16 @@ class TestGuardrailsOrchestratorCustomTLS:
     Tests custom TLS certificate mounting for the GuardrailsOrchestrator.
     Verifies that custom TLS secrets specified in the CR are correctly mounted
     to the orchestrator deployment at /etc/tls/$SECRET_NAME.
+
+    Tests are split into dependent steps for better granularity:
+    1. Volume mount check
+    2. Volume references correct secret
+    3. Certificate files exist in the pod
+    4. Certificate content matches expected
     """
 
-    def test_custom_tls_secret_mounted(
+    @pytest.mark.dependency(name="volume_mount_check")
+    def test_volume_mount_exists(
         self,
         admin_client: DynamicClient,
         model_namespace: Namespace,
@@ -629,35 +636,57 @@ class TestGuardrailsOrchestratorCustomTLS:
         guardrails_orchestrator_with_tls,
         guardrails_orchestrator_pod_with_tls,
     ):
-        """
-        Verify that custom TLS secret is mounted to the Guardrails Orchestrator pod.
-
-        Steps:
-        1. Create a GuardrailsOrchestrator with a custom TLS secret
-        2. Verify the secret is mounted at /etc/tls/custom-tls-cert
-        3. Verify the certificate files exist in the mounted path
-        """
+        """Verify the volume mount exists in the pod spec."""
         pod = guardrails_orchestrator_pod_with_tls
 
         # Verify the volume mount exists in the pod spec (scan all containers to handle sidecars)
         volume_mounts = [
-            vm
+            volume_mount
             for container in pod.instance.spec.containers
-            for vm in (container.volumeMounts or [])
-            if vm.mountPath == "/etc/tls/custom-tls-cert"
+            for volume_mount in (container.volumeMounts or [])
+            if volume_mount.mountPath == "/etc/tls/custom-tls-cert"
         ]
 
         assert volume_mounts, "Custom TLS volume mount not found in any container"
         assert volume_mounts[0].name, "Volume mount has no name"
 
-        # Verify the volume references the correct secret
-        volumes = [v for v in pod.instance.spec.volumes if v.name == volume_mounts[0].name]
+    @pytest.mark.dependency(name="volume_secret_reference", depends=["volume_mount_check"])
+    def test_volume_references_correct_secret(
+        self,
+        admin_client: DynamicClient,
+        model_namespace: Namespace,
+        custom_tls_secret,
+        guardrails_orchestrator_with_tls,
+        guardrails_orchestrator_pod_with_tls,
+    ):
+        """Verify the volume references the correct secret."""
+        pod = guardrails_orchestrator_pod_with_tls
+
+        volume_mounts = [
+            volume_mount
+            for container in pod.instance.spec.containers
+            for volume_mount in (container.volumeMounts or [])
+            if volume_mount.mountPath == "/etc/tls/custom-tls-cert"
+        ]
+
+        volumes = [volume for volume in pod.instance.spec.volumes if volume.name == volume_mounts[0].name]
         assert volumes, f"Volume {volume_mounts[0].name} not found in pod volumes"
         assert volumes[0].secret.secretName == "custom-tls-cert", (  # pragma: allowlist secret
             "Volume does not reference the correct secret"
         )
 
-        # Verify certificate files exist in the pod
+    @pytest.mark.dependency(name="cert_files_exist", depends=["volume_secret_reference"])
+    def test_certificate_files_exist(
+        self,
+        admin_client: DynamicClient,
+        model_namespace: Namespace,
+        custom_tls_secret,
+        guardrails_orchestrator_with_tls,
+        guardrails_orchestrator_pod_with_tls,
+    ):
+        """Verify certificate files exist in the pod."""
+        pod = guardrails_orchestrator_pod_with_tls
+
         # Use test -f for authoritative file existence checks
         cert_file_check = "test -f /etc/tls/custom-tls-cert/tls.crt && echo 'cert_exists'"
         cert_result = pod.execute(command=["sh", "-c", cert_file_check])
@@ -667,7 +696,18 @@ class TestGuardrailsOrchestratorCustomTLS:
         key_result = pod.execute(command=["sh", "-c", key_file_check])
         assert "key_exists" in key_result, "TLS key file not found in mounted path"  # pragma: allowlist secret
 
-        # Verify the certificate content matches what we expect
+    @pytest.mark.dependency(depends=["cert_files_exist"])
+    def test_certificate_content_matches(
+        self,
+        admin_client: DynamicClient,
+        model_namespace: Namespace,
+        custom_tls_secret,
+        guardrails_orchestrator_with_tls,
+        guardrails_orchestrator_pod_with_tls,
+    ):
+        """Verify the certificate content matches expected test certificate."""
+        pod = guardrails_orchestrator_pod_with_tls
+
         cert_content_cmd = "cat /etc/tls/custom-tls-cert/tls.crt"
         cert_content = pod.execute(command=["sh", "-c", cert_content_cmd])
 
