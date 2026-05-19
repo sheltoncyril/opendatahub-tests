@@ -2,6 +2,8 @@
 
 The following are some helpful tips on how to set up your VS Code environment for working with this repository.
 
+**Note:** These settings also work for Cursor IDE, which is based on VS Code and uses the same configuration format.
+
 ## Pyrefly Type Checker in Visual Studio Code
 
 If you use Visual Studio Code as your IDE, we recommend using the [Pyrefly](https://marketplace.visualstudio.com/items?itemName=meta.pyrefly) extension.

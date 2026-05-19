@@ -108,7 +108,7 @@ dependencies = [
     "huggingface-hub>=1.2.3",
     "openai>=2.36",
     "ragas>=0.4",
-    "pyrefly>=0.60.0",
+    "pyrefly>=1.0",
 ]
 
 [project.urls]
