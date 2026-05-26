@@ -1,6 +1,6 @@
 import pytest
 
-from tests.model_explainability.lm_eval.utils import verify_lmevaljob_running
+from tests.ai_safety.lm_eval.utils import verify_lmevaljob_running
 from utilities.constants import Timeout
 
 LMEVALJOB_COMPLETE_STATE: str = "Complete"
