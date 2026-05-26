@@ -27,7 +27,7 @@ RAGAS_INLINE_BENCHMARK_ID = "ragas_benchmark_inline"
     indirect=True,
 )
 @pytest.mark.rawdeployment
-@pytest.mark.model_explainability
+@pytest.mark.ai_safety
 class TestLlamaStackRagasProvider:
     """Tests for LlamaStack Ragas evaluation provider integration."""
 
