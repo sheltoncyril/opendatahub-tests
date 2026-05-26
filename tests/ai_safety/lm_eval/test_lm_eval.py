@@ -4,14 +4,14 @@ from typing import List
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.custom_resource_definition import CustomResourceDefinition
 
-from tests.model_explainability.lm_eval.constants import (
+from tests.ai_safety.lm_eval.constants import (
     LLMAAJ_TASK_DATA,
     CUSTOM_UNITXT_TASK_DATA,
     ARC_EASY_DATASET_IMAGE,
 )
-from tests.model_explainability.utils import validate_tai_component_images
+from tests.ai_safety.utils import validate_tai_component_images
 
-from tests.model_explainability.lm_eval.utils import get_lmeval_tasks, validate_lmeval_job_pod_and_logs
+from tests.ai_safety.lm_eval.utils import get_lmeval_tasks, validate_lmeval_job_pod_and_logs
 
 LMEVALJOB_COMPLETE_STATE: str = "Complete"
 
@@ -23,7 +23,7 @@ TIER2_LMEVAL_TASKS: List[str] = list(
 
 
 @pytest.mark.smoke
-@pytest.mark.model_explainability
+@pytest.mark.ai_safety
 def test_lmevaljob_crd_exists(
     admin_client: DynamicClient,
 ) -> None:

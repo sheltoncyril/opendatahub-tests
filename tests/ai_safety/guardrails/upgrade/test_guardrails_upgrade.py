@@ -1,12 +1,12 @@
 import pytest
 import yaml
-from tests.model_explainability.guardrails.constants import (
+from tests.ai_safety.guardrails.constants import (
     PII_INPUT_DETECTION_PROMPT,
     PII_OUTPUT_DETECTION_PROMPT,
     HARMLESS_PROMPT,
     PII_ENDPOINT,
 )
-from tests.model_explainability.guardrails.utils import (
+from tests.ai_safety.guardrails.utils import (
     verify_health_info_response,
     send_and_verify_unsuitable_input_detection,
     send_and_verify_unsuitable_output_detection,

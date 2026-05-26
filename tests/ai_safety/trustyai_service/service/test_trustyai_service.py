@@ -4,20 +4,20 @@ from ocp_resources.custom_resource_definition import CustomResourceDefinition
 from ocp_resources.namespace import Namespace
 from ocp_resources.trustyai_service import TrustyAIService
 
-from tests.model_explainability.trustyai_service.constants import (
+from tests.ai_safety.trustyai_service.constants import (
     DRIFT_BASE_DATA_PATH,
     TRUSTYAI_DB_MIGRATION_PATCH,
 )
-from tests.model_explainability.trustyai_service.trustyai_service_utils import (
+from tests.ai_safety.trustyai_service.trustyai_service_utils import (
     verify_upload_data_to_trustyai_service,
     TrustyAIServiceMetrics,
     verify_trustyai_service_metric_scheduling_request,
 )
-from tests.model_explainability.trustyai_service.utils import (
+from tests.ai_safety.trustyai_service.utils import (
     validate_trustyai_service_db_conn_failure,
     validate_trustyai_service_images,
 )
-from tests.model_explainability.trustyai_service.service.utils import (
+from tests.ai_safety.trustyai_service.service.utils import (
     wait_for_trustyai_db_migration_complete_log,
     patch_trustyai_service_cr,
 )
@@ -25,7 +25,7 @@ from utilities.constants import MinIo
 
 
 @pytest.mark.smoke
-@pytest.mark.model_explainability
+@pytest.mark.ai_safety
 def test_trustyaiservice_crd_exists(
     admin_client: DynamicClient,
 ) -> None:
