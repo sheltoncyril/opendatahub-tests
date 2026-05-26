@@ -44,6 +44,7 @@ pytest tests/ai_safety/ \
 **Run 2 (35min):** 77 passed, 7 failed, 14 errors
 
 **Consistent failures (not parallel-related):**
+
 - Image validation: quay.io images not in configmap
 - Service 500 errors: guardrails/nemo endpoints
 - Timeouts: cluster resource contention
@@ -66,11 +67,13 @@ pytest tests/ai_safety/ \
 ## Scaling
 
 ### 2 Workers (Recommended)
+
 - ✅ Stable
 - ✅ Low timeout rate
 - ✅ Good speedup (~2x)
 
 ### 3+ Workers
+
 - ⚠️ More timeouts
 - ⚠️ Higher cluster load
 - ⚠️ Needs more resources
@@ -79,11 +82,13 @@ pytest tests/ai_safety/ \
 ## Known Issues
 
 ### Not Parallel-Related
+
 - Image validation failures (RHOAI version mismatch)
 - Guardrails 500 errors (service issues)
 - Deployment timeouts (cluster dependent)
 
 ### Excluded Tests
+
 - GPU tests (use `-k "not gpu"`)
 - Dependency-marked tests (test_garak.py has `@pytest.mark.dependency`)
 
@@ -126,21 +131,24 @@ Add to `.github/workflows/`:
 ## Troubleshooting
 
 ### "Already exists" errors
+
 - Check `--dist loadfile` is set
 - Verify namespace cleanup between runs
 
 ### Timeout increases
+
 - Reduce worker count (`-n 2` → `-n 1`)
 - Check cluster resources
 - Increase timeout in conftest.py
 
 ### Flaky tests
+
 - Run multiple times to verify
 - Check logs for worker ID (gw0, gw1)
 - Look for race conditions in fixtures
 
 ## References
 
-- pytest-xdist docs: https://pytest-xdist.readthedocs.io/
+- pytest-xdist docs: <https://pytest-xdist.readthedocs.io/>
 - Plan file: `.claude/plans/replicated-roaming-wadler.md`
 - pytest.ini: Markers and configuration

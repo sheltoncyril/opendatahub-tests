@@ -21,7 +21,6 @@ from tests.ai_safety.evalhub.constants import (
     EVALHUB_VLLM_EMULATOR_PORT,
 )
 from tests.ai_safety.evalhub.utils import tenant_rbac_ready
-from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import Labels, Protocols, Timeout
 from utilities.infra import create_inference_token, create_ns
 
