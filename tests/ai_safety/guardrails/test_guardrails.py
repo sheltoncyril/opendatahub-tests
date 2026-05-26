@@ -6,14 +6,14 @@ import yaml
 from simple_logger.logger import get_logger
 from timeout_sampler import retry
 
-from tests.model_explainability.guardrails.constants import (
+from tests.ai_safety.guardrails.constants import (
     AUTOCONFIG_DETECTOR_LABEL,
     PII_INPUT_DETECTION_PROMPT,
     PII_OUTPUT_DETECTION_PROMPT,
     PROMPT_INJECTION_INPUT_DETECTION_PROMPT,
     HAP_INPUT_DETECTION_PROMPT,
 )
-from tests.model_explainability.guardrails.utils import (
+from tests.ai_safety.guardrails.utils import (
     create_detector_config,
     check_guardrails_health_endpoint,
     verify_health_info_response,
@@ -22,7 +22,7 @@ from tests.model_explainability.guardrails.utils import (
     send_and_verify_negative_detection,
     send_and_verify_standalone_detection,
 )
-from tests.model_explainability.utils import validate_tai_component_images
+from tests.ai_safety.utils import validate_tai_component_images
 from utilities.constants import (
     LLM_D_CHAT_GENERATION_CONFIG,
     BUILTIN_DETECTOR_CONFIG,

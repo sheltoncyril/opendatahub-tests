@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 
 from timeout_sampler import retry
 
-from tests.model_explainability.guardrails.constants import GuardrailsDetectionPrompt
+from tests.ai_safety.guardrails.constants import GuardrailsDetectionPrompt
 
 LOGGER = get_logger(name=__name__)
 
