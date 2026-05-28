@@ -4,7 +4,7 @@
 
 "ModelRegistry":
 - changed-files:
-  - any-glob-to-any-file: "tests/ai_hub/**"
+  - any-glob-to-any-file: "tests/model_registry/**"
 
 "ModelServing":
 - changed-files:
