@@ -1,4 +1,5 @@
-from typing import Generator, Any
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -11,7 +12,8 @@ from ocp_resources.pod import Pod
 from ocp_resources.resource import ResourceEditor
 from ocp_resources.route import Route
 
-from utilities.constants import Labels, Annotations
+from utilities.constants import Annotations, Labels
+from utilities.guardrails import check_guardrails_health_endpoint
 
 GUARDRAILS_ORCHESTRATOR_NAME: str = "guardrails-orchestrator"
 
@@ -28,9 +30,6 @@ def guardrails_orchestrator(
         "client": admin_client,
         "name": GUARDRAILS_ORCHESTRATOR_NAME,
         "namespace": model_namespace.name,
-        "log_level": "DEBUG",
-        "replicas": 1,
-        "wait_for_resource": True,
     }
     if pytestconfig.option.post_upgrade:
         gorch = GuardrailsOrchestrator(**gorch_kwargs, ensure_exists=True)
@@ -41,6 +40,9 @@ def guardrails_orchestrator(
             raise pytest.UsageError(
                 "guardrails_orchestrator fixture requires parametrization outside post_upgrade mode"
             )
+        gorch_kwargs["log_level"] = "DEBUG"
+        gorch_kwargs["replicas"] = 1
+        gorch_kwargs["wait_for_resource"] = True
         if request.param.get("auto_config"):
             gorch_kwargs["auto_config"] = request.param.get("auto_config")
 
@@ -62,11 +64,11 @@ def guardrails_orchestrator(
             metrics_endpoint = request.getfixturevalue(argname="otelcol_metrics_endpoint")
             traces_endpoint = request.getfixturevalue(argname="tempo_traces_endpoint")
             gorch_kwargs["otel_exporter"] = {
-                "metricsEndpoint": metrics_endpoint,
-                "metricsProtocol": "grpc",
-                "otlpExport": "metrics,traces",
-                "tracesEndpoint": traces_endpoint,
-                "tracesProtocol": "grpc",
+                "otlpProtocol": "grpc",
+                "otlpMetricsEndpoint": metrics_endpoint,
+                "otlpTracesEndpoint": traces_endpoint,
+                "enableMetrics": True,
+                "enableTracing": True,
             }
 
         with GuardrailsOrchestrator(**gorch_kwargs, teardown=teardown_resources) as gorch:
@@ -80,33 +82,24 @@ def orchestrator_config(
     request: FixtureRequest,
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    pytestconfig: pytest.Config,
     teardown_resources: bool,
+    pytestconfig: pytest.Config,
 ) -> Generator[ConfigMap, Any, Any]:
-    cm_name = "fms-orchestr8-config-nlp"
-
     if pytestconfig.option.post_upgrade:
-        # During post-upgrade, reuse existing ConfigMap
         cm = ConfigMap(
-            client=admin_client,
-            name=cm_name,
-            namespace=model_namespace.name,
+            client=admin_client, name="fms-orchestr8-config-nlp", namespace=model_namespace.name, ensure_exists=True
         )
         yield cm
         cm.clean_up()
     else:
-        # During pre-upgrade or normal tests, create from params
-        cm = ConfigMap(
+        with ConfigMap(
             client=admin_client,
-            name=cm_name,
+            name="fms-orchestr8-config-nlp",
             namespace=model_namespace.name,
             data=request.param["orchestrator_config_data"],
-        )
-        cm.deploy()
-        yield cm
-
-        if teardown_resources:
-            cm.clean_up()
+            teardown=teardown_resources,
+        ) as cm:
+            yield cm
 
 
 @pytest.fixture(scope="class")
@@ -184,23 +177,24 @@ def guardrails_orchestrator_health_route(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     guardrails_orchestrator: GuardrailsOrchestrator,
-) -> Generator[Route, Any, Any]:
-    guardrails_orchestrator_health_route = Route(
+) -> Route:
+    return Route(
         name=f"{guardrails_orchestrator.name}-health",
         namespace=guardrails_orchestrator.namespace,
         wait_for_resource=True,
         ensure_exists=True,
     )
-    with ResourceEditor(
-        patches={
-            guardrails_orchestrator_health_route: {
-                "metadata": {
-                    "annotations": {Annotations.HaproxyRouterOpenshiftIo.TIMEOUT: "10m"},
-                }
-            }
-        }
-    ):
-        yield guardrails_orchestrator_health_route
+
+
+@pytest.fixture(scope="class")
+def guardrails_healthcheck(
+    current_client_token, openshift_ca_bundle_file, guardrails_orchestrator_health_route: Route
+) -> None:
+    check_guardrails_health_endpoint(
+        token=current_client_token,
+        host=guardrails_orchestrator_health_route.host,
+        ca_bundle_file=openshift_ca_bundle_file,
+    )
 
 
 @pytest.fixture(scope="class")
@@ -208,20 +202,10 @@ def guardrails_orchestrator_gateway_route(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     guardrails_orchestrator: GuardrailsOrchestrator,
-) -> Generator[Route, Any, Any]:
-    guardrails_orchestrator_gateway_route = Route(
+) -> Route:
+    return Route(
         name=f"{guardrails_orchestrator.name}-gateway",
         namespace=guardrails_orchestrator.namespace,
         wait_for_resource=True,
         ensure_exists=True,
     )
-    with ResourceEditor(
-        patches={
-            guardrails_orchestrator_gateway_route: {
-                "metadata": {
-                    "annotations": {Annotations.HaproxyRouterOpenshiftIo.TIMEOUT: "10m"},
-                }
-            }
-        }
-    ):
-        yield guardrails_orchestrator_gateway_route
