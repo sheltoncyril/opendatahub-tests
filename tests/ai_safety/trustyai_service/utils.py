@@ -30,8 +30,7 @@ from utilities.general import validate_container_images, wait_for_pods_by_labels
 LOGGER = structlog.get_logger(name=__name__)
 
 MARIADB_IMAGE = (
-    "registry.redhat.io/rhel9/mariadb-1011"
-    "@sha256:092407d87f8017bb444a462fb3d38ad5070429e94df7cf6b91d82697f36d0fa9"
+    "registry.redhat.io/rhel9/mariadb-1011@sha256:092407d87f8017bb444a462fb3d38ad5070429e94df7cf6b91d82697f36d0fa9"
 )
 
 
@@ -69,9 +68,12 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
     """
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
-    ca_subject = ca_issuer = x509.Name([x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb-ca-{namespace_name}")])
+    ca_subject = ca_issuer = x509.Name(
+        attributes=[x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb-ca-{namespace_name}")]
+    )
     ca_cert = (
-        x509.CertificateBuilder()
+        x509
+        .CertificateBuilder()
         .subject_name(ca_subject)
         .issuer_name(ca_issuer)
         .public_key(ca_key.public_key())
@@ -85,10 +87,11 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
     server_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     server_subject = x509.Name(
-        [x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb.{namespace_name}.svc.cluster.local")]
+        attributes=[x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb.{namespace_name}.svc.cluster.local")]
     )
     server_cert = (
-        x509.CertificateBuilder()
+        x509
+        .CertificateBuilder()
         .subject_name(server_subject)
         .issuer_name(ca_cert.subject)
         .public_key(server_key.public_key())
@@ -132,42 +135,48 @@ def create_standalone_mariadb(
     """
     ca_cert, server_cert, server_key = _generate_mariadb_tls_certs(namespace_name=namespace_name)
 
-    with Secret(
-        client=client,
-        name=f"{name}-ca",
-        namespace=namespace_name,
-        string_data={"ca.crt": ca_cert},
-        teardown=teardown,
-    ), Secret(
-        client=client,
-        name=f"{name}-server-cert",
-        namespace=namespace_name,
-        string_data={"tls.crt": server_cert},
-        teardown=teardown,
-    ), Secret(
-        client=client,
-        name=f"{name}-server-key",
-        namespace=namespace_name,
-        string_data={"tls.key": server_key},
-        teardown=teardown,
-    ), PersistentVolumeClaim(
-        accessmodes="ReadWriteOnce",
-        name=name,
-        namespace=namespace_name,
-        client=client,
-        size="1Gi",
-        teardown=teardown,
-    ), Service(
-        kind_dict={
-            "apiVersion": "v1",
-            "kind": "Service",
-            "metadata": {"name": name, "namespace": namespace_name},
-            "spec": {
-                "selector": {"name": name},
-                "ports": [{"port": 3306, "targetPort": 3306, "name": "mysql", "protocol": "TCP"}],
+    with (
+        Secret(
+            client=client,
+            name=f"{name}-ca",
+            namespace=namespace_name,
+            string_data={"ca.crt": ca_cert},
+            teardown=teardown,
+        ),
+        Secret(
+            client=client,
+            name=f"{name}-server-cert",
+            namespace=namespace_name,
+            string_data={"tls.crt": server_cert},
+            teardown=teardown,
+        ),
+        Secret(
+            client=client,
+            name=f"{name}-server-key",
+            namespace=namespace_name,
+            string_data={"tls.key": server_key},
+            teardown=teardown,
+        ),
+        PersistentVolumeClaim(
+            accessmodes="ReadWriteOnce",
+            name=name,
+            namespace=namespace_name,
+            client=client,
+            size="1Gi",
+            teardown=teardown,
+        ),
+        Service(
+            kind_dict={
+                "apiVersion": "v1",
+                "kind": "Service",
+                "metadata": {"name": name, "namespace": namespace_name},
+                "spec": {
+                    "selector": {"name": name},
+                    "ports": [{"port": 3306, "targetPort": 3306, "name": "mysql", "protocol": "TCP"}],
+                },
             },
-        },
-        teardown=teardown,
+            teardown=teardown,
+        ),
     ):
         deployment_template = {
             "metadata": {
@@ -246,9 +255,24 @@ def create_standalone_mariadb(
                         "terminationMessagePath": "/dev/termination-log",
                         "volumeMounts": [
                             {"mountPath": "/var/lib/mysql", "name": "mariadb-data"},
-                            {"mountPath": "/etc/mysql/certs/ca.crt", "name": "ca-cert", "subPath": "ca.crt", "readOnly": True},
-                            {"mountPath": "/etc/mysql/certs/tls.crt", "name": "server-cert", "subPath": "tls.crt", "readOnly": True},
-                            {"mountPath": "/etc/mysql/certs/tls.key", "name": "server-key", "subPath": "tls.key", "readOnly": True},
+                            {
+                                "mountPath": "/etc/mysql/certs/ca.crt",
+                                "name": "ca-cert",
+                                "subPath": "ca.crt",
+                                "readOnly": True,
+                            },
+                            {
+                                "mountPath": "/etc/mysql/certs/tls.crt",
+                                "name": "server-cert",
+                                "subPath": "tls.crt",
+                                "readOnly": True,
+                            },
+                            {
+                                "mountPath": "/etc/mysql/certs/tls.key",
+                                "name": "server-key",
+                                "subPath": "tls.key",
+                                "readOnly": True,
+                            },
                         ],
                     }
                 ],

@@ -1,7 +1,6 @@
+import pytest
 import requests
 import structlog
-
-import pytest
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.custom_resource_definition import CustomResourceDefinition
 from ocp_resources.deployment import Deployment
