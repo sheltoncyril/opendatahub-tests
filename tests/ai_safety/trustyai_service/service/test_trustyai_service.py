@@ -28,7 +28,7 @@ from tests.ai_safety.trustyai_service.utils import (
 )
 from utilities.constants import TRUSTYAI_SERVICE_NAME
 
-logger = structlog.get_logger(__name__)
+logger = structlog.get_logger(name=__name__)
 
 
 @retry(wait_timeout=60, sleep=5)
