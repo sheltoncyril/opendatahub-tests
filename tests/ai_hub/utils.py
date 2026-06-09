@@ -28,7 +28,7 @@ from tests.ai_hub.constants import (
 )
 from tests.ai_hub.exceptions import ModelRegistryResourceNotFoundError
 from utilities.exceptions import ProtocolNotSupportedError, TooManyServicesError
-from utilities.constants import Protocols, Annotations, Timeout, PodNotFound
+from utilities.constants import Protocols, Annotations, MARIA_DB_IMAGE, Timeout, PodNotFound
 from model_registry import ModelRegistry as ModelRegistryClient
 from model_registry.types import RegisteredModel
 
@@ -36,9 +36,6 @@ from utilities.general import wait_for_pods_running
 from utilities.user_utils import get_byoidc_issuer_url
 
 ADDRESS_ANNOTATION_PREFIX: str = "routing.opendatahub.io/external-address-"
-MARIA_DB_IMAGE = (
-    "registry.redhat.io/rhel9/mariadb-1011@sha256:092407d87f8017bb444a462fb3d38ad5070429e94df7cf6b91d82697f36d0fa9"
-)
 LOGGER = get_logger(name=__name__)
 
 
