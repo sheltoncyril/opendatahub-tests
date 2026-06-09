@@ -5,6 +5,10 @@ from contextlib import contextmanager
 from typing import Any
 
 import structlog
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
@@ -63,14 +67,10 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
     Returns:
         tuple: (ca_cert_pem, server_cert_pem, server_key_pem)
     """
-    from cryptography import x509
-    from cryptography.hazmat.primitives import hashes, serialization
-    from cryptography.hazmat.primitives.asymmetric import rsa
-    from cryptography.x509.oid import NameOID
 
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
-    ca_subject = ca_issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, f"mariadb-ca-{namespace_name}")])
+    ca_subject = ca_issuer = x509.Name([x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb-ca-{namespace_name}")])
     ca_cert = (
         x509.CertificateBuilder()
         .subject_name(ca_subject)
@@ -80,13 +80,13 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
         .not_valid_before(datetime.datetime.now(datetime.UTC))
         .not_valid_after(datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=365))
         .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
-        .sign(ca_key, hashes.SHA256())
+        .sign(private_key=ca_key, algorithm=hashes.SHA256())
     )
 
     server_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     server_subject = x509.Name(
-        [x509.NameAttribute(NameOID.COMMON_NAME, f"mariadb.{namespace_name}.svc.cluster.local")]
+        [x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb.{namespace_name}.svc.cluster.local")]
     )
     server_cert = (
         x509.CertificateBuilder()
@@ -104,7 +104,7 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
             ]),
             critical=False,
         )
-        .sign(ca_key, hashes.SHA256())
+        .sign(private_key=ca_key, algorithm=hashes.SHA256())
     )
 
     ca_cert_pem = ca_cert.public_bytes(serialization.Encoding.PEM).decode("utf-8")
@@ -131,7 +131,7 @@ def create_standalone_mariadb(
     Creates TLS secrets, PVC, Service, and Deployment for MariaDB.
     Uses Red Hat registry image to avoid Docker Hub rate limits.
     """
-    ca_cert, server_cert, server_key = _generate_mariadb_tls_certs(namespace_name)
+    ca_cert, server_cert, server_key = _generate_mariadb_tls_certs(namespace_name=namespace_name)
 
     with Secret(
         client=client,
