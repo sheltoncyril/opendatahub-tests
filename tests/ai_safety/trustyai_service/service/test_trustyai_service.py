@@ -23,7 +23,7 @@ from tests.ai_safety.trustyai_service.utils import (
     validate_trustyai_service_db_conn_failure,
     validate_trustyai_service_images,
 )
-from utilities.constants import MinIo, TRUSTYAI_SERVICE_NAME
+from utilities.constants import TRUSTYAI_SERVICE_NAME, MinIo
 
 
 @pytest.mark.smoke

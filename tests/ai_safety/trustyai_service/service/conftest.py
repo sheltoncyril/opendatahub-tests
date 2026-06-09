@@ -54,7 +54,7 @@ def trustyai_service_with_invalid_db_cert(
 
 @pytest.fixture(scope="class")
 def trustyai_invalid_db_ca_secret(
-    admin_client: DynamicClient, model_namespace: Namespace, mariadb: MariaDB
+    admin_client: DynamicClient, model_namespace: Namespace, mariadb: Deployment
 ) -> Generator[Secret, Any]:
     with Secret(
         client=admin_client,
