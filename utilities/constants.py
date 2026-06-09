@@ -360,6 +360,9 @@ vLLM_CONFIG: dict[str, dict[str, Any]] = {
 RHOAI_OPERATOR_NAMESPACE = "redhat-ods-operator"
 OPENSHIFT_OPERATORS: str = "openshift-operators"
 MARIADB: str = "mariadb"
+MARIA_DB_IMAGE: str = (
+    "registry.redhat.io/rhel9/mariadb-1011@sha256:092407d87f8017bb444a462fb3d38ad5070429e94df7cf6b91d82697f36d0fa9"
+)
 MODEL_REGISTRY_CUSTOM_NAMESPACE: str = "model-registry-custom-ns"
 THANOS_QUERIER_ADDRESS = "https://thanos-querier.openshift-monitoring.svc:9092"
 BUILTIN_DETECTOR_CONFIG: dict[str, Any] = {
