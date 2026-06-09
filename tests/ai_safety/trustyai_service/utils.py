@@ -23,15 +23,11 @@ from ocp_resources.service_account import ServiceAccount
 from ocp_resources.trustyai_service import TrustyAIService
 from timeout_sampler import TimeoutSampler, retry
 
-from utilities.constants import TRUSTYAI_SERVICE_NAME, Timeout
+from utilities.constants import MARIA_DB_IMAGE, TRUSTYAI_SERVICE_NAME, Timeout
 from utilities.exceptions import TooManyPodsError, UnexpectedFailureError
 from utilities.general import validate_container_images, wait_for_pods_by_labels
 
 LOGGER = structlog.get_logger(name=__name__)
-
-MARIADB_IMAGE = (
-    "registry.redhat.io/rhel9/mariadb-1011@sha256:092407d87f8017bb444a462fb3d38ad5070429e94df7cf6b91d82697f36d0fa9"
-)
 
 
 def wait_for_mariadb_pods(
@@ -187,7 +183,7 @@ def create_standalone_mariadb(
                 "containers": [
                     {
                         "name": "mariadb",
-                        "image": MARIADB_IMAGE,
+                        "image": MARIA_DB_IMAGE,
                         "imagePullPolicy": "IfNotPresent",
                         "env": [
                             {
