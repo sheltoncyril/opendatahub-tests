@@ -103,8 +103,8 @@ class TestSingleNodePrefillDecode:
 
         # Verify scheduler config contains all expected P/D plugins
         for expected_plugin in [
-            "disagg-headers-handler",
-            "prefill-filter",
+            # "disagg-headers-handler", in 3.5ea1 the expect plugin is "prefill-header-handler"
+            "prefill-header-handlerprefill-filter",
             "decode-filter",
             "always-disagg-pd-decider",
             "disagg-profile-handler",
