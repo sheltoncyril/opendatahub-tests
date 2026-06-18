@@ -1,4 +1,4 @@
-"AI Safety":
+"AI-Safety":
 - changed-files:
   - any-glob-to-any-file: "tests/ai_safety/**"
 
