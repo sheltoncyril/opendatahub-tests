@@ -135,8 +135,8 @@ class TestNemoGuardrailsLLMAsJudge:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         response_json = response.json()
 
-        assert "messages" in response_json, "Chat endpoint should contain messages"
-        assert len(response_json["messages"]) > 0, "Response should have at least one message"
+        assert "choices" in response_json, "Chat endpoint should contain choices"
+        assert len(response_json["choices"]) > 0, "Response should have at least one choice"
 
     def test_nemo_llm_judge_with_authentication(
         self,
@@ -219,7 +219,7 @@ class TestNemoGuardrailsMultiServer:
         )
         assert response1.status_code == 200, f"Expected 200, got {response1.status_code}"
         response1_json = response1.json()
-        assert "messages" in response1_json, "Chat endpoint should contain messages"
+        assert "choices" in response1_json, "Chat endpoint should contain choices"
 
         # Test second server
         url2 = f"https://{nemo_guardrails_second_server_route.host}{CHAT_ENDPOINT}"
@@ -233,7 +233,7 @@ class TestNemoGuardrailsMultiServer:
         )
         assert response2.status_code == 200, f"Expected 200, got {response2.status_code}"
         response2_json = response2.json()
-        assert "messages" in response2_json, "Chat endpoint should contain messages"
+        assert "choices" in response2_json, "Chat endpoint should contain choices"
 
         # Verify different hosts
         assert nemo_guardrails_presidio_route.host != nemo_guardrails_second_server_route.host
@@ -321,7 +321,7 @@ class TestNemoGuardrailsMultiConfig:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         response_json = response.json()
 
-        assert "messages" in response_json, "Chat endpoint should contain messages"
+        assert "choices" in response_json, "Chat endpoint should contain choices"
 
     def test_nemo_multi_config(
         self,
@@ -352,7 +352,7 @@ class TestNemoGuardrailsMultiConfig:
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         response_json = response.json()
-        assert "messages" in response_json, "Chat endpoint should contain messages"
+        assert "choices" in response_json, "Chat endpoint should contain choices"
 
         # Test with pii prompt (should use presidio config-b)
         response = send_request(
@@ -366,7 +366,7 @@ class TestNemoGuardrailsMultiConfig:
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         response_json = response.json()
-        assert "messages" in response_json, "Chat endpoint should contain messages"
+        assert "choices" in response_json, "Chat endpoint should contain choices"
 
     def test_nemo_multi_config_mount_paths(
         self,
@@ -517,4 +517,4 @@ class TestNemoGuardrailsSecretMounting:
 
         assert response.status_code == 200, f"Expected 200, got {response.status_code}"
         response_json = response.json()
-        assert "messages" in response_json, "Chat endpoint should contain messages"
+        assert "choices" in response_json, "Chat endpoint should contain choices"
