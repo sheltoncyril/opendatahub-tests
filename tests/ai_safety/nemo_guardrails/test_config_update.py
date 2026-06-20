@@ -217,7 +217,7 @@ class TestNemoGuardrailsConfigUpdate:
         )
         assert final_response.status_code == 200, f"Request failed after config update: {final_response.status_code}"
         response_json = final_response.json()
-        assert "choices" in response_json, "Response should contain choices after config update"
+        assert "messages" in response_json, "Response should contain messages after config update"
 
         # Verify the updated config is mounted in the new pod
         # Get one of the NEWLY CREATED pods (not an old one)
