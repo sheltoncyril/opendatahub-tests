@@ -204,11 +204,10 @@ def lmevaljob_local_offline_oci(
 def lmevaljob_vllm_emulator(
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    emulator_namespace: Namespace,
+    shared_models_namespace: Namespace,
     patched_dsc_lmeval_allow_all: DataScienceCluster,
     session_vllm_emulator_deployment: Deployment,
     session_vllm_emulator_service: Service,
-    session_vllm_emulator_route: Route,
 ) -> Generator[LMEvalJob, Any, Any]:
     with LMEvalJob(
         client=admin_client,
@@ -227,7 +226,7 @@ def lmevaljob_vllm_emulator(
                 "name": "base_url",
                 "value": (
                     f"http://{session_vllm_emulator_service.name}"
-                    f".{emulator_namespace.name}.svc.cluster.local"
+                    f".{shared_models_namespace.name}.svc.cluster.local"
                     f":{VLLM_EMULATOR_PORT!s}/v1/completions"
                 ),
             },
@@ -376,19 +375,6 @@ def vllm_emulator_route(
         namespace=vllm_emulator_service.namespace,
         name=VLLM_EMULATOR,
         service=vllm_emulator_service.name,
-    ) as route:
-        yield route
-
-
-@pytest.fixture(scope="session")
-def session_vllm_emulator_route(
-    admin_client: DynamicClient, emulator_namespace: Namespace, session_vllm_emulator_service: Service
-) -> Generator[Route, Any, Any]:
-    with Route(
-        client=admin_client,
-        namespace=session_vllm_emulator_service.namespace,
-        name=VLLM_EMULATOR,
-        service=session_vllm_emulator_service.name,
     ) as route:
         yield route
 

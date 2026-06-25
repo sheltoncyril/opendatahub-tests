@@ -11,7 +11,7 @@ from ocp_resources.service import Service
 from pytest_testconfig import config as py_config
 
 from utilities.certificates_utils import create_ca_bundle_file
-from utilities.constants import EMULATOR_NAMESPACE, TRUSTYAI_SERVICE_NAME, Labels, Protocols, Timeout
+from utilities.constants import SHARED_MODELS_NAMESPACE, TRUSTYAI_SERVICE_NAME, Labels, Protocols, Timeout
 from utilities.infra import create_ns
 
 VLLM_EMULATOR = "vllm-emulator"
@@ -22,17 +22,21 @@ VLLM_EMULATOR_IMAGE = (
 
 
 @pytest.fixture(scope="session")
-def emulator_namespace(
+def shared_models_namespace(
+    request: pytest.FixtureRequest,
     admin_client: DynamicClient,
 ) -> Generator[Namespace, Any, Any]:
-    """Session-scoped namespace for shared LLM emulators.
+    """Session-scoped namespace for shared LLM model servers.
 
-    All stateless LLM emulators (LLM-d sim, vLLM emulator) deploy here once
+    All stateless model servers (LLM-d sim, vLLM emulator) deploy here once
     per session. Test classes reference them via FQDN.
+    Appends xdist worker ID to avoid collisions under parallel execution.
     """
+    worker_id = getattr(request.config, "workerinput", {}).get("workerid", "")
+    ns_name = f"{SHARED_MODELS_NAMESPACE}-{worker_id}" if worker_id else SHARED_MODELS_NAMESPACE
     with create_ns(
         admin_client=admin_client,
-        name=EMULATOR_NAMESPACE,
+        name=ns_name,
         teardown=True,
     ) as ns:
         yield ns
@@ -40,13 +44,13 @@ def emulator_namespace(
 
 @pytest.fixture(scope="session")
 def session_vllm_emulator_deployment(
-    admin_client: DynamicClient, emulator_namespace: Namespace
+    admin_client: DynamicClient, shared_models_namespace: Namespace
 ) -> Generator[Deployment, Any, Any]:
-    """Session-scoped vLLM emulator deployed to emulator_namespace."""
+    """Session-scoped vLLM emulator deployed to shared_models_namespace."""
     label = {Labels.Openshift.APP: VLLM_EMULATOR}
     with Deployment(
         client=admin_client,
-        namespace=emulator_namespace.name,
+        namespace=shared_models_namespace.name,
         name=VLLM_EMULATOR,
         label=label,
         replicas=1,
@@ -82,12 +86,12 @@ def session_vllm_emulator_deployment(
 
 @pytest.fixture(scope="session")
 def session_vllm_emulator_service(
-    admin_client: DynamicClient, emulator_namespace: Namespace, session_vllm_emulator_deployment: Deployment
+    admin_client: DynamicClient, shared_models_namespace: Namespace, session_vllm_emulator_deployment: Deployment
 ) -> Generator[Service, Any, Any]:
     """Session-scoped Service fronting the vLLM emulator."""
     with Service(
         client=admin_client,
-        namespace=emulator_namespace.name,
+        namespace=shared_models_namespace.name,
         name=f"{VLLM_EMULATOR}-service",
         ports=[
             {

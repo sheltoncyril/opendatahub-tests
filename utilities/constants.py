@@ -496,7 +496,7 @@ class ContainerImages:
 TRUSTYAI_SERVICE_NAME: str = "trustyai-service"
 
 LLM_D_INFERENCE_SIM_NAME = "llm-d-inference-sim"
-EMULATOR_NAMESPACE = "ai-safety-emulators"
+SHARED_MODELS_NAMESPACE = "ai-safety-shared-models"
 
 
 @dataclass

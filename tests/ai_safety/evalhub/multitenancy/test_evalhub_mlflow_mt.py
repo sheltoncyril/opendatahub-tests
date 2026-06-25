@@ -110,12 +110,12 @@ class TestEvalHubMLflowIntegration:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """POST job with experiment block → 202, response includes experiment_id."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="mlflow-experiment-test",
         )
         payload["experiment"] = {
@@ -144,12 +144,12 @@ class TestEvalHubMLflowIntegration:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """POST job without experiment block → 202, no experiment_id."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="mlflow-no-experiment-test",
         )
 
@@ -170,19 +170,19 @@ class TestEvalHubMLflowIntegration:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """POST job with duplicate experiment name reuses the same experiment_id."""
         payload1 = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="mlflow-reuse-exp-1",
         )
         payload1["experiment"] = {"name": "odh-fvt-reuse-experiment"}
 
         payload2 = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="mlflow-reuse-exp-2",
         )
         payload2["experiment"] = {"name": "odh-fvt-reuse-experiment"}
@@ -221,12 +221,12 @@ class TestEvalHubMLflowIntegration:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Submit jobs with experiment, list filtered by experiment_id."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="mlflow-filter-test",
         )
         payload["experiment"] = {"name": "odh-fvt-filter-experiment"}

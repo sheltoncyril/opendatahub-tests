@@ -31,7 +31,7 @@ from tests.ai_safety.guardrails.utils import (
 from tests.ai_safety.utils import validate_tai_component_images
 from utilities.constants import (
     BUILTIN_DETECTOR_CONFIG,
-    EMULATOR_NAMESPACE,
+    SHARED_MODELS_NAMESPACE,
     HAP_DETECTOR,
     PROMPT_INJECTION_DETECTOR,
     LLMdInferenceSimConfig,
@@ -69,7 +69,7 @@ def test_guardrailsorchestrator_crd_exists(
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(EMULATOR_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -101,7 +101,7 @@ def test_validate_guardrails_orchestrator_images(
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(EMULATOR_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -243,7 +243,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(EMULATOR_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
                         "detectors": {
                             PROMPT_INJECTION_DETECTOR: {
                                 "type": "text_contents",
@@ -611,7 +611,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(EMULATOR_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },

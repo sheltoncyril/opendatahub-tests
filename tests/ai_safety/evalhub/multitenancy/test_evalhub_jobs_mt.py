@@ -46,12 +46,12 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """User with evaluations-create RBAC in tenant-a can submit a job."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         data = submit_evalhub_job(
             host=evalhub_mt_route.host,
@@ -73,12 +73,12 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Submit a job and wait for it to complete with benchmark results."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         data = submit_evalhub_job(
             host=evalhub_mt_route.host,
@@ -107,12 +107,12 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """After job completion, the K8s pod should be in Succeeded state."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         data = submit_evalhub_job(
             host=evalhub_mt_route.host,
@@ -156,12 +156,12 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """User with RBAC in tenant-a is denied job submission for tenant-b."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         validate_evalhub_post_denied(
             host=evalhub_mt_route.host,
@@ -179,12 +179,12 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Job submission without X-Tenant header is rejected with 400."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         validate_evalhub_post_no_tenant(
             host=evalhub_mt_route.host,
@@ -201,12 +201,12 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """After submitting a job, listing jobs for tenant-a shows it."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         submitted = submit_evalhub_job(
             host=evalhub_mt_route.host,
@@ -264,12 +264,12 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Job submission without a name field is rejected with 400."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         del payload["name"]
         url = f"https://{evalhub_mt_route.host}{EVALHUB_JOBS_PATH}"
@@ -603,7 +603,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """List jobs with limit returns paginated results and a next href."""
         headers = build_headers(token=tenant_a_token, tenant=tenant_a_namespace.name)
@@ -613,7 +613,7 @@ class TestEvalHubJobsMT:
         for _ in range(3):
             payload = build_evalhub_job_payload(
                 model_service_name=session_vllm_emulator_service.name,
-                tenant_namespace=emulator_namespace.name,
+                tenant_namespace=shared_models_namespace.name,
             )
             data = submit_evalhub_job(
                 host=evalhub_mt_route.host,
@@ -667,7 +667,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """List jobs filtered by status=pending returns only pending jobs."""
         headers = build_headers(token=tenant_a_token, tenant=tenant_a_namespace.name)
@@ -675,7 +675,7 @@ class TestEvalHubJobsMT:
         # Submit a job (starts as pending)
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         submit_evalhub_job(
             host=evalhub_mt_route.host,
@@ -725,7 +725,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """List jobs combining status, tags, and name filters."""
         headers = build_headers(token=tenant_a_token, tenant=tenant_a_namespace.name)
@@ -734,7 +734,7 @@ class TestEvalHubJobsMT:
         # Submit a job with custom tags
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="filter-test-job",
         )
         payload["tags"] = ["filter-tag-a", "filter-tag-b"]
@@ -793,7 +793,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """List jobs with AND (comma) and OR (pipe) tag semantics."""
         headers = build_headers(token=tenant_a_token, tenant=tenant_a_namespace.name)
@@ -802,7 +802,7 @@ class TestEvalHubJobsMT:
         # Submit job with tags [tag-x, tag-y]
         payload1 = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="tag-test-1",
         )
         payload1["tags"] = ["tag-x", "tag-y"]
@@ -817,7 +817,7 @@ class TestEvalHubJobsMT:
         # Submit job with tags [tag-x, tag-z]
         payload2 = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="tag-test-2",
         )
         payload2["tags"] = ["tag-x", "tag-z"]
@@ -961,7 +961,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Post running then completed events; job state transitions accordingly."""
         host = evalhub_mt_route.host
@@ -972,7 +972,7 @@ class TestEvalHubJobsMT:
             ca_bundle_file=evalhub_mt_ca_bundle_file,
             tenant=tenant,
             emulator_service=session_vllm_emulator_service,
-            tenant_namespace=emulator_namespace,
+            tenant_namespace=shared_models_namespace,
         )
 
         # Running event
@@ -1038,7 +1038,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Post an event with missing status field returns 400."""
         host = evalhub_mt_route.host
@@ -1049,7 +1049,7 @@ class TestEvalHubJobsMT:
             ca_bundle_file=evalhub_mt_ca_bundle_file,
             tenant=tenant,
             emulator_service=session_vllm_emulator_service,
-            tenant_namespace=emulator_namespace,
+            tenant_namespace=shared_models_namespace,
         )
 
         invalid_event = {
@@ -1076,7 +1076,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Post an event with missing provider_id returns 400."""
         host = evalhub_mt_route.host
@@ -1087,7 +1087,7 @@ class TestEvalHubJobsMT:
             ca_bundle_file=evalhub_mt_ca_bundle_file,
             tenant=tenant,
             emulator_service=session_vllm_emulator_service,
-            tenant_namespace=emulator_namespace,
+            tenant_namespace=shared_models_namespace,
         )
 
         missing_provider_event = {
@@ -1141,7 +1141,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Cancel a running job via soft DELETE; state becomes cancelled."""
         host = evalhub_mt_route.host
@@ -1152,7 +1152,7 @@ class TestEvalHubJobsMT:
             ca_bundle_file=evalhub_mt_ca_bundle_file,
             tenant=tenant,
             emulator_service=session_vllm_emulator_service,
-            tenant_namespace=emulator_namespace,
+            tenant_namespace=shared_models_namespace,
         )
 
         # Set to running
@@ -1200,7 +1200,7 @@ class TestEvalHubJobsMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """DELETE with hard_delete=foo (non-boolean) returns 400."""
         host = evalhub_mt_route.host
@@ -1211,7 +1211,7 @@ class TestEvalHubJobsMT:
             ca_bundle_file=evalhub_mt_ca_bundle_file,
             tenant=tenant,
             emulator_service=session_vllm_emulator_service,
-            tenant_namespace=emulator_namespace,
+            tenant_namespace=shared_models_namespace,
         )
 
         url = f"https://{host}{EVALHUB_JOBS_PATH}/{job_id}?hard_delete=foo"

@@ -35,7 +35,7 @@ class TestEvalHubMcpE2E:
         self,
         evalhub_mcp_client: EvalHubMcpClient,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """
         Given: Authenticated MCP client and a vLLM emulator model endpoint
@@ -44,7 +44,7 @@ class TestEvalHubMcpE2E:
         """
         model_url = build_mcp_model_url(
             service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
 
         discover_result = call_mcp_tool(

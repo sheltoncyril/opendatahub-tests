@@ -127,7 +127,7 @@ class TestEvalHubMcpToolsSubmit:
         self,
         evalhub_mcp_client: EvalHubMcpClient,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """
         Given: Authenticated MCP client with a vLLM emulator model URL
@@ -136,7 +136,7 @@ class TestEvalHubMcpToolsSubmit:
         """
         model_url = build_mcp_model_url(
             service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         result = call_mcp_tool(
             client=evalhub_mcp_client,
@@ -155,7 +155,7 @@ class TestEvalHubMcpToolsSubmit:
         self,
         evalhub_mcp_client: EvalHubMcpClient,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """
         Given: Authenticated MCP client with a vLLM emulator model URL
@@ -164,7 +164,7 @@ class TestEvalHubMcpToolsSubmit:
         """
         model_url = build_mcp_model_url(
             service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
         )
         result = call_mcp_tool(
             client=evalhub_mcp_client,

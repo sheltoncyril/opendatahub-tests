@@ -113,13 +113,13 @@ def k8s_resources_shared_evalhub_job_id(
     evalhub_mt_ca_bundle_file: str,
     evalhub_mt_route: Route,
     session_vllm_emulator_service: Service,
-    emulator_namespace: Namespace,
+    shared_models_namespace: Namespace,
     admin_client: DynamicClient,
 ) -> str:
     """Submit one evaluation job and wait for its batch Job (shared by basic spec tests)."""
     payload = build_evalhub_job_payload(
         model_service_name=session_vllm_emulator_service.name,
-        tenant_namespace=emulator_namespace.name,
+        tenant_namespace=shared_models_namespace.name,
         job_name="evalhub-k8s-spec-shared-job",
     )
     data = submit_evalhub_job(
@@ -219,7 +219,7 @@ class TestEvalHubK8sMultiBenchmarkJob:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
         admin_client: DynamicClient,
     ) -> None:
         """Given: job with two arc_easy entries and different num_examples.
@@ -228,7 +228,7 @@ class TestEvalHubK8sMultiBenchmarkJob:
         """
         payload = build_evalhub_multi_benchmark_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-k8s-multibench-job",
         )
         data = submit_evalhub_job(
@@ -302,7 +302,7 @@ class TestEvalHubK8sJobDeleteBehaviour:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
         admin_client: DynamicClient,
     ) -> None:
         """Given: pending/running job. When: DELETE with hard_delete=false.
@@ -311,7 +311,7 @@ class TestEvalHubK8sJobDeleteBehaviour:
         """
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-k8s-soft-cancel",
         )
         data = submit_evalhub_job(
@@ -363,13 +363,13 @@ class TestEvalHubK8sJobDeleteBehaviour:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
         admin_client: DynamicClient,
     ) -> None:
         """Given: job with batch resources. When: DELETE hard_delete=true. Then: GET 404 and no Job/ConfigMap remain."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-k8s-hard-delete",
         )
         data = submit_evalhub_job(
@@ -419,13 +419,13 @@ class TestEvalHubK8sJobDeleteBehaviour:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
         admin_client: DynamicClient,
     ) -> None:
         """Server deletes batch Jobs with background propagation; we observe no orphaned labeled Job/ConfigMap."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-k8s-propagation",
         )
         data = submit_evalhub_job(
@@ -480,13 +480,13 @@ class TestEvalHubK8sMlflowJobSpec:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
         admin_client: DynamicClient,
     ) -> None:
         """If POST accepts an experiment block, spec ConfigMap job.json must carry experiment_name and tags."""
         base = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-k8s-mlflow-spec-job",
         )
         base["experiment"] = {
@@ -566,13 +566,13 @@ class TestEvalHubK8sOmitHardDeleteQuery:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
         admin_client: DynamicClient,
     ) -> None:
         """When: DELETE without hard_delete query. Then: same as hard_delete=false (cancelled + runtime cleared)."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-k8s-omit-hard-delete",
         )
         data = submit_evalhub_job(

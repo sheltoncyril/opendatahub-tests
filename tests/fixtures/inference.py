@@ -161,13 +161,13 @@ def llm_d_inference_sim_isvc(
 
 @pytest.fixture(scope="session")
 def session_llm_d_inference_sim_serving_runtime(
-    admin_client: DynamicClient, emulator_namespace: Namespace
+    admin_client: DynamicClient, shared_models_namespace: Namespace
 ) -> Generator[ServingRuntime, Any, Any]:
-    """Session-scoped LLM-d sim ServingRuntime deployed to emulator_namespace."""
+    """Session-scoped LLM-d sim ServingRuntime deployed to shared_models_namespace."""
     with ServingRuntime(
         client=admin_client,
         name=LLMdInferenceSimConfig.serving_runtime_name,
-        namespace=emulator_namespace.name,
+        namespace=shared_models_namespace.name,
         annotations={
             "description": "LLM-d Simulator KServe",
             "opendatahub.io/template-display-name": "LLM-d Inference Simulator Runtime",
@@ -224,15 +224,15 @@ def session_llm_d_inference_sim_serving_runtime(
 @pytest.fixture(scope="session")
 def session_llm_d_inference_sim_isvc(
     admin_client: DynamicClient,
-    emulator_namespace: Namespace,
+    shared_models_namespace: Namespace,
     session_llm_d_inference_sim_serving_runtime: ServingRuntime,
     session_patched_dsc_kserve_headed: DataScienceCluster,
 ) -> Generator[InferenceService, Any, Any]:
-    """Session-scoped LLM-d sim InferenceService deployed to emulator_namespace."""
+    """Session-scoped LLM-d sim InferenceService deployed to shared_models_namespace."""
     with create_isvc(
         client=admin_client,
         name=LLMdInferenceSimConfig.isvc_name,
-        namespace=emulator_namespace.name,
+        namespace=shared_models_namespace.name,
         deployment_mode=KServeDeploymentType.RAW_DEPLOYMENT,
         model_format=LLMdInferenceSimConfig.name,
         runtime=session_llm_d_inference_sim_serving_runtime.name,
@@ -247,7 +247,7 @@ def session_llm_d_inference_sim_isvc(
         deployment = Deployment(
             client=admin_client,
             name=f"{isvc.name}-predictor",
-            namespace=emulator_namespace.name,
+            namespace=shared_models_namespace.name,
         )
         deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_2MIN)
         yield isvc

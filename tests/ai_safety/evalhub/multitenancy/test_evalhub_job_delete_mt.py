@@ -38,12 +38,12 @@ class TestEvalHubJobDeleteMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """User with evaluations-delete RBAC in tenant-a can delete a job."""
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-delete-test-job",
         )
         data = submit_evalhub_job(
@@ -72,13 +72,13 @@ class TestEvalHubJobDeleteMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """User with RBAC in tenant-a is denied job deletion for tenant-b."""
         # Submit in tenant-a first to get a valid job ID
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-delete-test-job",
         )
         data = submit_evalhub_job(
@@ -106,13 +106,13 @@ class TestEvalHubJobDeleteMT:
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
         session_vllm_emulator_service: Service,
-        emulator_namespace: Namespace,
+        shared_models_namespace: Namespace,
     ) -> None:
         """Job deletion without X-Tenant header is rejected with 400."""
         # Submit in tenant-a first to get a valid job ID
         payload = build_evalhub_job_payload(
             model_service_name=session_vllm_emulator_service.name,
-            tenant_namespace=emulator_namespace.name,
+            tenant_namespace=shared_models_namespace.name,
             job_name="evalhub-delete-test-job",
         )
         data = submit_evalhub_job(
