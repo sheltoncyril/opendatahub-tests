@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
@@ -23,70 +24,77 @@ VLLM_EMULATOR_IMAGE = (
     "quay.io/trustyai_testing/vllm_emulator@sha256:c4bdd5bb93171dee5b4c8454f36d7c42b58b2a4ceb74f29dba5760ac53b5c12d"
 )
 
-WORKER_ANNOTATION_PREFIX = "ai-safety.opendatahub.io/worker-"
+WORKER_COUNT_ANNOTATION = "ai-safety.opendatahub.io/worker-count"
+STALE_NAMESPACE_HOURS = 6
 
 
-def _get_worker_id(request: pytest.FixtureRequest) -> str:
-    return getattr(request.config, "workerinput", {}).get("workerid", "main")
-
-
-def _register_worker(ns: Namespace, worker_id: str) -> None:
-    ns.update(
-        resource_dict={
-            "metadata": {
-                "name": ns.name,
-                "annotations": {f"{WORKER_ANNOTATION_PREFIX}{worker_id}": "active"},
-            }
-        }
-    )
-    LOGGER.info(f"Registered worker {worker_id} on namespace {ns.name}")
-
-
-def _deregister_worker(ns: Namespace, worker_id: str) -> bool:
-    """Remove worker annotation. Returns True if this was the last worker."""
-    ns.update(
-        resource_dict={
-            "metadata": {
-                "name": ns.name,
-                "annotations": {f"{WORKER_ANNOTATION_PREFIX}{worker_id}": None},
-            }
-        }
-    )
+def _get_worker_count(ns: Namespace) -> int:
     ns.reload()
     annotations = ns.instance.metadata.get("annotations", {}) or {}
-    remaining = [k for k in annotations if k.startswith(WORKER_ANNOTATION_PREFIX)]
-    LOGGER.info(f"Deregistered worker {worker_id}, {len(remaining)} workers remaining")
-    return len(remaining) == 0
+    return int(annotations.get(WORKER_COUNT_ANNOTATION, "0"))
+
+
+def _set_worker_count(ns: Namespace, count: int) -> None:
+    ns.update(
+        resource_dict={
+            "metadata": {
+                "name": ns.name,
+                "annotations": {WORKER_COUNT_ANNOTATION: str(count)},
+            }
+        }
+    )
+
+
+def _is_namespace_stale(ns: Namespace) -> bool:
+    creation = ns.instance.metadata.creationTimestamp
+    if not creation:
+        return False
+    created_at = datetime.fromisoformat(date_string=creation)
+    age_hours = (datetime.now(tz=UTC) - created_at).total_seconds() / 3600
+    if age_hours > STALE_NAMESPACE_HOURS:
+        LOGGER.warning(f"Namespace {ns.name} is {age_hours:.1f}h old (threshold: {STALE_NAMESPACE_HOURS}h), stale")
+        return True
+    return False
 
 
 @pytest.fixture(scope="session")
 def shared_models_namespace(
-    request: pytest.FixtureRequest,
     admin_client: DynamicClient,
 ) -> Generator[Namespace, Any, Any]:
     """Session-scoped namespace for shared LLM model servers.
 
-    Workers coordinate via annotations on the namespace. Each worker registers
-    on setup and deregisters on teardown. The last worker to deregister deletes
-    the namespace and all resources in it.
+    Uses a worker counter annotation to track active users. Last worker
+    to decrement (counter reaches 0) deletes the namespace. Namespaces
+    older than STALE_NAMESPACE_HOURS are deleted and recreated to handle
+    crashed runs that left stale resources.
     """
-    worker_id = _get_worker_id(request=request)
     ns = Namespace(client=admin_client, name=SHARED_MODELS_NAMESPACE)
+
+    if ns.exists and _is_namespace_stale(ns=ns):
+        LOGGER.info(f"Deleting stale namespace {SHARED_MODELS_NAMESPACE}")
+        ns.delete(wait=True)
 
     if ns.exists:
         LOGGER.info(f"Namespace {SHARED_MODELS_NAMESPACE} already exists, reusing")
-        _register_worker(ns=ns, worker_id=worker_id)
+        count = _get_worker_count(ns=ns)
+        _set_worker_count(ns=ns, count=count + 1)
+        LOGGER.info(f"Worker count incremented to {count + 1}")
         yield ns
-        if _deregister_worker(ns=ns, worker_id=worker_id):
-            LOGGER.info(f"Last worker, deleting namespace {SHARED_MODELS_NAMESPACE}")
-            ns.delete(wait=True)
     else:
         with create_ns(admin_client=admin_client, name=SHARED_MODELS_NAMESPACE, teardown=False) as created_ns:
-            _register_worker(ns=created_ns, worker_id=worker_id)
+            _set_worker_count(ns=created_ns, count=1)
+            LOGGER.info("Created namespace, worker count set to 1")
             yield created_ns
-            if _deregister_worker(ns=created_ns, worker_id=worker_id):
-                LOGGER.info(f"Last worker, deleting namespace {SHARED_MODELS_NAMESPACE}")
-                created_ns.delete(wait=True)
+            ns = created_ns
+
+    count = _get_worker_count(ns=ns)
+    new_count = count - 1
+    if new_count <= 0:
+        LOGGER.info(f"Last worker (count={count}), deleting namespace {SHARED_MODELS_NAMESPACE}")
+        ns.delete(wait=True)
+    else:
+        _set_worker_count(ns=ns, count=new_count)
+        LOGGER.info(f"Worker count decremented to {new_count}")
 
 
 @pytest.fixture(scope="session")
