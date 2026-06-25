@@ -49,7 +49,7 @@ def _is_namespace_stale(ns: Namespace) -> bool:
     creation = ns.instance.metadata.creationTimestamp
     if not creation:
         return False
-    created_at = datetime.fromisoformat(date_string=creation)
+    created_at = datetime.fromisoformat(creation)  # noqa: FCN001
     age_hours = (datetime.now(tz=UTC) - created_at).total_seconds() / 3600
     if age_hours > STALE_NAMESPACE_HOURS:
         LOGGER.warning(f"Namespace {ns.name} is {age_hours:.1f}h old (threshold: {STALE_NAMESPACE_HOURS}h), stale")
