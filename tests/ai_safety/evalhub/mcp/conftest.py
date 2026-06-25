@@ -14,6 +14,7 @@ from ocp_resources.role import Role
 from ocp_resources.role_binding import RoleBinding
 from ocp_resources.route import Route
 from ocp_resources.secret import Secret
+from ocp_resources.service import Service
 from ocp_resources.service_account import ServiceAccount
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
@@ -32,6 +33,11 @@ from utilities.constants import Timeout
 from utilities.infra import create_inference_token
 
 LOGGER = structlog.get_logger(name=__name__)
+
+
+# Session-scoped vLLM emulator fixtures (session_vllm_emulator_deployment,
+# session_vllm_emulator_service) are defined in tests/ai_safety/conftest.py
+# and shared across all ai_safety sub-components.
 
 
 class _TransientEvalhubMcpHealthError(Exception):

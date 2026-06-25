@@ -85,7 +85,7 @@ def evalhub_mt_cr(  # noqa: UFN001
 
 # ---------------------------------------------------------------------------
 # Tests — use shared fixtures: evalhub_mt_route, evalhub_mt_ca_bundle_file,
-# tenant_a_token, tenant_a_namespace, evalhub_vllm_emulator_service
+# tenant_a_token, tenant_a_namespace, session_vllm_emulator_service
 # (all chain from evalhub_mt_mlflow_cr defined above)
 # ---------------------------------------------------------------------------
 
@@ -109,12 +109,13 @@ class TestEvalHubMLflowIntegration:
         tenant_a_namespace: Namespace,
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
-        evalhub_vllm_emulator_service: Service,
+        session_vllm_emulator_service: Service,
+        emulator_namespace: Namespace,
     ) -> None:
         """POST job with experiment block → 202, response includes experiment_id."""
         payload = build_evalhub_job_payload(
-            model_service_name=evalhub_vllm_emulator_service.name,
-            tenant_namespace=tenant_a_namespace.name,
+            model_service_name=session_vllm_emulator_service.name,
+            tenant_namespace=emulator_namespace.name,
             job_name="mlflow-experiment-test",
         )
         payload["experiment"] = {
@@ -142,12 +143,13 @@ class TestEvalHubMLflowIntegration:
         tenant_a_namespace: Namespace,
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
-        evalhub_vllm_emulator_service: Service,
+        session_vllm_emulator_service: Service,
+        emulator_namespace: Namespace,
     ) -> None:
         """POST job without experiment block → 202, no experiment_id."""
         payload = build_evalhub_job_payload(
-            model_service_name=evalhub_vllm_emulator_service.name,
-            tenant_namespace=tenant_a_namespace.name,
+            model_service_name=session_vllm_emulator_service.name,
+            tenant_namespace=emulator_namespace.name,
             job_name="mlflow-no-experiment-test",
         )
 
@@ -167,19 +169,20 @@ class TestEvalHubMLflowIntegration:
         tenant_a_namespace: Namespace,
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
-        evalhub_vllm_emulator_service: Service,
+        session_vllm_emulator_service: Service,
+        emulator_namespace: Namespace,
     ) -> None:
         """POST job with duplicate experiment name reuses the same experiment_id."""
         payload1 = build_evalhub_job_payload(
-            model_service_name=evalhub_vllm_emulator_service.name,
-            tenant_namespace=tenant_a_namespace.name,
+            model_service_name=session_vllm_emulator_service.name,
+            tenant_namespace=emulator_namespace.name,
             job_name="mlflow-reuse-exp-1",
         )
         payload1["experiment"] = {"name": "odh-fvt-reuse-experiment"}
 
         payload2 = build_evalhub_job_payload(
-            model_service_name=evalhub_vllm_emulator_service.name,
-            tenant_namespace=tenant_a_namespace.name,
+            model_service_name=session_vllm_emulator_service.name,
+            tenant_namespace=emulator_namespace.name,
             job_name="mlflow-reuse-exp-2",
         )
         payload2["experiment"] = {"name": "odh-fvt-reuse-experiment"}
@@ -217,12 +220,13 @@ class TestEvalHubMLflowIntegration:
         tenant_a_namespace: Namespace,
         evalhub_mt_ca_bundle_file: str,
         evalhub_mt_route: Route,
-        evalhub_vllm_emulator_service: Service,
+        session_vllm_emulator_service: Service,
+        emulator_namespace: Namespace,
     ) -> None:
         """Submit jobs with experiment, list filtered by experiment_id."""
         payload = build_evalhub_job_payload(
-            model_service_name=evalhub_vllm_emulator_service.name,
-            tenant_namespace=tenant_a_namespace.name,
+            model_service_name=session_vllm_emulator_service.name,
+            tenant_namespace=emulator_namespace.name,
             job_name="mlflow-filter-test",
         )
         payload["experiment"] = {"name": "odh-fvt-filter-experiment"}

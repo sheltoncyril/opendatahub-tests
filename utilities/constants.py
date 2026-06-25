@@ -496,6 +496,7 @@ class ContainerImages:
 TRUSTYAI_SERVICE_NAME: str = "trustyai-service"
 
 LLM_D_INFERENCE_SIM_NAME = "llm-d-inference-sim"
+EMULATOR_NAMESPACE = "ai-safety-emulators"
 
 
 @dataclass
@@ -511,6 +512,15 @@ class LLMdInferenceSimConfig:
 LLM_D_CHAT_GENERATION_CONFIG: dict[str, Any] = {
     "service": {"hostname": f"{LLMdInferenceSimConfig.isvc_name}-predictor", "port": 80}
 }
+
+
+def get_llm_d_chat_generation_config(namespace: str) -> dict[str, Any]:
+    return {
+        "service": {
+            "hostname": f"{LLMdInferenceSimConfig.isvc_name}-predictor.{namespace}.svc.cluster.local",
+            "port": 80,
+        }
+    }
 
 
 @dataclass
