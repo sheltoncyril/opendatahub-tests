@@ -172,7 +172,7 @@ def session_llm_d_inference_sim_serving_runtime(
         yield existing
         return
 
-    with ServingRuntime(
+    sr = ServingRuntime(
         client=admin_client,
         name=sr_name,
         namespace=shared_models_namespace.name,
@@ -225,8 +225,10 @@ def session_llm_d_inference_sim_serving_runtime(
         ],
         multi_model=False,
         supported_model_formats=[{"autoSelect": True, "name": LLMdInferenceSimConfig.name}],
-    ) as serving_runtime:
-        yield serving_runtime
+        teardown=False,
+    )
+    sr.deploy()
+    yield sr
 
 
 @pytest.fixture(scope="session")
@@ -264,6 +266,7 @@ def session_llm_d_inference_sim_isvc(
             "requests": {"cpu": "1", "memory": "1Gi"},
             "limits": {"cpu": "1", "memory": "1Gi"},
         },
+        teardown=False,
     ) as isvc:
         deployment = Deployment(
             client=admin_client,
