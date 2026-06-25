@@ -225,7 +225,11 @@ def lmevaljob_vllm_emulator(
             {"name": "model", "value": "emulatedModel"},
             {
                 "name": "base_url",
-                "value": f"http://{session_vllm_emulator_service.name}.{emulator_namespace.name}.svc.cluster.local:{VLLM_EMULATOR_PORT!s}/v1/completions",
+                "value": (
+                    f"http://{session_vllm_emulator_service.name}"
+                    f".{emulator_namespace.name}.svc.cluster.local"
+                    f":{VLLM_EMULATOR_PORT!s}/v1/completions"
+                ),
             },
             {"name": "num_concurrent", "value": "1"},
             {"name": "max_retries", "value": "3"},

@@ -14,7 +14,6 @@ from ocp_resources.role import Role
 from ocp_resources.role_binding import RoleBinding
 from ocp_resources.route import Route
 from ocp_resources.secret import Secret
-from ocp_resources.service import Service
 from ocp_resources.service_account import ServiceAccount
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 

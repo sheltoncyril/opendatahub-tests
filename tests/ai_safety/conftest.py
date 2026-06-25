@@ -11,14 +11,13 @@ from ocp_resources.service import Service
 from pytest_testconfig import config as py_config
 
 from utilities.certificates_utils import create_ca_bundle_file
-from utilities.constants import EMULATOR_NAMESPACE, Labels, Protocols, Timeout, TRUSTYAI_SERVICE_NAME
+from utilities.constants import EMULATOR_NAMESPACE, TRUSTYAI_SERVICE_NAME, Labels, Protocols, Timeout
 from utilities.infra import create_ns
 
 VLLM_EMULATOR = "vllm-emulator"
 VLLM_EMULATOR_PORT: int = 8000
 VLLM_EMULATOR_IMAGE = (
-    "quay.io/trustyai_testing/vllm_emulator"
-    "@sha256:c4bdd5bb93171dee5b4c8454f36d7c42b58b2a4ceb74f29dba5760ac53b5c12d"
+    "quay.io/trustyai_testing/vllm_emulator@sha256:c4bdd5bb93171dee5b4c8454f36d7c42b58b2a4ceb74f29dba5760ac53b5c12d"
 )
 
 

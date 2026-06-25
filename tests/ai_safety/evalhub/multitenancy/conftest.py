@@ -1,14 +1,7 @@
-from collections.abc import Generator
-from typing import Any
-
 import pytest
 import requests
 import structlog
-from kubernetes.dynamic import DynamicClient
-from ocp_resources.deployment import Deployment
-from ocp_resources.namespace import Namespace
 from ocp_resources.route import Route
-from ocp_resources.service import Service
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
 from tests.ai_safety.evalhub.constants import EVALHUB_HEALTH_PATH
