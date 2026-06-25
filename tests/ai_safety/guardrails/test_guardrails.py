@@ -31,9 +31,9 @@ from tests.ai_safety.guardrails.utils import (
 from tests.ai_safety.utils import validate_tai_component_images
 from utilities.constants import (
     BUILTIN_DETECTOR_CONFIG,
-    SHARED_MODELS_NAMESPACE,
     HAP_DETECTOR,
     PROMPT_INJECTION_DETECTOR,
+    SHARED_MODELS_NAMESPACE,
     LLMdInferenceSimConfig,
     Timeout,
     get_llm_d_chat_generation_config,
