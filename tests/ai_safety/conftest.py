@@ -2,6 +2,7 @@ from collections.abc import Generator
 from typing import Any
 
 import pytest
+import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
@@ -14,6 +15,8 @@ from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import SHARED_MODELS_NAMESPACE, TRUSTYAI_SERVICE_NAME, Labels, Protocols, Timeout
 from utilities.infra import create_ns
 
+LOGGER = structlog.get_logger(name=__name__)
+
 VLLM_EMULATOR = "vllm-emulator"
 VLLM_EMULATOR_PORT: int = 8000
 VLLM_EMULATOR_IMAGE = (
@@ -23,87 +26,100 @@ VLLM_EMULATOR_IMAGE = (
 
 @pytest.fixture(scope="session")
 def shared_models_namespace(
-    request: pytest.FixtureRequest,
     admin_client: DynamicClient,
 ) -> Generator[Namespace, Any, Any]:
     """Session-scoped namespace for shared LLM model servers.
 
-    All stateless model servers (LLM-d sim, vLLM emulator) deploy here once
-    per session. Test classes reference them via FQDN.
-    Appends xdist worker ID to avoid collisions under parallel execution.
+    Uses k8s existence check for xdist safety: if the namespace already exists
+    (created by another worker), reuse it without teardown. Only the creating
+    worker tears it down.
     """
-    worker_id = getattr(request.config, "workerinput", {}).get("workerid", "")
-    ns_name = f"{SHARED_MODELS_NAMESPACE}-{worker_id}" if worker_id else SHARED_MODELS_NAMESPACE
-    with create_ns(
-        admin_client=admin_client,
-        name=ns_name,
-        teardown=True,
-    ) as ns:
+    ns = Namespace(client=admin_client, name=SHARED_MODELS_NAMESPACE)
+    if ns.exists:
+        LOGGER.info(f"Namespace {SHARED_MODELS_NAMESPACE} already exists, reusing")
         yield ns
+    else:
+        with create_ns(admin_client=admin_client, name=SHARED_MODELS_NAMESPACE, teardown=True) as created_ns:
+            yield created_ns
 
 
 @pytest.fixture(scope="session")
 def session_vllm_emulator_deployment(
-    admin_client: DynamicClient, shared_models_namespace: Namespace
+    admin_client: DynamicClient,
+    shared_models_namespace: Namespace,
 ) -> Generator[Deployment, Any, Any]:
-    """Session-scoped vLLM emulator deployed to shared_models_namespace."""
-    label = {Labels.Openshift.APP: VLLM_EMULATOR}
-    with Deployment(
-        client=admin_client,
-        namespace=shared_models_namespace.name,
-        name=VLLM_EMULATOR,
-        label=label,
-        replicas=1,
-        selector={"matchLabels": label},
-        template={
-            "metadata": {"labels": label},
-            "spec": {
-                "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
-                "containers": [
-                    {
-                        "name": "vllm-emulator",
-                        "image": VLLM_EMULATOR_IMAGE,
-                        "ports": [{"containerPort": VLLM_EMULATOR_PORT, "protocol": "TCP"}],
-                        "readinessProbe": {
-                            "tcpSocket": {"port": VLLM_EMULATOR_PORT},
-                            "initialDelaySeconds": 5,
-                            "periodSeconds": 5,
-                            "failureThreshold": 6,
-                        },
-                        "securityContext": {
-                            "allowPrivilegeEscalation": False,
-                            "capabilities": {"drop": ["ALL"]},
-                            "seccompProfile": {"type": "RuntimeDefault"},
-                        },
-                    }
-                ],
+    """Session-scoped vLLM emulator. Reuses existing deployment if present (xdist safe)."""
+    existing = Deployment(client=admin_client, name=VLLM_EMULATOR, namespace=shared_models_namespace.name)
+    if existing.exists:
+        LOGGER.info("vLLM emulator deployment already exists, reusing")
+        existing.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
+        yield existing
+    else:
+        label = {Labels.Openshift.APP: VLLM_EMULATOR}
+        with Deployment(
+            client=admin_client,
+            namespace=shared_models_namespace.name,
+            name=VLLM_EMULATOR,
+            label=label,
+            replicas=1,
+            selector={"matchLabels": label},
+            template={
+                "metadata": {"labels": label},
+                "spec": {
+                    "securityContext": {"seccompProfile": {"type": "RuntimeDefault"}},
+                    "containers": [
+                        {
+                            "name": "vllm-emulator",
+                            "image": VLLM_EMULATOR_IMAGE,
+                            "ports": [{"containerPort": VLLM_EMULATOR_PORT, "protocol": "TCP"}],
+                            "readinessProbe": {
+                                "tcpSocket": {"port": VLLM_EMULATOR_PORT},
+                                "initialDelaySeconds": 5,
+                                "periodSeconds": 5,
+                                "failureThreshold": 6,
+                            },
+                            "securityContext": {
+                                "allowPrivilegeEscalation": False,
+                                "capabilities": {"drop": ["ALL"]},
+                                "seccompProfile": {"type": "RuntimeDefault"},
+                            },
+                        }
+                    ],
+                },
             },
-        },
-    ) as deployment:
-        deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
-        yield deployment
+        ) as deployment:
+            deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
+            yield deployment
 
 
 @pytest.fixture(scope="session")
 def session_vllm_emulator_service(
-    admin_client: DynamicClient, shared_models_namespace: Namespace, session_vllm_emulator_deployment: Deployment
+    admin_client: DynamicClient,
+    shared_models_namespace: Namespace,
+    session_vllm_emulator_deployment: Deployment,
 ) -> Generator[Service, Any, Any]:
-    """Session-scoped Service fronting the vLLM emulator."""
-    with Service(
-        client=admin_client,
-        namespace=shared_models_namespace.name,
-        name=f"{VLLM_EMULATOR}-service",
-        ports=[
-            {
-                "name": f"{VLLM_EMULATOR}-endpoint",
-                "port": VLLM_EMULATOR_PORT,
-                "protocol": Protocols.TCP,
-                "targetPort": VLLM_EMULATOR_PORT,
-            }
-        ],
-        selector={Labels.Openshift.APP: VLLM_EMULATOR},
-    ) as service:
-        yield service
+    """Session-scoped Service fronting the vLLM emulator. Reuses if present (xdist safe)."""
+    svc_name = f"{VLLM_EMULATOR}-service"
+    existing = Service(client=admin_client, name=svc_name, namespace=shared_models_namespace.name)
+    if existing.exists:
+        LOGGER.info("vLLM emulator service already exists, reusing")
+        yield existing
+    else:
+        with Service(
+            client=admin_client,
+            namespace=shared_models_namespace.name,
+            name=svc_name,
+            ports=[
+                {
+                    "name": f"{VLLM_EMULATOR}-endpoint",
+                    "port": VLLM_EMULATOR_PORT,
+                    "protocol": Protocols.TCP,
+                    "targetPort": VLLM_EMULATOR_PORT,
+                }
+            ],
+            selector={Labels.Openshift.APP: VLLM_EMULATOR},
+        ) as service:
+            yield service
 
 
 @pytest.fixture(scope="class")

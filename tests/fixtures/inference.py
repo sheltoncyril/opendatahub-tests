@@ -161,12 +161,20 @@ def llm_d_inference_sim_isvc(
 
 @pytest.fixture(scope="session")
 def session_llm_d_inference_sim_serving_runtime(
-    admin_client: DynamicClient, shared_models_namespace: Namespace
+    admin_client: DynamicClient,
+    shared_models_namespace: Namespace,
 ) -> Generator[ServingRuntime, Any, Any]:
-    """Session-scoped LLM-d sim ServingRuntime deployed to shared_models_namespace."""
+    """Session-scoped LLM-d sim ServingRuntime. Reuses existing resource if present (xdist safe)."""
+    sr_name = LLMdInferenceSimConfig.serving_runtime_name
+    existing = ServingRuntime(client=admin_client, name=sr_name, namespace=shared_models_namespace.name)
+    if existing.exists:
+        LOGGER.info(f"ServingRuntime {sr_name} already exists, reusing")
+        yield existing
+        return
+
     with ServingRuntime(
         client=admin_client,
-        name=LLMdInferenceSimConfig.serving_runtime_name,
+        name=sr_name,
         namespace=shared_models_namespace.name,
         annotations={
             "description": "LLM-d Simulator KServe",
@@ -228,10 +236,23 @@ def session_llm_d_inference_sim_isvc(
     session_llm_d_inference_sim_serving_runtime: ServingRuntime,
     session_patched_dsc_kserve_headed: DataScienceCluster,
 ) -> Generator[InferenceService, Any, Any]:
-    """Session-scoped LLM-d sim InferenceService deployed to shared_models_namespace."""
+    """Session-scoped LLM-d sim InferenceService. Reuses existing resource if present (xdist safe)."""
+    isvc_name = LLMdInferenceSimConfig.isvc_name
+    existing = InferenceService(client=admin_client, name=isvc_name, namespace=shared_models_namespace.name)
+    if existing.exists:
+        LOGGER.info(f"InferenceService {isvc_name} already exists, reusing")
+        deployment = Deployment(
+            client=admin_client,
+            name=f"{isvc_name}-predictor",
+            namespace=shared_models_namespace.name,
+        )
+        deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_2MIN)
+        yield existing
+        return
+
     with create_isvc(
         client=admin_client,
-        name=LLMdInferenceSimConfig.isvc_name,
+        name=isvc_name,
         namespace=shared_models_namespace.name,
         deployment_mode=KServeDeploymentType.RAW_DEPLOYMENT,
         model_format=LLMdInferenceSimConfig.name,
