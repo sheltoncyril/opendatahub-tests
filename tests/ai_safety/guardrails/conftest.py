@@ -199,7 +199,6 @@ def installed_tempo_operator(admin_client: DynamicClient, model_namespace: Names
             operator_namespace=operator_ns.name,
             timeout=Timeout.TIMEOUT_15MIN,
             install_plan_approval="Automatic",
-            starting_csv="tempo-operator.v0.19.0-2",
         )
 
         deployment = Deployment(
@@ -309,7 +308,6 @@ def installed_opentelemetry_operator(admin_client: DynamicClient) -> Generator[N
             operator_namespace=operator_ns.name,
             timeout=Timeout.TIMEOUT_15MIN,
             install_plan_approval="Automatic",
-            starting_csv="opentelemetry-operator.v0.140.0-1",
         )
 
         deployment = Deployment(
