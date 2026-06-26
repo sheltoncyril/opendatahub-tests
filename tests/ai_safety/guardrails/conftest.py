@@ -43,6 +43,13 @@ from utilities.serving_runtime import ServingRuntimeFromTemplate
 GUARDRAILS_ORCHESTRATOR_NAME = "guardrails-orchestrator"
 
 
+@pytest.fixture(scope="session")
+def shared_models_namespace(admin_client: DynamicClient) -> Generator[Namespace, Any, Any]:  # noqa: UFN001
+    from tests.ai_safety.conftest import _create_shared_models_ns
+
+    yield from _create_shared_models_ns(admin_client=admin_client, name="ai-safety-guardrails-models")
+
+
 # ServingRuntimes, InferenceServices, and related resources
 # for generation and detection models
 @pytest.fixture(scope="class")

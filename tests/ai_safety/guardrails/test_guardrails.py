@@ -33,12 +33,13 @@ from utilities.constants import (
     BUILTIN_DETECTOR_CONFIG,
     HAP_DETECTOR,
     PROMPT_INJECTION_DETECTOR,
-    SHARED_MODELS_NAMESPACE,
     LLMdInferenceSimConfig,
     Timeout,
     get_llm_d_chat_generation_config,
 )
 from utilities.plugins.constant import OpenAIEnpoints
+
+GUARDRAILS_MODELS_NAMESPACE = "ai-safety-guardrails-models"
 
 LOGGER = structlog.get_logger(name=__name__)
 
@@ -69,7 +70,7 @@ def test_guardrailsorchestrator_crd_exists(
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -101,7 +102,7 @@ def test_validate_guardrails_orchestrator_images(
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -243,7 +244,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
                         "detectors": {
                             PROMPT_INJECTION_DETECTOR: {
                                 "type": "text_contents",
@@ -611,7 +612,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(SHARED_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },

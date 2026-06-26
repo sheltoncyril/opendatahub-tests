@@ -50,6 +50,13 @@ from utilities.infra import create_inference_token, create_ns
 LOGGER = structlog.get_logger(name=__name__)
 
 
+@pytest.fixture(scope="session")
+def shared_models_namespace(admin_client: DynamicClient) -> Generator[Namespace, Any, Any]:  # noqa: UFN001
+    from tests.ai_safety.conftest import _create_shared_models_ns
+
+    yield from _create_shared_models_ns(admin_client=admin_client, name="ai-safety-evalhub-models")
+
+
 # ---------------------------------------------------------------------------
 # Helper Functions
 # ---------------------------------------------------------------------------
