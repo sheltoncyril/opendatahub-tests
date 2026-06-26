@@ -445,19 +445,20 @@ class TestGuardrailsOrchestratorWithHuggingFaceDetectors:
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("patched_dsc_kserve_headed")
 @pytest.mark.tier1
 @pytest.mark.rawdeployment
 class TestGuardrailsOrchestratorAutoConfig:
     """
-    These tests verify that the GuardrailsOrchestrator works as expected when configured through the AutoConfig feature.
+    AutoConfig requires the ISVC in the same namespace as the orchestrator,
+    so these tests use class-scoped llm_d_inference_sim_isvc (not session-scoped).
     """
 
     def test_guardrails_gateway_info_endpoint(
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        session_llm_d_inference_sim_isvc,
+        llm_d_inference_sim_isvc,
         hap_detector_isvc,
         prompt_injection_detector_isvc,
         guardrails_orchestrator_health_route,
@@ -473,7 +474,7 @@ class TestGuardrailsOrchestratorAutoConfig:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        session_llm_d_inference_sim_isvc,
+        llm_d_inference_sim_isvc,
         hap_detector_isvc,
         prompt_injection_detector_isvc,
         guardrails_orchestrator_route,
@@ -492,7 +493,7 @@ class TestGuardrailsOrchestratorAutoConfig:
     def test_guardrails_autoconfig_negative_detection(
         self,
         current_client_token,
-        session_llm_d_inference_sim_isvc,
+        llm_d_inference_sim_isvc,
         hap_detector_isvc,
         prompt_injection_detector_isvc,
         guardrails_orchestrator_route,
@@ -526,20 +527,20 @@ class TestGuardrailsOrchestratorAutoConfig:
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("patched_dsc_kserve_headed")
 @pytest.mark.tier2
 @pytest.mark.rawdeployment
 class TestGuardrailsOrchestratorAutoConfigWithGateway:
     """
-    These tests verify that the GuardrailsOrchestrator works as expected when configured
-    through the AutoConfig feature to use the gateway route.
+    AutoConfig requires the ISVC in the same namespace as the orchestrator,
+    so these tests use class-scoped llm_d_inference_sim_isvc (not session-scoped).
     """
 
     def test_guardrails_autoconfig_gateway_info_endpoint(
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        session_llm_d_inference_sim_isvc,
+        llm_d_inference_sim_isvc,
         hap_detector_isvc,
         prompt_injection_detector_isvc,
         guardrails_orchestrator_health_route,
@@ -555,7 +556,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
         self,
         current_client_token,
         openshift_ca_bundle_file,
-        session_llm_d_inference_sim_isvc,
+        llm_d_inference_sim_isvc,
         prompt_injection_detector_isvc,
         hap_detector_isvc,
         guardrails_orchestrator_gateway_route,
@@ -585,7 +586,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
     def test_guardrails_autoconfig_gateway_negative_detection(
         self,
         current_client_token,
-        session_llm_d_inference_sim_isvc,
+        llm_d_inference_sim_isvc,
         prompt_injection_detector_isvc,
         hap_detector_isvc,
         guardrails_orchestrator_gateway_route,
