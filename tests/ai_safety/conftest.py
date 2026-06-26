@@ -29,7 +29,6 @@ STALE_NAMESPACE_HOURS = 6
 
 
 def _get_worker_count(ns: Namespace) -> int:
-    ns.reload()
     annotations = ns.instance.metadata.get("annotations", {}) or {}
     return int(annotations.get(WORKER_COUNT_ANNOTATION, "0"))
 
