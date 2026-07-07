@@ -27,7 +27,6 @@ from tests.ai_safety.guardrails.constants import (
     SUPER_SECRET,
     TEMPO,
 )
-from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import (
     KServeDeploymentType,
     RuntimeTemplates,
@@ -103,13 +102,6 @@ def prompt_injection_detector_route(
 
 
 # Other "helper" fixtures
-@pytest.fixture(scope="class")
-def openshift_ca_bundle_file(
-    admin_client: DynamicClient,
-) -> str:
-    return create_ca_bundle_file(client=admin_client)
-
-
 @pytest.fixture(scope="class")
 def hap_detector_isvc(
     admin_client: DynamicClient,
