@@ -21,7 +21,6 @@ from tests.model_serving.model_runtime.openvino.constant import (
     LOCAL_HOST_URL,
     MODEL_PATH_PREFIX,
     OPENVINO_REST_PORT,
-    RAW_DEPLOYMENT_TYPE,
 )
 from utilities.constants import KServeDeploymentType
 
@@ -54,10 +53,10 @@ def run_openvino_inference(
 ) -> Any:
     """
     Run inference against an OpenVINO-hosted model using REST protocol.
-    Supports RAW KServe deployment mode.
+    Supports RawDeployment and Standard modes (non-serverless Deployment-based serving).
 
     Args:
-        pod_name (str): Name of the pod running the OpenVINO model (used for RAW deployment).
+        pod_name (str): Name of the pod running the OpenVINO model (used for port-forward).
         isvc (InferenceService): The KServe InferenceService object.
         input_data (dict[str, Any]): The input data payload for inference.
         model_version (str): The version of the model to target, if applicable.
@@ -67,7 +66,7 @@ def run_openvino_inference(
 
     Notes:
         - REST calls expect the model to support V2 REST inference APIs.
-        - RAW deployments use port-forwarding.
+        - RawDeployment and Standard use port-forwarding to the predictor pod (same as MLServer utils).
     """
     annotations = getattr(isvc.instance.metadata, "annotations", {}) or {}
     deployment_mode = annotations.get("serving.kserve.io/deploymentMode")
@@ -78,13 +77,14 @@ def run_openvino_inference(
     version_suffix = f"/versions/{model_version}" if model_version else ""
     rest_endpoint = f"/v2/models/{model_name}{version_suffix}/infer"
 
-    if deployment_mode == KServeDeploymentType.RAW_DEPLOYMENT:
-        port = OPENVINO_REST_PORT
-        with portforward.forward(pod_or_service=pod_name, namespace=isvc.namespace, from_port=port, to_port=port):
-            host = f"{LOCAL_HOST_URL}:{port}"
-            return send_rest_request(url=f"{host}{rest_endpoint}", input_data=input_data, verify=False)
+    supported_modes = (KServeDeploymentType.RAW_DEPLOYMENT, KServeDeploymentType.STANDARD)
+    if deployment_mode not in supported_modes:
+        raise ValueError(f"Unsupported deployment_mode {deployment_mode}. Supported modes: {supported_modes}")
 
-    raise ValueError(f"Invalid deployment_mode {deployment_mode}")
+    port = OPENVINO_REST_PORT
+    with portforward.forward(pod_or_service=pod_name, namespace=isvc.namespace, from_port=port, to_port=port):
+        host = f"{LOCAL_HOST_URL}:{port}"
+        return send_rest_request(url=f"{host}{rest_endpoint}", input_data=input_data, verify=False)
 
 
 def validate_inference_request(
@@ -153,37 +153,37 @@ def get_model_storage_uri_dict(model_format_name: str) -> dict[str, str]:
     return {"model-dir": f"{MODEL_PATH_PREFIX.rstrip('/')}/{model_format_name.lstrip('/')}"}
 
 
-def get_model_namespace_dict(model_format_name: str, deployment_type: str, protocol_type: str) -> dict[str, str]:
+def get_model_namespace_dict(model_format_name: str, deployment_mode: str, protocol_type: str) -> dict[str, str]:
     """
     Generate a dictionary containing a unique model namespace or name identifier.
 
     The function constructs a name by concatenating the given model format,
-    deployment type, and protocol type using hyphens. It is useful for dynamically
+    deployment mode, and protocol type using hyphens. It is useful for dynamically
     naming model-serving resources, configurations, or deployments.
 
     Args:
         model_format_name (str): The model format name (e.g., "onnx").
-        deployment_type (str): The type of deployment (e.g., "raw").
+        deployment_mode (str): The deployment mode (e.g., "Standard").
         protocol_type (str): The communication protocol (e.g., "rest").
 
     Returns:
         dict[str, str]: A dictionary with the key "name" and a concatenated identifier as value.
-                        Example: {"name": "onnx-raw-rest"}
+                        Example: {"name": "onnx-standard-rest"}
     """
-    name = f"{model_format_name.strip()}-{deployment_type.strip()}-{protocol_type.strip()}"
+    name = f"{model_format_name.strip().lower()}-{deployment_mode.strip().lower()}-{protocol_type.strip().lower()}"
     return {"name": name}
 
 
-def get_deployment_config_dict(model_format_name: str, deployment_type: str, gpu_count: int = 0) -> dict[str, str]:
+def get_deployment_config_dict(model_format_name: str, deployment_mode: str, gpu_count: int = 0) -> dict[str, str]:
     """
-    Generate a deployment configuration dictionary based on the model format and deployment type.
+    Generate a deployment configuration dictionary based on the model format and deployment mode.
 
-    This function merges a base deployment configuration (raw) with a given model format
+    This function merges a base deployment configuration (Standard) with a given model format
     name to produce a complete configuration dictionary.
 
     Args:
         model_format_name (str): The model format name (e.g., "onnx").
-        deployment_type (str): The deployment type (e.g., "raw").
+        deployment_mode (str): The deployment mode (e.g., "Standard").
         gpu_count (int): The number of GPUs to allocate (default: 0).
 
     Returns:
@@ -191,26 +191,29 @@ def get_deployment_config_dict(model_format_name: str, deployment_type: str, gpu
     """
     deployment_config_dict = {}
 
-    if deployment_type == RAW_DEPLOYMENT_TYPE:
+    if deployment_mode == KServeDeploymentType.STANDARD:
         deployment_config_dict = {"name": model_format_name, "gpu_count": gpu_count, **BASE_RAW_DEPLOYMENT_CONFIG}
 
     return deployment_config_dict
 
 
-def get_test_case_id(model_format_name: str, deployment_type: str, protocol_type: str) -> str:
+def get_test_case_id(model_format_name: str, deployment_mode: str, protocol_type: str) -> str:
     """
-    Generate a test case identifier string based on model format, deployment type, and protocol type.
+    Generate a test case identifier string based on model format, deployment mode, and protocol type.
 
     Args:
         model_format_name (str): The model format name (e.g., "onnx").
-        deployment_type (str): The deployment type (e.g., "raw").
+        deployment_mode (str): The deployment mode (e.g., "Standard").
         protocol_type (str): The protocol type (e.g., "rest").
 
     Returns:
-        str: A test case ID in the format: "<model_format>-<deployment_type>-<protocol_type>-deployment".
-              Example: "onnx-raw-rest-deployment"
+        str: A test case ID in the format: "<model_format>-<deployment_mode>-<protocol_type>-deployment".
+              Example: "onnx-standard-rest-deployment"
     """
-    return f"{model_format_name.strip()}-{deployment_type.strip()}-{protocol_type.strip()}-deployment"
+    return (
+        f"{model_format_name.strip().lower()}-{deployment_mode.strip().lower()}-"
+        f"{protocol_type.strip().lower()}-deployment"
+    )
 
 
 def get_input_query(model_format_config: dict[str, Any], protocol: str) -> dict[str, Any]:
