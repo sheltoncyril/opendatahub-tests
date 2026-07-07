@@ -56,9 +56,7 @@ from utilities.infra import create_inference_token, create_ns
 LOGGER = structlog.get_logger(name=__name__)
 
 
-# ---------------------------------------------------------------------------
 # Helper Functions
-# ---------------------------------------------------------------------------
 
 
 def _is_evalhub_crd_available(admin_client: DynamicClient) -> bool:
@@ -74,9 +72,7 @@ def _is_evalhub_crd_available(admin_client: DynamicClient) -> bool:
         return False
 
 
-# ---------------------------------------------------------------------------
 # Shared EvalHub fixtures (used by health tests and garak tests)
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -95,9 +91,7 @@ def evalhub_cr(
         yield evalhub
 
 
-# ---------------------------------------------------------------------------
 # Multi-tenancy EvalHub fixtures (shared by multitenancy/ and kueue/ tests)
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -354,9 +348,7 @@ def evalhub_metrics_service(
     )
 
 
-# ---------------------------------------------------------------------------
 # MLflow fixture
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -386,9 +378,7 @@ def mlflow_instance(
         yield mlflow
 
 
-# ---------------------------------------------------------------------------
 # Garak-specific EvalHub fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -442,9 +432,7 @@ def garak_evalhub_route(
     )
 
 
-# ---------------------------------------------------------------------------
 # Tenant namespace and RBAC fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -581,9 +569,7 @@ def tenant_user_token(
     return create_inference_token(model_service_account=tenant_user_sa)
 
 
-# ---------------------------------------------------------------------------
 # DSPA and pipeline access fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -710,9 +696,7 @@ def dsp_access_for_job_sa(
         yield role, api_binding, pipeline_binding
 
 
-# ---------------------------------------------------------------------------
 # LLM-d Inference Simulator URL fixture
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -721,9 +705,7 @@ def garak_sim_isvc_url(llm_d_inference_sim_isvc: InferenceService) -> str:
     return f"http://{llm_d_inference_sim_isvc.name}-predictor.{llm_d_inference_sim_isvc.namespace}.svc.cluster.local/v1"
 
 
-# ---------------------------------------------------------------------------
 # Garak intents CSV upload fixture
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -834,9 +816,7 @@ def garak_s3_listing(
     return listing_output
 
 
-# ---------------------------------------------------------------------------
 # OTEL Collector Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
@@ -1011,9 +991,7 @@ def otel_collector_pod(
     return pods[0]
 
 
-# ---------------------------------------------------------------------------
 # EvalHub with OTEL Fixtures
-# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="class")
