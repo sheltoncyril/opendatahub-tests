@@ -19,15 +19,7 @@ from tests.ai_safety.nemo_guardrails.utils import (
     create_presidio_config,
     wait_for_nemo_guardrails_health,
 )
-from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import LLMdInferenceSimConfig
-
-
-@pytest.fixture(scope="class")
-def openshift_ca_bundle_file(
-    admin_client: DynamicClient,
-) -> str:
-    return create_ca_bundle_file(client=admin_client, ca_type="openshift")
 
 
 # ===========================
