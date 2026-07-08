@@ -1065,7 +1065,6 @@ def evalhub_otel_http_cr(
         yield evalhub
 
 
-
 @pytest.fixture(scope="class")
 def evalhub_otel_dual_sink_cr(
     admin_client: DynamicClient,
