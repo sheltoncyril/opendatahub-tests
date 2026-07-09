@@ -85,7 +85,7 @@ class TestAgentCatalogFiltering:
         self: Self,
         agent_catalog_rest_urls: list[str],
         model_registry_rest_headers: dict[str, str],
-        all_agents: list[dict[str, Any]],
+        default_agents: list[dict[str, Any]],
         params: dict[str, str],
         criteria_groups: list[list[dict[str, str]]],
     ) -> None:
@@ -100,7 +100,7 @@ class TestAgentCatalogFiltering:
         )
         returned_names = {item["name"] for item in response.get("items", [])}
         LOGGER.info(f"Returned {returned_names} agents")
-        expected_names = filter_agents_match_criteria_or(agents=all_agents, criteria_groups=criteria_groups)
+        expected_names = filter_agents_match_criteria_or(agents=default_agents, criteria_groups=criteria_groups)
         LOGGER.info(f"Expected {expected_names} agents")
         assert returned_names == expected_names, (
             f"Missing: {expected_names - returned_names}, Unexpected: {returned_names - expected_names}"
@@ -131,7 +131,7 @@ class TestAgentCatalogFiltering:
         self: Self,
         agent_catalog_rest_urls: list[str],
         model_registry_rest_headers: dict[str, str],
-        all_agents: list[dict[str, Any]],
+        default_agents: list[dict[str, Any]],
     ) -> None:
         """Given agents are configured with a default source label
         When filtering by a valid sourceLabel
@@ -143,7 +143,7 @@ class TestAgentCatalogFiltering:
             params={"sourceLabel": DEFAULT_AGENT_SOURCE_LABEL, "pageSize": "1000"},
         )
         filtered_names = {item["name"] for item in response.get("items", [])}
-        expected_names = {agent["name"] for agent in all_agents if agent.get("source_id") == "rh_agents"}
+        expected_names = {agent["name"] for agent in default_agents if agent.get("source_id") == "rh_agents"}
         assert filtered_names == expected_names, (
             f"Missing: {expected_names - filtered_names}, Unexpected: {filtered_names - expected_names}"
         )
