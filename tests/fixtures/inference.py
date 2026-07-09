@@ -22,6 +22,7 @@ from utilities.constants import (
     KServeDeploymentType,
     LLMdInferenceSimConfig,
     RuntimeTemplates,
+    Timeout,
     VLLMGPUConfig,
 )
 from utilities.inference_utils import create_isvc
@@ -170,7 +171,7 @@ def session_llm_d_inference_sim_serving_runtime(
     """Session-scoped LLM-d sim ServingRuntime. No teardown — Jenkins handles cleanup."""
     sr = ServingRuntime(
         client=admin_client,
-        name=sr_name,
+        name=LLMdInferenceSimConfig.serving_runtime_name,
         namespace=shared_models_namespace.name,
         annotations={
             "description": "LLM-d Simulator KServe",

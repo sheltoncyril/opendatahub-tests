@@ -17,6 +17,7 @@ from ocp_resources.service import Service
 from ocp_resources.serving_runtime import ServingRuntime
 from pytest import Config, FixtureRequest
 
+from tests.ai_safety.constants import VLLM_EMULATOR, VLLM_EMULATOR_PORT
 from tests.ai_safety.lm_eval.constants import (
     ACCELERATOR_IDENTIFIER,
     ARC_EASY_DATASET_IMAGE,
@@ -31,8 +32,6 @@ from utilities.general import b64_encoded_string
 from utilities.inference_utils import create_isvc
 from utilities.resources.route import Route as TLSRoute
 from utilities.serving_runtime import ServingRuntimeFromTemplate
-
-from tests.ai_safety.constants import VLLM_EMULATOR_PORT
 
 LMEVALJOB_NAME: str = "lmeval-test-job"
 
