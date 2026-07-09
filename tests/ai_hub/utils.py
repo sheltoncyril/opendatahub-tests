@@ -1,5 +1,6 @@
 import base64
 import json
+from fnmatch import fnmatch
 from typing import Any
 
 import requests
@@ -29,7 +30,7 @@ from tests.ai_hub.constants import (
     PORT_MAP,
 )
 from tests.ai_hub.exceptions import ModelRegistryResourceNotFoundError
-from utilities.constants import MARIA_DB_IMAGE, Annotations, PodNotFound, Protocols, Timeout
+from utilities.constants import MARIA_DB_IMAGE, Annotations, PodNotFound, Protocols
 from utilities.exceptions import ProtocolNotSupportedError, TooManyServicesError
 from utilities.general import wait_for_pods_running
 from utilities.resources.model_registry_modelregistry_opendatahub_io import ModelRegistry
@@ -313,7 +314,7 @@ def get_model_registry_db_label_dict(db_resource_name: str) -> dict[str, str]:
     }
 
 
-@retry(exceptions_dict={TimeoutError: []}, wait_timeout=Timeout.TIMEOUT_2MIN, sleep=5)
+@retry(exceptions_dict={TimeoutError: []}, wait_timeout=120, sleep=5)
 def wait_for_new_running_mr_pod(
     admin_client: DynamicClient,
     orig_pod_name: str,
@@ -944,6 +945,13 @@ def execute_get_command(
         raise
 
 
+@retry(wait_timeout=60, sleep=5, exceptions_dict={requests.exceptions.ConnectionError: []})
+def execute_get_command_with_retry(
+    url: str, headers: dict[str, str], verify: bool | str = False, params: dict[str, Any] | None = None
+) -> dict[Any, Any]:
+    return execute_get_command(url=url, headers=headers, verify=verify, params=params)
+
+
 def get_endpoint_ips(client: DynamicClient, namespace: str, service_name: str = "model-catalog") -> set[str]:
     endpoints = Endpoints(name=service_name, namespace=namespace, client=client)
     assert endpoints.exists, f"Endpoints for service {service_name} not found in {namespace}"
@@ -1068,3 +1076,23 @@ def get_latest_job_pod(admin_client: DynamicClient, job: Job) -> Pod:
     latest_pod = sorted_pods[0]
     LOGGER.info(f"Found {len(pods)} pod(s) for job {job.name}, using latest: {latest_pod.name}")
     return latest_pod
+
+
+def should_include_by_pattern(
+    name: str, included_patterns: list[str] | None = None, excluded_patterns: list[str] | None = None
+) -> bool:
+    """Determine if a name should be included based on include/exclude glob patterns."""
+    matches_included = any(fnmatch(name, pattern) for pattern in included_patterns) if included_patterns else True
+    matches_excluded = any(fnmatch(name, pattern) for pattern in excluded_patterns) if excluded_patterns else False
+    return matches_included and not matches_excluded
+
+
+def execute_authenticated_post(url: str, token: str, files: dict[str, tuple[str, str, str]]) -> dict[str, Any]:
+    """Execute an authenticated POST with multipart/form-data and return parsed JSON."""
+    headers = {"Authorization": f"Bearer {token}"}
+    LOGGER.info(f"Executing POST: {url}")
+    response = requests.post(url=url, headers=headers, files=files, verify=False, timeout=60)
+    if not response.ok:
+        LOGGER.error(f"POST failed: {response.status_code} — {response.text}")
+    response.raise_for_status()
+    return response.json()
