@@ -33,11 +33,6 @@ from utilities.infra import create_inference_token
 LOGGER = structlog.get_logger(name=__name__)
 
 
-# Session-scoped vLLM emulator fixtures (session_vllm_emulator_deployment,
-# session_vllm_emulator_service) are defined in tests/ai_safety/conftest.py
-# and shared across all ai_safety sub-components.
-
-
 class _TransientEvalhubMcpHealthError(Exception):
     """Recoverable failure while polling the EvalHub MCP health endpoint."""
 

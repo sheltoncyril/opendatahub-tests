@@ -2,7 +2,6 @@ from collections.abc import Generator
 from typing import Any
 
 import pytest
-import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
@@ -11,28 +10,9 @@ from ocp_resources.persistent_volume_claim import PersistentVolumeClaim
 from ocp_resources.service import Service
 from pytest_testconfig import config as py_config
 
+from tests.ai_safety.constants import VLLM_EMULATOR, VLLM_EMULATOR_IMAGE, VLLM_EMULATOR_PORT
 from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import TRUSTYAI_SERVICE_NAME, Labels, Protocols, Timeout
-from utilities.infra import create_ns
-
-LOGGER = structlog.get_logger(name=__name__)
-
-VLLM_EMULATOR = "vllm-emulator"
-VLLM_EMULATOR_PORT: int = 8000
-VLLM_EMULATOR_IMAGE = (
-    "quay.io/trustyai_testing/vllm_emulator@sha256:c4bdd5bb93171dee5b4c8454f36d7c42b58b2a4ceb74f29dba5760ac53b5c12d"
-)
-
-
-def _create_shared_models_ns(admin_client: DynamicClient, name: str) -> Generator[Namespace, Any, Any]:
-    """Create a session-scoped namespace for shared model servers. No teardown — Jenkins handles cleanup."""
-    ns = Namespace(client=admin_client, name=name)
-    if ns.exists:
-        LOGGER.info(f"Namespace {name} already exists, reusing")
-        yield ns
-    else:
-        with create_ns(admin_client=admin_client, name=name, teardown=False) as created_ns:
-            yield created_ns
 
 
 @pytest.fixture(scope="session")
@@ -40,14 +20,7 @@ def session_vllm_emulator_deployment(
     admin_client: DynamicClient,
     shared_models_namespace: Namespace,
 ) -> Generator[Deployment, Any, Any]:
-    """Session-scoped vLLM emulator. Create-if-not-exists, no teardown."""
-    existing = Deployment(client=admin_client, name=VLLM_EMULATOR, namespace=shared_models_namespace.name)
-    if existing.exists:
-        LOGGER.info("vLLM emulator deployment already exists, reusing")
-        existing.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
-        yield existing
-        return
-
+    """Session-scoped vLLM emulator Deployment. No teardown — Jenkins handles cleanup."""
     label = {Labels.Openshift.APP: VLLM_EMULATOR}
     deployment = Deployment(
         client=admin_client,
@@ -93,14 +66,8 @@ def session_vllm_emulator_service(
     shared_models_namespace: Namespace,
     session_vllm_emulator_deployment: Deployment,
 ) -> Generator[Service, Any, Any]:
-    """Session-scoped Service fronting the vLLM emulator. No teardown."""
+    """Session-scoped Service fronting the vLLM emulator. No teardown — Jenkins handles cleanup."""
     svc_name = f"{VLLM_EMULATOR}-service"
-    existing = Service(client=admin_client, name=svc_name, namespace=shared_models_namespace.name)
-    if existing.exists:
-        LOGGER.info("vLLM emulator service already exists, reusing")
-        yield existing
-        return
-
     svc = Service(
         client=admin_client,
         namespace=shared_models_namespace.name,

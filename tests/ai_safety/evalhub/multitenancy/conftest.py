@@ -45,8 +45,3 @@ def evalhub_mt_ready(
                 return
     except TimeoutExpiredError as err:
         raise RuntimeError(f"EvalHub at {evalhub_mt_route.host} did not become healthy within 120s") from err
-
-
-# Session-scoped vLLM emulator fixtures (session_vllm_emulator_deployment,
-# session_vllm_emulator_service) are defined in tests/ai_safety/conftest.py
-# and shared across all ai_safety sub-components.
