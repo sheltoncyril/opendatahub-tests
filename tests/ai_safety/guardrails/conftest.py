@@ -23,6 +23,7 @@ from ocp_resources.tempo_stack import TempoStack
 from ocp_utilities.operators import install_operator, uninstall_operator
 from timeout_sampler import TimeoutSampler
 
+from tests.ai_safety.constants import AiSafetyImages
 from tests.ai_safety.guardrails.constants import (
     AUTOCONFIG_DETECTOR_LABEL,
     OTEL_EXPORTER_PORT,
@@ -658,8 +659,7 @@ def minio_deployment_otel(admin_client, model_namespace, minio_pvc_otel):
             "containers": [
                 {
                     "name": "minio",
-                    "image": "quay.io/minio/minio"
-                    "@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e",
+                    "image": AiSafetyImages.MINIO_SERVER_OTEL,
                     "command": ["/bin/sh", "-c", "mkdir -p /storage/tempo && minio server /storage"],
                     "env": [
                         {"name": "MINIO_ACCESS_KEY", "value": TEMPO},

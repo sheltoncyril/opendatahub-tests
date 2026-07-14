@@ -25,6 +25,7 @@ from ocp_resources.service_monitor import ServiceMonitor
 from pytest_testconfig import config as py_config
 from timeout_sampler import TimeoutExpiredError, TimeoutSampler
 
+from tests.ai_safety.constants import AiSafetyImages
 from tests.ai_safety.evalhub.constants import (
     EVALHUB_JOB_CONFIG_CLUSTERROLE,
     EVALHUB_JOB_SA_PREFIX,
@@ -596,7 +597,7 @@ def tenant_dspa(
             "enableExternalRoute": True,
             "minio": {
                 "deploy": True,
-                "image": "quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance",
+                "image": AiSafetyImages.MINIO_DSPA,
             },
         },
     ) as dspa:
