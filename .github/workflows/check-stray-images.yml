@@ -48,4 +48,4 @@ jobs:
 
           echo "Found $count stray container image(s):"
           echo ""
-          jq -r '.[] | "::warning file=\(.file),line=\(.line)::Stray container image: \(.image) — move to constants class or suppress with # noqa: IMG001"' findings.json
+          jq -r '.[] | "::warning file=\(.file),line=\(.line)::Stray container image: \(.image) — move to \(if .component == "utilities" then "utilities/constants.py" else "tests/\(.component)/image_constants.py" end) or suppress with # noqa: IMG001"' findings.json
