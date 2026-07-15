@@ -209,7 +209,10 @@ def main() -> int:
     if args.json:
         import json
 
-        findings_json = [{"file": rel, "line": line_no, "image": image} for rel, line_no, image in all_findings]
+        findings_json = [
+            {"file": rel, "line": line_no, "image": image, "component": _file_to_component(rel_path=rel) or "unknown"}
+            for rel, line_no, image in all_findings
+        ]
         json.dump(findings_json, sys.stdout, indent=2)
         sys.stdout.write("\n")
         return 1 if all_findings else 0

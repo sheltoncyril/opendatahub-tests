@@ -51,26 +51,31 @@ jobs:
 
             if (findings.length === 0) return;
 
-            const comments = findings.map(f => ({
-              path: f.file,
-              line: f.line,
-              body: [
-                `⚠️ **Stray container image detected**`,
-                ``,
-                '```',
-                f.image,
-                '```',
-                ``,
-                `Container images used in tests need to be centralized in a constants class so they are included in the image manifest embedded in the \`odh-tests\` container. This manifest is used to mirror all required images for **disconnected/air-gapped testing** environments — without it, this image won't be available in those clusters.`,
-                ``,
-                `**To fix**, move the image to the appropriate constants class:`,
-                `- \`tests/ai_safety/constants.py → AiSafetyImages\``,
-                `- \`utilities/constants.py → ContainerImages\``,
-                `- Or create a new class and register it in \`scripts/generate_image_manifest.py → IMAGE_SOURCES\``,
-                ``,
-                `**Not used in disconnected tests?** If this image is only used in tests that are skipped on disconnected clusters, you can keep it where it is — just add \`# noqa: IMG001\` to the line to suppress this check.`,
-              ].join('\n'),
-            }));
+            const comments = findings.map(f => {
+              const comp = f.component || 'unknown';
+              const constantsFile = comp === 'utilities'
+                ? '`utilities/constants.py → ContainerImages`'
+                : `\`tests/${comp}/constants.py\``;
+
+              return {
+                path: f.file,
+                line: f.line,
+                body: [
+                  `⚠️ **Stray container image detected**`,
+                  ``,
+                  '```',
+                  f.image,
+                  '```',
+                  ``,
+                  `Container images used in tests need to be centralized in a constants class so they are included in the image manifest embedded in the \`odh-tests\` container. This manifest is used to mirror all required images for **disconnected/air-gapped testing** environments — without it, this image won't be available in those clusters.`,
+                  ``,
+                  `**To fix**, move the image to ${constantsFile}.`,
+                  `If no constants class exists for this component yet, create one and register it in \`scripts/generate_image_manifest.py → IMAGE_SOURCES\`.`,
+                  ``,
+                  `**Not used in disconnected tests?** If this image is only used in tests that are skipped on disconnected clusters, you can keep it where it is — just add \`# noqa: IMG001\` to the line to suppress this check.`,
+                ].join('\n'),
+              };
+            });
 
             try {
               await github.rest.pulls.createReview({
