@@ -63,14 +63,14 @@ jobs:
                 f.image,
                 '```',
                 ``,
-                `This image is not centralized in a constants class and won't be included in the disconnected testing manifest.`,
+                `Container images used in tests need to be centralized in a constants class so they are included in the image manifest embedded in the \`odh-tests\` container. This manifest is used to mirror all required images for **disconnected/air-gapped testing** environments — without it, this image won't be available in those clusters.`,
                 ``,
-                `**To fix**, move it to the appropriate constants class:`,
+                `**To fix**, move the image to the appropriate constants class:`,
                 `- \`tests/ai_safety/constants.py → AiSafetyImages\``,
                 `- \`utilities/constants.py → ContainerImages\``,
                 `- Or create a new class and register it in \`scripts/generate_image_manifest.py → IMAGE_SOURCES\``,
                 ``,
-                `**To suppress** (if intentional), add \`# noqa: IMG001\` to the line.`,
+                `**Not used in disconnected tests?** If this image is only used in tests that are skipped on disconnected clusters, you can keep it where it is — just add \`# noqa: IMG001\` to the line to suppress this check.`,
               ].join('\n'),
             }));
 
@@ -89,7 +89,9 @@ jobs:
                 '⚠️ **Stray container images detected**\n',
                 ...findings.map(f => `- \`${f.file}:${f.line}\`: \`${f.image}\``),
                 '',
-                'Move these to a constants class or suppress with `# noqa: IMG001`.',
+                'These images need to be in a constants class so they are included in the image manifest for **disconnected testing** (mirror list).',
+                '',
+                'Move them to the appropriate constants class, or add `# noqa: IMG001` if they are only used in tests that are skipped on disconnected clusters.',
               ].join('\n');
 
               await github.rest.issues.createComment({
