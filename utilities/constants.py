@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Any
 
+DEMO_UTIL_IMAGE = "nvcr.io/nvidia/demo-stray:latest"
+
 from ocp_resources.resource import Resource
 
 

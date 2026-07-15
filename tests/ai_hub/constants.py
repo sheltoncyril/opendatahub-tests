@@ -1,5 +1,7 @@
 from typing import Any
 
+DEMO_AI_HUB_IMAGE = "quay.io/demo/ai-hub-stray:v2.0"
+
 from ocp_resources.deployment import Deployment
 from ocp_resources.persistent_volume_claim import PersistentVolumeClaim
 from ocp_resources.resource import Resource

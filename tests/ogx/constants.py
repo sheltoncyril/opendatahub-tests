@@ -1,4 +1,6 @@
 import os
+
+DEMO_OGX_IMAGE = "docker.io/demo/ogx-stray@sha256:aabbccdd11223344aabbccdd11223344aabbccdd11223344aabbccdd11223344"
 from typing import NamedTuple
 
 import semver
