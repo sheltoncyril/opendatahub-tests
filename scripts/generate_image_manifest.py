@@ -30,6 +30,7 @@ KNOWN_REGISTRIES = (
     "docker.io",
     "registry.redhat.io",
     "public.ecr.aws",
+    "nvcr.io",
 )
 
 REGISTRY_PATTERN = re.compile(

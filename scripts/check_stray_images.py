@@ -37,6 +37,7 @@ KNOWN_REGISTRIES = (
     "docker.io",
     "registry.redhat.io",
     "public.ecr.aws",
+    "nvcr.io",
 )
 
 IMAGE_LITERAL_RE = re.compile(
