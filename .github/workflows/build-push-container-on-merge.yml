@@ -41,7 +41,7 @@ jobs:
           containerfiles: |
             ./Dockerfile
           extra-args: |
-            --label=io.opendatahub.test.required-images=${{ steps.manifest.outputs.json }}
+            --label=io.opendatahub.tests.required-images=${{ steps.manifest.outputs.json }}
 
       - name: Push To Image Registry
         id: push-to-registry

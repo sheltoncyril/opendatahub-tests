@@ -14,7 +14,7 @@ check:
 
 build:
 	$(IMAGE_BUILD_CMD) build \
-		--label "io.opendatahub.test.required-images=$$(uv run python scripts/generate_image_manifest.py --compact)" \
+		--label "io.opendatahub.tests.required-images=$$(uv run python scripts/generate_image_manifest.py --compact)" \
 		-t $(FULL_OPERATOR_IMAGE) .
 
 push:
