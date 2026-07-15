@@ -1,0 +1,107 @@
+name: Check Stray Container Images
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'tests/**/*.py'
+      - 'utilities/**/*.py'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  check-stray-images:
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.3.2
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run stray image check
+        id: check
+        run: |
+          uv run python scripts/check_stray_images.py \
+            --diff-base origin/${{ github.base_ref }} --json > findings.json 2>&1 || true
+          echo "count=$(jq length findings.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Post review comments
+        if: steps.check.outputs.count != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const findings = JSON.parse(fs.readFileSync('findings.json', 'utf8'));
+
+            if (findings.length === 0) return;
+
+            const { data: pull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const comments = findings.map(f => ({
+              path: f.file,
+              line: f.line,
+              body: [
+                `⚠️ **Stray container image detected**`,
+                ``,
+                '```',
+                f.image,
+                '```',
+                ``,
+                `This image is not centralized in a constants class and won't be included in the disconnected testing manifest.`,
+                ``,
+                `**To fix**, move it to the appropriate constants class:`,
+                `- \`tests/ai_safety/constants.py → AiSafetyImages\``,
+                `- \`utilities/constants.py → ContainerImages\``,
+                `- Or create a new class and register it in \`scripts/generate_image_manifest.py → IMAGE_SOURCES\``,
+                ``,
+                `**To suppress** (if intentional), add \`# noqa: IMG001\` to the line.`,
+              ].join('\n'),
+            }));
+
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                commit_id: pull.head.sha,
+                event: 'COMMENT',
+                comments: comments,
+              });
+            } catch (e) {
+              // Fall back to PR comment if inline comments fail (e.g. line not in diff)
+              const body = [
+                '⚠️ **Stray container images detected**\n',
+                ...findings.map(f => `- \`${f.file}:${f.line}\`: \`${f.image}\``),
+                '',
+                'Move these to a constants class or suppress with `# noqa: IMG001`.',
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
+
+      - name: Fail if stray images found
+        if: steps.check.outputs.count != '0'
+        run: |
+          echo "Found $(jq length findings.json) stray container image(s). See PR review comments."
+          exit 1

@@ -189,6 +189,11 @@ def main() -> int:
         metavar="REF",
         help="Only check newly added lines in components modified since REF (e.g. main, origin/main)",
     )
+    parser.add_argument(  # noqa: FCN001
+        "--json",
+        action="store_true",
+        help="Output findings as JSON array (for CI integrations)",
+    )
     args = parser.parse_args()
 
     known = _collect_known_images()
@@ -199,6 +204,14 @@ def main() -> int:
     else:
         all_findings = _full_scan(known=known)
         mode = "full scan"
+
+    if args.json:
+        import json
+
+        findings_json = [{"file": rel, "line": line_no, "image": image} for rel, line_no, image in all_findings]
+        json.dump(findings_json, sys.stdout, indent=2)
+        sys.stdout.write("\n")
+        return 1 if all_findings else 0
 
     if not all_findings:
         print(f"No stray images found — {mode} ({len(known)} known images).")
