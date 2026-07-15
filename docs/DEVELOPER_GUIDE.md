@@ -212,7 +212,9 @@ allowing disconnected environments to discover and mirror all required images vi
 
 ### Adding a new image
 
-1. Add the image to the appropriate `image_constants.py` file
+1. Add the image to the appropriate `image_constants.py` file:
+   - **Component-specific**: `tests/<component>/image_constants.py`
+   - **Shared across components**: `utilities/image_constants.py`
 2. Use it in your test code: `from tests.ai_safety.image_constants import AiSafetyImages`
 3. Reference it as `AiSafetyImages.YOUR_IMAGE`
 

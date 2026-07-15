@@ -48,4 +48,5 @@ jobs:
 
           echo "Found $count stray container image(s):"
           echo ""
-          jq -r '.[] | "::warning file=\(.file),line=\(.line)::Stray container image: \(.image) — move to \(if .component == "utilities" then "utilities/constants.py" else "tests/\(.component)/image_constants.py" end) or suppress with # noqa: IMG001"' findings.json
+          DOCS_URL="https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#container-images"
+          jq -r --arg docs "$DOCS_URL" '.[] | "::warning file=\(.file),line=\(.line)::Stray container image: \(.image) — move to \(if .component == "utilities" then "utilities/image_constants.py" else "tests/\(.component)/image_constants.py" end). For shared images used across components, use utilities/image_constants.py instead. Suppress with # noqa: IMG001 if not needed in disconnected environments. See \($docs)"' findings.json
