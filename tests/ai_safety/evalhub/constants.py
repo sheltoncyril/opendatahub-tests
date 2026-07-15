@@ -1,3 +1,7 @@
+from tests.ai_safety.image_constants import AiSafetyImages
+
+MINIO_MC_IMAGE: str = AiSafetyImages.MINIO_MC
+
 EVALHUB_SERVICE_NAME: str = "evalhub"
 EVALHUB_SERVICE_PORT: int = 8443
 EVALHUB_CONTAINER_PORT: int = 8080
@@ -79,7 +83,6 @@ EVALHUB_JOB_SA_SUFFIX: str = "-job"
 
 # Garak intents CSV
 GARAK_INTENTS_S3_KEY: str = "intents/misinformation_prompts.csv"
-MINIO_MC_IMAGE = "quay.io/minio/mc@sha256:470f5546b596e16c7816b9c3fa7a78ce4076bb73c2c73f7faeec0c8043923123"
 MINIO_UPLOADER_SECURITY_CONTEXT = {
     "allowPrivilegeEscalation": False,
     "capabilities": {"drop": ["ALL"]},
