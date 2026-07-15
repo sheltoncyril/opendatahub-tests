@@ -165,7 +165,7 @@ def _diff_scan(*, known: set[str], base: str) -> list[tuple[str, int, str]]:
             changed_components.add(comp)
 
     if changed_components:
-        print(f"Changed components: {', '.join(sorted(changed_components))}")
+        print(f"Changed components: {', '.join(sorted(changed_components))}", file=sys.stderr)
 
     all_findings: list[tuple[str, int, str]] = []
     for rel_path, added_lines in sorted(diff_info.items()):
