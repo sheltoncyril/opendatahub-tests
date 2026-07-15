@@ -21,6 +21,7 @@ Override: add '# noqa: IMG001' on the line to suppress the check.
 """
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -60,7 +61,7 @@ def _collect_known_images() -> set[str]:
     return known
 
 
-def _scan_file(*, path: Path, known: set[str], only_lines: set[int] | None = None) -> list[tuple[int, str]]:
+def _scan_file(path: Path, known: set[str], only_lines: set[int] | None = None) -> list[tuple[int, str]]:
     """Return (line_number, image_ref) for stray images.
 
     If only_lines is set, only check those line numbers (for diff mode).
@@ -68,9 +69,7 @@ def _scan_file(*, path: Path, known: set[str], only_lines: set[int] | None = Non
     findings = []
     try:
         lines = path.read_text().splitlines()
-    except OSError:
-        return findings
-    except UnicodeDecodeError:
+    except OSError, UnicodeDecodeError:
         return findings
 
     rel = str(path.relative_to(ROOT))
@@ -91,9 +90,9 @@ def _scan_file(*, path: Path, known: set[str], only_lines: set[int] | None = Non
     return findings
 
 
-def _file_to_component(*, rel_path: str) -> str | None:
+def _file_to_component(rel_path: str) -> str | None:
     """Extract component name from a relative path, e.g. 'tests/ai_safety/foo.py' -> 'ai_safety'."""
-    parts = Path(rel_path).parts  # noqa: FCN001
+    parts = Path(rel_path).parts
     if len(parts) >= 2 and parts[0] == "tests":
         return parts[1]
     if parts[0] == "utilities":
@@ -101,12 +100,12 @@ def _file_to_component(*, rel_path: str) -> str | None:
     return None
 
 
-def _get_diff_info(*, base: str) -> dict[str, set[int]]:
+def _get_diff_info(base: str) -> dict[str, set[int]]:
     """Get added lines per file from git diff against base.
 
     Returns {relative_path: set of added line numbers}.
     """
-    result = subprocess.run(  # noqa: FCN001
+    result = subprocess.run(
         ["git", "diff", f"{base}...HEAD", "--unified=0", "--diff-filter=ACMR", "--", "*.py"],
         capture_output=True,
         text=True,
@@ -139,7 +138,7 @@ def _get_diff_info(*, base: str) -> dict[str, set[int]]:
     return file_lines
 
 
-def _full_scan(*, known: set[str]) -> list[tuple[str, int, str]]:
+def _full_scan(known: set[str]) -> list[tuple[str, int, str]]:
     scan_dirs = [ROOT / "tests", ROOT / "utilities"]
     all_findings: list[tuple[str, int, str]] = []
     for scan_dir in scan_dirs:
@@ -152,7 +151,7 @@ def _full_scan(*, known: set[str]) -> list[tuple[str, int, str]]:
     return all_findings
 
 
-def _diff_scan(*, known: set[str], base: str) -> list[tuple[str, int, str]]:
+def _diff_scan(known: set[str], base: str) -> list[tuple[str, int, str]]:
     diff_info = _get_diff_info(base=base)
     if not diff_info:
         return []
@@ -178,16 +177,16 @@ def _diff_scan(*, known: set[str], base: str) -> list[tuple[str, int, str]]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(  # noqa: FCN001
+    parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(  # noqa: FCN001
+    parser.add_argument(
         "--diff-base",
         metavar="REF",
         help="Only check newly added lines in components modified since REF (e.g. main, origin/main)",
     )
-    parser.add_argument(  # noqa: FCN001
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Output findings as JSON array (for CI integrations)",
@@ -204,8 +203,6 @@ def main() -> int:
         mode = "full scan"
 
     if args.json:
-        import json
-
         findings_json = [
             {"file": rel, "line": line_no, "image": image, "component": _file_to_component(rel_path=rel) or "unknown"}
             for rel, line_no, image in all_findings

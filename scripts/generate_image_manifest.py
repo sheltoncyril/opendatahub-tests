@@ -71,7 +71,7 @@ def _extract_images(cls: type) -> list[str]:
     return images
 
 
-def validate_image_format(*, image: str) -> str | None:
+def validate_image_format(image: str) -> str | None:
     """Return an error message if the image ref is malformed, None if valid."""
     if not VALID_IMAGE_RE.match(image):
         return f"malformed image reference: {image}"
@@ -91,11 +91,9 @@ def generate_manifest() -> dict[str, list[str]]:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)  # noqa: FCN001
-    parser.add_argument("--compact", action="store_true", help="Single-line JSON (for OCI labels)")  # noqa: FCN001
-    parser.add_argument(  # noqa: FCN001
-        "--validate", action="store_true", help="Validate image format and exit non-zero on errors"
-    )
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compact", action="store_true", help="Single-line JSON (for OCI labels)")
+    parser.add_argument("--validate", action="store_true", help="Validate image format and exit non-zero on errors")
     args = parser.parse_args()
 
     manifest = generate_manifest()
