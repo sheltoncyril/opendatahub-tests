@@ -34,7 +34,7 @@ jobs:
         id: check
         run: |
           uv run python scripts/check_stray_images.py \
-            --diff-base origin/${{ github.base_ref }} --json > findings.json 2>&1 || true
+            --diff-base origin/${{ github.base_ref }} --json > findings.json 2>/dev/null || true
           echo "count=$(jq length findings.json)" >> "$GITHUB_OUTPUT"
 
       - name: Post review comments
