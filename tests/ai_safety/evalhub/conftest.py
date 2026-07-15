@@ -42,6 +42,7 @@ from tests.ai_safety.evalhub.constants import (
 )
 from tests.ai_safety.evalhub.kueue.constants import VLLM_EMULATOR, VLLM_EMULATOR_IMAGE
 from tests.ai_safety.evalhub.utils import tenant_rbac_ready, wait_for_service_account
+from tests.ai_safety.image_constants import AiSafetyImages
 from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import Labels, Protocols
 from utilities.general import collect_pod_information
@@ -596,7 +597,7 @@ def tenant_dspa(
             "enableExternalRoute": True,
             "minio": {
                 "deploy": True,
-                "image": "quay.io/opendatahub/minio:RELEASE.2019-08-14T20-37-41Z-license-compliance",
+                "image": AiSafetyImages.MINIO_DSPA,
             },
         },
     ) as dspa:
