@@ -42,6 +42,4 @@ COPY --chown=$USER:$USER . $TESTS_DIR
 
 RUN uv sync
 
-RUN uv run python scripts/generate_image_manifest.py > required-images.json
-
 ENTRYPOINT ["uv", "run", "pytest"]
