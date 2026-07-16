@@ -215,8 +215,11 @@ allowing disconnected environments to discover and mirror all required images vi
 1. Add the image to the appropriate `image_constants.py` file:
    - **Component-specific**: `tests/<component>/image_constants.py`
    - **Shared across components**: `utilities/image_constants.py`
-2. Use it in your test code: `from tests.ai_safety.image_constants import AiSafetyImages`
-3. Reference it as `AiSafetyImages.YOUR_IMAGE`
+2. Import and reference in your test code:
+   - **Component-specific**: `from tests.<component>.image_constants import <ComponentImages>` → `<ComponentImages>.YOUR_IMAGE`
+   - **Shared**: `from utilities.image_constants import SharedImages` → `SharedImages.YOUR_IMAGE`
+
+   Example: `from tests.ai_safety.image_constants import AiSafetyImages` → `AiSafetyImages.VLLM_EMULATOR`
 
 ### Adding a new component
 
