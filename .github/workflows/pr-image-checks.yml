@@ -37,10 +37,12 @@ jobs:
         run: uv sync
 
       - name: Check for stray images
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git fetch origin ${{ github.base_ref }}
+          git fetch origin "$BASE_REF"
           uv run python scripts/check_stray_images.py \
-            --diff-base origin/${{ github.base_ref }} --json > stray-findings.json 2>stderr.log || true
+            --diff-base "origin/$BASE_REF" --json > stray-findings.json 2>stderr.log || true
           if [ -s stderr.log ]; then
             cat stderr.log >&2
           fi
@@ -68,9 +70,11 @@ jobs:
           ' stray-findings.json
 
       - name: Check image digests and registries
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           uv run python scripts/check_image_digests.py \
-            --diff-base origin/${{ github.base_ref }} --json > digest-findings.json || true
+            --diff-base "origin/$BASE_REF" --json > digest-findings.json || true
 
           error_count=$(jq '[.[] | select(.severity == "error")] | length' digest-findings.json)
           warn_count=$(jq '[.[] | select(.severity == "warning")] | length' digest-findings.json)

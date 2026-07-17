@@ -78,7 +78,9 @@ quay.io/opendatahub/openvino_model_server@sha256:564664...
 
 After extracting the manifest, verify it was not corrupted or tampered with.
 If the image was built before checksum support was added, the checksum label
-will be missing and verification is skipped:
+will be missing and verification is skipped.
+
+On macOS, replace `sha256sum` with `shasum -a 256` in the commands below:
 
 ```sh
 EXPECTED=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL.sha256\"]")
