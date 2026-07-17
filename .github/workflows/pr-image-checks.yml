@@ -97,7 +97,7 @@ jobs:
             "[\(.rule)] \(.message)%0A%0A" +
             "Attribute: \(.attribute)%0A" +
             "Image: \(.image)%0A%0A" +
-            "Fix: Mirror to quay.io to avoid DockerHub rate limits.%0A" +
+            "Fix: Use an equivalent image from quay.io or registry.redhat.io to avoid DockerHub rate limits.%0A" +
             "To suppress, add # noqa: IMG003 to the line.%0A%0A" +
             "Docs: \($docs)"
           ' digest-findings.json
