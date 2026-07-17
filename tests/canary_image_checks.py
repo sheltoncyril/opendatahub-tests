@@ -16,7 +16,9 @@ CANARY_DOCKERHUB = (
 )
 
 # IMG003 suppressed: DockerHub image, check suppressed
-CANARY_DOCKERHUB_SUPPRESSED = "docker.io/canary/dh-sup@sha256:0000000000000000000000000000000000000000000000000000000000000000"  # noqa: IMG003, E501
+CANARY_DOCKERHUB_SUPPRESSED = (
+    "docker.io/canary/dh-sup@sha256:0000000000000000000000000000000000000000000000000000000000000000"  # noqa: IMG003, E501
+)
 
 # IMG001 + IMG003: stray DockerHub image (should warn for both)
 CANARY_STRAY_DOCKERHUB = "docker.io/canary/stray-dockerhub:v1"
