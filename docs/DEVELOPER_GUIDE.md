@@ -220,10 +220,10 @@ extraction, verification, and output format options.
    - **Component-specific**: `tests/<component>/image_constants.py`
    - **Shared across components**: `utilities/image_constants.py`
 2. Import and reference in your test code:
-   - **Component-specific**: `from tests.<component>.image_constants import <ComponentImages>` → `<ComponentImages>.YOUR_IMAGE`
-   - **Shared**: `from utilities.image_constants import SharedImages` → `SharedImages.YOUR_IMAGE`
+   - **Component-specific**: `from tests.<component>.image_constants import <ComponentImages>` -> `<ComponentImages>.YOUR_IMAGE`
+   - **Shared**: `from utilities.image_constants import SharedImages` -> `SharedImages.YOUR_IMAGE`
 
-   Example: `from tests.ai_safety.image_constants import AiSafetyImages` → `AiSafetyImages.VLLM_EMULATOR`
+   Example: `from tests.ai_safety.image_constants import AiSafetyImages` -> `AiSafetyImages.VLLM_EMULATOR`
 
 ### Adding a new component
 
