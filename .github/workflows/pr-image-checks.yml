@@ -22,9 +22,9 @@ jobs:
       cancel-in-progress: true
 
     env:
-      DOCS_IMG001: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#img001-stray-image"
-      DOCS_IMG002: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#img002-missing-digest"
-      DOCS_IMG003: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#img003-dockerhub-image"
+      DOCS_IMG001: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/IMAGE_CHECK_RULES.md#img001-stray-image"
+      DOCS_IMG002: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/IMAGE_CHECK_RULES.md#img002-missing-digest"
+      DOCS_IMG003: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/IMAGE_CHECK_RULES.md#img003-dockerhub-image"
 
     steps:
       - name: Checkout PR branch

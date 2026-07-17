@@ -233,52 +233,11 @@ extraction, verification, and output format options.
 ### CI image checks
 
 The **PR Container Image Checks** workflow runs on every PR that touches Python files
-and enforces three rules:
+and enforces three rules: IMG001 (stray images), IMG002 (missing digests), and
+IMG003 (DockerHub images).
 
-#### IMG001: Stray image
-
-Detects hardcoded container image strings not in any registered `image_constants.py`
-class. Images needed for disconnected testing must be centralized so they appear in the
-OCI manifest label.
-
-**Fix:** Move the image to your component's `image_constants.py` or
-`utilities/image_constants.py` if shared across components.
-
-**Suppress:** `# noqa: IMG001` (only for images not needed in disconnected environments)
-
-#### IMG002: Missing digest
-
-Images in `image_constants.py` files must use `@sha256:` digest pins instead of mutable
-`:tag` references. Tags can change without notice, breaking reproducibility.
-
-**Fix:** Replace `:tag` with `@sha256:<digest>`. Get the digest with:
-
-```bash
-skopeo inspect docker://quay.io/org/image:tag | jq -r .Digest
-```
-
-**Suppress:** `# noqa: IMG002`
-
-#### IMG003: DockerHub image
-
-Images from `docker.io` have strict pull rate limits that cause flaky test failures,
-especially in CI. This is a warning (does not block PRs).
-
-**Fix:** Use an equivalent image from `quay.io` or `registry.redhat.io`.
-
-**Suppress:** `# noqa: IMG003`
-
-#### Running locally
-
-```bash
-# Full scan
-uv run python scripts/check_stray_images.py
-uv run python scripts/check_image_digests.py
-
-# PR mode (only new additions)
-uv run python scripts/check_stray_images.py --diff-base main
-uv run python scripts/check_image_digests.py --diff-base main
-```
+See [IMAGE_CHECK_RULES.md](IMAGE_CHECK_RULES.md) for details on each rule, fixes,
+and suppression codes.
 
 ## Adding new runtime
 
