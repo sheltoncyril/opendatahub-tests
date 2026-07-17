@@ -81,9 +81,12 @@ def scan_python_files() -> list[Path]:
     return files
 
 
+_READ_ERRORS = (OSError, UnicodeDecodeError)
+
+
 def read_lines(path: Path) -> list[str] | None:
     """Read file lines, returning None on read errors."""
     try:
         return path.read_text().splitlines()
-    except OSError, UnicodeDecodeError:
+    except _READ_ERRORS:
         return None
