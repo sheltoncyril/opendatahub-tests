@@ -123,15 +123,15 @@ def _check_single(
         source_lines=source_lines, line_no=line_no, marker=SUPPRESS_DOCKERHUB
     ):
         warnings.append({
-                "file": rel_path,
-                "line": line_no or 0,
-                "attribute": attr,
-                "image": image,
-                "component": component,
-                "severity": "warning",
-                "rule": "IMG003",
-                "message": "image sourced from DockerHub (strict pull rate limits)",
-            })
+            "file": rel_path,
+            "line": line_no or 0,
+            "attribute": attr,
+            "image": image,
+            "component": component,
+            "severity": "warning",
+            "rule": "IMG003",
+            "message": "image sourced from DockerHub (strict pull rate limits)",
+        })
 
 
 def main() -> int:
