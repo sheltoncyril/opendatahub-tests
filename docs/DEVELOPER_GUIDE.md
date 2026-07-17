@@ -211,24 +211,8 @@ allowing disconnected environments to discover and mirror all required images vi
 `skopeo inspect`. A SHA-256 checksum of the manifest JSON is stored in a companion label
 so consumers can verify integrity.
 
-**Labels:**
-
-- `io.opendatahub.tests.required-images` — compact JSON manifest of all required images
-- `io.opendatahub.tests.required-images.sha256` — SHA-256 hex digest of the manifest JSON
-
-**Verifying the manifest:**
-
-```bash
-# Extract the manifest and checksum from the image
-MANIFEST=$(skopeo inspect docker://quay.io/opendatahub/opendatahub-tests:latest \
-  | jq -r '.Labels["io.opendatahub.tests.required-images"]')
-EXPECTED=$(skopeo inspect docker://quay.io/opendatahub/opendatahub-tests:latest \
-  | jq -r '.Labels["io.opendatahub.tests.required-images.sha256"]')
-
-# Verify
-ACTUAL=$(echo -n "$MANIFEST" | sha256sum | cut -d' ' -f1)
-[ "$ACTUAL" = "$EXPECTED" ] && echo "OK" || echo "MISMATCH"
-```
+See [DISCONNECTED_IMAGES.md](DISCONNECTED_IMAGES.md) for label details, extraction,
+verification, and output format options.
 
 ### Adding a new image
 
