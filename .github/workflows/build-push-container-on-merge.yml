@@ -30,7 +30,29 @@ jobs:
 
       - name: Generate image manifest
         id: manifest
+        continue-on-error: true
         run: echo "json=$(uv run python scripts/generate_image_manifest.py --compact)" >> "$GITHUB_OUTPUT"
+
+      - name: Compute manifest checksum
+        id: checksum
+        if: steps.manifest.outcome == 'success'
+        run: echo "sha256=$(echo -n '${{ steps.manifest.outputs.json }}' | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare image labels
+        id: labels
+        run: |
+          if [ "${{ steps.manifest.outcome }}" == "success" ]; then
+            {
+              echo "--label=io.opendatahub.tests.required-images=${{ steps.manifest.outputs.json }}"
+              echo "--label=io.opendatahub.tests.required-images.sha256=${{ steps.checksum.outputs.sha256 }}"
+            } > /tmp/extra-labels.txt
+            echo "args<<EOF" >> "$GITHUB_OUTPUT"
+            cat /tmp/extra-labels.txt >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Image manifest generation failed — building without manifest labels"
+            echo "args=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build Image
         id: build-image
@@ -41,7 +63,7 @@ jobs:
           containerfiles: |
             ./Dockerfile
           extra-args: |
-            --label=io.opendatahub.tests.required-images=${{ steps.manifest.outputs.json }}
+            ${{ steps.labels.outputs.args }}
 
       - name: Push To Image Registry
         id: push-to-registry
@@ -64,4 +86,4 @@ jobs:
             $URL \
             -H "Content-Type: application/json" \
             -H "Authorization: token $GITHUB_TOKEN" \
-            --data '{ "body": "Status of building tag ${{ env.TAG }}: ${{ steps.build-image.outcome }}. \nStatus of pushing tag ${{ env.TAG }} to image registry: ${{ steps.push-to-registry.outcome }}." }'
+            --data '{ "body": "Status of building tag ${{ env.TAG }}: ${{ steps.build-image.outcome }}. \nStatus of pushing tag ${{ env.TAG }} to image registry: ${{ steps.push-to-registry.outcome }}. \nImage manifest label: ${{ steps.manifest.outcome }}." }'
