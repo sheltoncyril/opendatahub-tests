@@ -15,7 +15,7 @@ which images need to be mirrored.
 
 - `skopeo`
 - `jq`
-- `sha256sum` (coreutils)
+- `sha256sum` (coreutils) or `shasum -a 256` on macOS
 
 ## Extracting the image list
 

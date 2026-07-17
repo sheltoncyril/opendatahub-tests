@@ -36,15 +36,21 @@ jobs:
       - name: Compute manifest checksum
         id: checksum
         if: steps.manifest.outcome == 'success'
-        run: echo "sha256=$(echo -n '${{ steps.manifest.outputs.json }}' | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+        env:
+          MANIFEST: ${{ steps.manifest.outputs.json }}
+        run: echo "sha256=$(echo -n "$MANIFEST" | sha256sum | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Prepare image labels
         id: labels
+        env:
+          MANIFEST_JSON: ${{ steps.manifest.outputs.json }}
+          MANIFEST_SHA: ${{ steps.checksum.outputs.sha256 }}
+          MANIFEST_OUTCOME: ${{ steps.manifest.outcome }}
         run: |
-          if [ "${{ steps.manifest.outcome }}" == "success" ]; then
+          if [ "$MANIFEST_OUTCOME" == "success" ]; then
             {
-              echo "--label=io.opendatahub.tests.required-images=${{ steps.manifest.outputs.json }}"
-              echo "--label=io.opendatahub.tests.required-images.sha256=${{ steps.checksum.outputs.sha256 }}"
+              echo "--label=io.opendatahub.tests.required-images=$MANIFEST_JSON"
+              echo "--label=io.opendatahub.tests.required-images.sha256=$MANIFEST_SHA"
             } > /tmp/extra-labels.txt
             echo "args<<EOF" >> "$GITHUB_OUTPUT"
             cat /tmp/extra-labels.txt >> "$GITHUB_OUTPUT"
