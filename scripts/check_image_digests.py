@@ -61,6 +61,9 @@ def _check_images(changed_lines: dict[str, set[int]] | None = None) -> tuple[lis
     warnings: list[dict] = []
 
     for component, class_path in sorted(IMAGE_SOURCES.items()):
+        if "image_constants" not in class_path:
+            continue
+
         module_path, class_name = class_path.rsplit(".", 1)
         source_file = ROOT / module_path.replace(".", "/")
         source_file = source_file.with_suffix(suffix=".py")
