@@ -212,6 +212,7 @@ allowing disconnected environments to discover and mirror all required images vi
 so consumers can verify integrity.
 
 **Labels:**
+
 - `io.opendatahub.tests.required-images` — compact JSON manifest of all required images
 - `io.opendatahub.tests.required-images.sha256` — SHA-256 hex digest of the manifest JSON
 
