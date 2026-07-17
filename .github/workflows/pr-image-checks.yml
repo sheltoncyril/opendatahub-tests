@@ -22,7 +22,9 @@ jobs:
       cancel-in-progress: true
 
     env:
-      DOCS_URL: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#container-images"
+      DOCS_IMG001: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#img001-stray-image"
+      DOCS_IMG002: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#img002-missing-digest"
+      DOCS_IMG003: "https://github.com/opendatahub-io/opendatahub-tests/blob/main/docs/DEVELOPER_GUIDE.md#img003-dockerhub-image"
 
     steps:
       - name: Checkout PR branch
@@ -56,12 +58,12 @@ jobs:
 
           echo "Found $count stray container image(s):"
           echo ""
-          jq -r --arg docs "$DOCS_URL" '
+          jq -r --arg docs "$DOCS_IMG001" '
             .[] |
             (if .component == "utilities" then "utilities/image_constants.py"
              else "tests/\(.component)/image_constants.py" end) as $target |
             "::warning file=\(.file),line=\(.line)::" +
-            "Stray container image not in constants class.%0A%0A" +
+            "[IMG001] Stray container image not in constants class.%0A%0A" +
             "Image: \(.image)%0A%0A" +
             "Fix: Move to \($target)%0A" +
             "For shared images used across components, use utilities/image_constants.py instead.%0A" +
@@ -84,24 +86,24 @@ jobs:
             exit 0
           fi
 
-          jq -r --arg docs "$DOCS_URL" '
+          jq -r --arg docs "$DOCS_IMG002" '
             .[] | select(.severity == "error") |
             "::error file=\(.file),line=\(.line)::" +
-            "[\(.rule)] \(.message)%0A%0A" +
+            "[IMG002] Image uses tag reference instead of digest pin.%0A%0A" +
             "Attribute: \(.attribute)%0A" +
             "Image: \(.image)%0A%0A" +
-            "Fix: Pin with @sha256:<digest> instead of :tag%0A" +
+            "Fix: Replace :tag with @sha256:<digest>. Get the digest with:%0A" +
+            "  skopeo inspect docker://<image>:<tag> | jq -r .Digest%0A%0A" +
             "To suppress, add # noqa: IMG002 to the line.%0A%0A" +
             "Docs: \($docs)"
           ' digest-findings.json
 
-          jq -r --arg docs "$DOCS_URL" '
+          jq -r --arg docs "$DOCS_IMG003" '
             .[] | select(.severity == "warning") |
             "::warning file=\(.file),line=\(.line)::" +
-            "[\(.rule)] \(.message)%0A%0A" +
-            "Attribute: \(.attribute)%0A" +
+            "[IMG003] Image sourced from DockerHub (pull rate limits apply).%0A%0A" +
             "Image: \(.image)%0A%0A" +
-            "Fix: Use an equivalent image from quay.io or registry.redhat.io to avoid DockerHub rate limits.%0A" +
+            "Fix: Use an equivalent image from quay.io or registry.redhat.io.%0A" +
             "To suppress, add # noqa: IMG003 to the line.%0A%0A" +
             "Docs: \($docs)"
           ' digest-findings.json
