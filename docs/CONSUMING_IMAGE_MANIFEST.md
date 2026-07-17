@@ -1,4 +1,4 @@
-# Consuming Disconnected Images
+# Consuming the Image Manifest
 
 The `odh-tests` container image embeds a manifest of all container images required by tests
 as OCI labels. Disconnected or air-gapped environments can extract this manifest to discover
@@ -26,6 +26,12 @@ IMAGE=quay.io/opendatahub/opendatahub-tests:latest
 LABEL=io.opendatahub.tests.required-images
 INSPECT=$(skopeo inspect "docker://$IMAGE")
 MANIFEST=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL\"]")
+
+# Check the label exists
+if [ "$MANIFEST" = "null" ] || [ -z "$MANIFEST" ]; then
+    echo "ERROR: no image manifest label found on $IMAGE"
+    exit 1
+fi
 ```
 
 ### Option 1: JSON (grouped by component)
@@ -70,12 +76,16 @@ After extracting the manifest, verify it was not corrupted or tampered with:
 
 ```sh
 EXPECTED=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL.sha256\"]")
-ACTUAL=$(printf '%s' "$MANIFEST" | sha256sum | cut -d' ' -f1)
 
-if [ "$ACTUAL" = "$EXPECTED" ]; then
-    echo "OK: checksum verified ($ACTUAL)"
+if [ "$EXPECTED" = "null" ] || [ -z "$EXPECTED" ]; then
+    echo "SKIP: no checksum label found — image was built without checksum support"
 else
-    echo "FAIL: checksum mismatch (expected=$EXPECTED, actual=$ACTUAL)"
+    ACTUAL=$(printf '%s' "$MANIFEST" | sha256sum | cut -d' ' -f1)
+    if [ "$ACTUAL" = "$EXPECTED" ]; then
+        echo "OK: checksum verified ($ACTUAL)"
+    else
+        echo "FAIL: checksum mismatch (expected=$EXPECTED, actual=$ACTUAL)"
+    fi
 fi
 ```
 
@@ -88,15 +98,25 @@ LABEL=io.opendatahub.tests.required-images
 # Extract
 INSPECT=$(skopeo inspect "docker://$IMAGE")
 MANIFEST=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL\"]")
+
+if [ "$MANIFEST" = "null" ] || [ -z "$MANIFEST" ]; then
+    echo "ERROR: no image manifest label found on $IMAGE"
+    exit 1
+fi
+
+# Verify checksum
 EXPECTED=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL.sha256\"]")
 
-# Verify
-ACTUAL=$(printf '%s' "$MANIFEST" | sha256sum | cut -d' ' -f1)
-if [ "$ACTUAL" = "$EXPECTED" ]; then
-    echo "OK: checksum verified ($ACTUAL)"
+if [ "$EXPECTED" = "null" ] || [ -z "$EXPECTED" ]; then
+    echo "SKIP: no checksum label found — image was built without checksum support"
 else
-    echo "FAIL: checksum mismatch (expected=$EXPECTED, actual=$ACTUAL)"
-    exit 1
+    ACTUAL=$(printf '%s' "$MANIFEST" | sha256sum | cut -d' ' -f1)
+    if [ "$ACTUAL" = "$EXPECTED" ]; then
+        echo "OK: checksum verified ($ACTUAL)"
+    else
+        echo "FAIL: checksum mismatch (expected=$EXPECTED, actual=$ACTUAL)"
+        exit 1
+    fi
 fi
 
 # Save both formats

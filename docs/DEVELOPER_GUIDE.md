@@ -211,8 +211,8 @@ allowing disconnected environments to discover and mirror all required images vi
 `skopeo inspect`. A SHA-256 checksum of the manifest JSON is stored in a companion label
 so consumers can verify integrity.
 
-See [DISCONNECTED_IMAGES.md](DISCONNECTED_IMAGES.md) for label details, extraction,
-verification, and output format options.
+See [CONSUMING_IMAGE_MANIFEST.md](CONSUMING_IMAGE_MANIFEST.md) for label details,
+extraction, verification, and output format options.
 
 ### Adding a new image
 
