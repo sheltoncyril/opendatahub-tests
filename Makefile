@@ -14,7 +14,7 @@ check:
 
 build:
 	@MANIFEST=$$(uv run python scripts/generate_image_manifest.py --compact 2>/tmp/manifest-err.log); \
-	if [ -n "$$MANIFEST" ]; then \
+	if [ -n "$$MANIFEST" ] && [ "$$MANIFEST" != "{}" ]; then \
 		CHECKSUM=$$(printf '%s' "$$MANIFEST" | shasum -a 256 | cut -d' ' -f1); \
 		echo "Image manifest generated (sha256:$$CHECKSUM)"; \
 		$(IMAGE_BUILD_CMD) build \
