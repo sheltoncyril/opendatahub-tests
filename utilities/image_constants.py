@@ -14,7 +14,9 @@ class SharedImages:
     CANARY_TAG_SUPPRESSED: str = "quay.io/canary/tag-suppressed:v1"  # noqa: IMG002
 
     # IMG003: DockerHub image in constants (should warn)
-    CANARY_DOCKERHUB: str = "docker.io/canary/constants-dockerhub@sha256:0000000000000000000000000000000000000000000000000000000000000000"  # noqa: E501
+    CANARY_DOCKERHUB: str = (
+        "docker.io/canary/constants-dockerhub@sha256:0000000000000000000000000000000000000000000000000000000000000000"  # noqa: E501
+    )
 
     # IMG002 + IMG003: DockerHub image with tag in constants (should error + warn)
     CANARY_DOCKERHUB_TAG: str = "docker.io/canary/constants-dockerhub-tag:v1"

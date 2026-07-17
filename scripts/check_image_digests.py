@@ -126,7 +126,6 @@ def _check_single(
         })
 
 
-
 def _build_dockerhub_regex() -> re.Pattern[str]:
     return re.compile(
         r"""(['"])"""
@@ -146,7 +145,7 @@ def _scan_dockerhub(warnings: list[dict]) -> None:
         for py_file in sorted(scan_dir.rglob("*.py")):
             try:
                 lines = py_file.read_text().splitlines()
-            except (OSError, UnicodeDecodeError):
+            except OSError, UnicodeDecodeError:
                 continue
 
             rel = str(py_file.relative_to(ROOT))

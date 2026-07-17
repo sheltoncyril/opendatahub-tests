@@ -11,10 +11,14 @@ CANARY_STRAY = "quay.io/canary/stray-image:v1"
 CANARY_STRAY_SUPPRESSED = "quay.io/canary/stray-suppressed:v1"  # noqa: IMG001
 
 # IMG003: DockerHub image in test code (should warn)
-CANARY_DOCKERHUB = "docker.io/canary/dockerhub-image@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+CANARY_DOCKERHUB = (
+    "docker.io/canary/dockerhub-image@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+)
 
 # IMG003 suppressed: DockerHub image, check suppressed
-CANARY_DOCKERHUB_SUPPRESSED = "docker.io/canary/dockerhub-suppressed@sha256:0000000000000000000000000000000000000000000000000000000000000000"  # noqa: IMG003
+CANARY_DOCKERHUB_SUPPRESSED = (
+    "docker.io/canary/dockerhub-suppressed@sha256:0000000000000000000000000000000000000000000000000000000000000000"  # noqa: IMG003
+)
 
 # IMG001 + IMG003: stray DockerHub image (should warn for both)
 CANARY_STRAY_DOCKERHUB = "docker.io/canary/stray-dockerhub:v1"
