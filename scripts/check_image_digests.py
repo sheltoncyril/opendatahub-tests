@@ -171,7 +171,7 @@ def _scan_dockerhub(warnings: list[dict], changed_lines: dict[str, set[int]] | N
                     "component": "",
                     "severity": "warning",
                     "rule": "IMG003",
-                    "message": "image sourced from DockerHub (strict pull rate limits)",
+                    "message": "image sourced from DockerHub -- switch to quay.io or registry.redhat.io to avoid pull rate limits",
                 })
 
 
@@ -223,7 +223,7 @@ def main() -> int:
         print()
 
     if warnings:
-        print(f"[{mode}] Found {len(warnings)} image(s) sourced from DockerHub (rate-limited):\n")
+        print(f"[{mode}] Found {len(warnings)} image(s) sourced from DockerHub:\n")
         for f in warnings:
             loc = f"{f['file']}:{f['line']}" if f["line"] else f["file"]
             print(f"  {loc}: {f['attribute']}")
