@@ -171,7 +171,7 @@ def _scan_dockerhub(warnings: list[dict], changed_lines: dict[str, set[int]] | N
                     "component": "",
                     "severity": "warning",
                     "rule": "IMG003",
-                    "message": "image sourced from DockerHub -- switch to quay.io or registry.redhat.io",
+                    "message": "DockerHub image -- use a non-rate-limited registry instead",
                 })
 
 
