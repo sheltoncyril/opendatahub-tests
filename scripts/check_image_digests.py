@@ -3,7 +3,10 @@
 
 Scans IMAGE_SOURCES classes and reports:
   - ERROR: images using mutable tag references instead of @sha256: digests
+
+Scans all Python files under tests/ and utilities/ and reports:
   - WARNING: images pulled from DockerHub (docker.io) which has strict rate limits
+    (including images suppressed with # noqa: IMG001)
 
 Exit codes:
   0  -- no errors (warnings may still be present)
@@ -24,8 +27,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-SUPPRESS_DIGEST: str = "noqa: IMG002"
-SUPPRESS_DOCKERHUB: str = "noqa: IMG003"
+SUPPRESS_DIGEST: str = "IMG002"
+SUPPRESS_DOCKERHUB: str = "IMG003"
 DIGEST_PATTERN: re.Pattern[str] = re.compile(r"@sha256:[0-9a-f]{64}$")
 DOCKERHUB_PATTERN: re.Pattern[str] = re.compile(r"^(docker\.io)/")
 
@@ -38,8 +41,11 @@ def _find_image_line(source_lines: list[str], start_line: int, image: str) -> in
     return None
 
 
-def _is_suppressed(source_lines: list[str], line_no: int | None, marker: str) -> bool:
-    return bool(line_no and marker in source_lines[line_no - 1])
+def _is_suppressed(source_lines: list[str], line_no: int | None, code: str) -> bool:
+    if not line_no:
+        return False
+    line = source_lines[line_no - 1]
+    return "noqa" in line and code in line
 
 
 def _check_images() -> tuple[list[dict], list[dict]]:
@@ -106,7 +112,7 @@ def _check_single(
     rel_path = str(source_file.relative_to(ROOT))
 
     if not DIGEST_PATTERN.search(image) and not _is_suppressed(
-        source_lines=source_lines, line_no=line_no, marker=SUPPRESS_DIGEST
+        source_lines=source_lines, line_no=line_no, code=SUPPRESS_DIGEST
     ):
         errors.append({
             "file": rel_path,
@@ -119,19 +125,46 @@ def _check_single(
             "message": "image uses tag reference instead of digest",
         })
 
-    if DOCKERHUB_PATTERN.match(image) and not _is_suppressed(
-        source_lines=source_lines, line_no=line_no, marker=SUPPRESS_DOCKERHUB
-    ):
-        warnings.append({
-            "file": rel_path,
-            "line": line_no or 0,
-            "attribute": attr,
-            "image": image,
-            "component": component,
-            "severity": "warning",
-            "rule": "IMG003",
-            "message": "image sourced from DockerHub (strict pull rate limits)",
-        })
+
+
+def _build_dockerhub_regex() -> re.Pattern[str]:
+    return re.compile(
+        r"""(['"])"""
+        r"((?:oci://)?docker\.io/[^'\"]+)"
+        r"\1"
+    )
+
+
+def _scan_dockerhub(warnings: list[dict]) -> None:
+    """Scan all Python files for DockerHub images, including IMG001-suppressed ones."""
+    dockerhub_re = _build_dockerhub_regex()
+    scan_dirs = [ROOT / "tests", ROOT / "utilities"]
+
+    for scan_dir in scan_dirs:
+        if not scan_dir.exists():
+            continue
+        for py_file in sorted(scan_dir.rglob("*.py")):
+            try:
+                lines = py_file.read_text().splitlines()
+            except (OSError, UnicodeDecodeError):
+                continue
+
+            rel = str(py_file.relative_to(ROOT))
+            for i, line in enumerate(lines, 1):
+                if "noqa" in line and SUPPRESS_DOCKERHUB in line:
+                    continue
+                for match in dockerhub_re.finditer(line):
+                    image = match.group(2).removeprefix("oci://")
+                    warnings.append({
+                        "file": rel,
+                        "line": i,
+                        "attribute": "",
+                        "image": image,
+                        "component": "",
+                        "severity": "warning",
+                        "rule": "IMG003",
+                        "message": "image sourced from DockerHub (strict pull rate limits)",
+                    })
 
 
 def main() -> int:
@@ -147,6 +180,7 @@ def main() -> int:
     args = parser.parse_args()
 
     errors, warnings = _check_images()
+    _scan_dockerhub(warnings=warnings)
 
     if args.json:
         json.dump(errors + warnings, sys.stdout, indent=2)
@@ -160,7 +194,7 @@ def main() -> int:
             print(f"  {loc}: {f['attribute']}")
             print(f"    {f['image']}")
             print()
-        print(f"Pin these images with @sha256:<digest> or suppress with '# {SUPPRESS_DIGEST}'")
+        print(f"Pin these images with @sha256:<digest> or suppress with '# noqa: {SUPPRESS_DIGEST}'")
         print()
 
     if warnings:
@@ -170,7 +204,7 @@ def main() -> int:
             print(f"  {loc}: {f['attribute']}")
             print(f"    {f['image']}")
             print()
-        print(f"Consider mirroring to quay.io or suppress with '# {SUPPRESS_DOCKERHUB}'")
+        print(f"Consider mirroring to quay.io or suppress with '# noqa: {SUPPRESS_DOCKERHUB}'")
         print()
 
     if not errors and not warnings:
