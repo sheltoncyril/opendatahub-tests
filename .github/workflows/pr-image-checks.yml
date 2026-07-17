@@ -32,15 +32,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.3.2
-
       - name: Check for stray images
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
           git fetch origin "$BASE_REF"
-          uv run python scripts/check_stray_images.py \
+          python scripts/check_stray_images.py \
             --diff-base "origin/$BASE_REF" --json > stray-findings.json 2>stderr.log || true
           if [ -s stderr.log ]; then
             cat stderr.log >&2
@@ -72,7 +69,7 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          uv run python scripts/check_image_digests.py \
+          python scripts/check_image_digests.py \
             --diff-base "origin/$BASE_REF" --json > digest-findings.json || true
 
           error_count=$(jq '[.[] | select(.severity == "error")] | length' digest-findings.json)
