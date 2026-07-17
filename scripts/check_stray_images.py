@@ -39,10 +39,15 @@ from scripts.image_check_utils import (
 SUPPRESS_CODE: str = "IMG001"
 
 
-def _get_constants_files() -> set[str]:
+def _get_image_constants_files() -> set[str]:
+    """Return paths to image_constants.py files — the only files exempt from stray checks."""
     from scripts.generate_image_manifest import IMAGE_SOURCES
 
-    return {class_path.rsplit(".", 1)[0].replace(".", "/") + ".py" for class_path in IMAGE_SOURCES.values()}
+    return {
+        class_path.rsplit(".", 1)[0].replace(".", "/") + ".py"
+        for class_path in IMAGE_SOURCES.values()
+        if "image_constants" in class_path
+    }
 
 
 def _collect_known_images() -> set[str]:
@@ -62,7 +67,7 @@ def _scan_file(path: Path, known: set[str], only_lines: set[int] | None = None) 
         return findings
 
     rel = str(path.relative_to(ROOT))
-    if rel in _get_constants_files():
+    if rel in _get_image_constants_files():
         return findings
 
     image_re = build_image_regex()
