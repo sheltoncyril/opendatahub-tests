@@ -226,7 +226,9 @@ def main() -> int:
             print(f"  {loc}: {f['attribute']}")
             print(f"    {f['image']}")
             print()
-        print(f"Use an equivalent image from quay.io or registry.redhat.io, or suppress with '# noqa: {SUPPRESS_DOCKERHUB}'")
+        print(
+            f"Use an equivalent image from quay.io or registry.redhat.io, or suppress with '# noqa: {SUPPRESS_DOCKERHUB}'"
+        )
         print()
 
     if not errors and not warnings:
