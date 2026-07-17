@@ -19,7 +19,8 @@ which images need to be mirrored.
 
 ## Extracting the image list
 
-Set the image reference:
+Inspect the image and extract the manifest label. The command exits with an error if
+the label is missing:
 
 ```sh
 IMAGE=quay.io/opendatahub/opendatahub-tests:latest
@@ -27,7 +28,6 @@ LABEL=io.opendatahub.tests.required-images
 INSPECT=$(skopeo inspect "docker://$IMAGE")
 MANIFEST=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL\"]")
 
-# Check the label exists
 if [ "$MANIFEST" = "null" ] || [ -z "$MANIFEST" ]; then
     echo "ERROR: no image manifest label found on $IMAGE"
     exit 1
@@ -35,6 +35,8 @@ fi
 ```
 
 ### Option 1: JSON (grouped by component)
+
+Saves the manifest as pretty-printed JSON with images grouped by component:
 
 ```sh
 printf '%s' "$MANIFEST" | jq . > required-images.json
@@ -57,6 +59,8 @@ Output:
 
 ### Option 2: Plain text (one image per line)
 
+Flattens all images across components into a plain list, one per line:
+
 ```sh
 printf '%s' "$MANIFEST" | jq -r '.[][]' > required-images.txt
 ```
@@ -72,13 +76,15 @@ quay.io/opendatahub/openvino_model_server@sha256:564664...
 
 ## Verifying the checksum
 
-After extracting the manifest, verify it was not corrupted or tampered with:
+After extracting the manifest, verify it was not corrupted or tampered with.
+If the image was built before checksum support was added, the checksum label
+will be missing and verification is skipped:
 
 ```sh
 EXPECTED=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL.sha256\"]")
 
 if [ "$EXPECTED" = "null" ] || [ -z "$EXPECTED" ]; then
-    echo "SKIP: no checksum label found — image was built without checksum support"
+    echo "SKIP: no checksum label found -- image was built without checksum support"
 else
     ACTUAL=$(printf '%s' "$MANIFEST" | sha256sum | cut -d' ' -f1)
     if [ "$ACTUAL" = "$EXPECTED" ]; then
@@ -91,11 +97,12 @@ fi
 
 ## Full example
 
+Extract the manifest, verify the checksum, and save both output formats:
+
 ```sh
 IMAGE=quay.io/opendatahub/opendatahub-tests:latest
 LABEL=io.opendatahub.tests.required-images
 
-# Extract
 INSPECT=$(skopeo inspect "docker://$IMAGE")
 MANIFEST=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL\"]")
 
@@ -104,11 +111,10 @@ if [ "$MANIFEST" = "null" ] || [ -z "$MANIFEST" ]; then
     exit 1
 fi
 
-# Verify checksum
 EXPECTED=$(printf '%s' "$INSPECT" | jq -r ".Labels[\"$LABEL.sha256\"]")
 
 if [ "$EXPECTED" = "null" ] || [ -z "$EXPECTED" ]; then
-    echo "SKIP: no checksum label found — image was built without checksum support"
+    echo "SKIP: no checksum label found -- image was built without checksum support"
 else
     ACTUAL=$(printf '%s' "$MANIFEST" | sha256sum | cut -d' ' -f1)
     if [ "$ACTUAL" = "$EXPECTED" ]; then
@@ -119,7 +125,6 @@ else
     fi
 fi
 
-# Save both formats
 printf '%s' "$MANIFEST" | jq .    > required-images.json
 printf '%s' "$MANIFEST" | jq -r '.[][]' > required-images.txt
 
