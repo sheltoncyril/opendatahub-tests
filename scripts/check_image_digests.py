@@ -34,7 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from scripts.image_check_utils import get_diff_lines, is_suppressed, read_lines, scan_python_files
+from scripts.image_check_utils import get_diff_lines, is_suppressed, read_lines, scan_python_files  # noqa: E402
 
 SUPPRESS_DIGEST: str = "IMG002"
 SUPPRESS_DOCKERHUB: str = "IMG003"

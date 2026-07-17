@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from scripts.image_check_utils import (
+from scripts.image_check_utils import (  # noqa: E402
     build_image_regex,
     get_diff_lines,
     is_suppressed,

@@ -51,7 +51,7 @@ _NOQA_RE = re.compile(r"#\s*noqa:\s*([A-Z0-9]+(?:\s*,\s*[A-Z0-9]+)*)")
 
 def is_suppressed(line: str, code: str) -> bool:
     """Check if a line has a # noqa: marker suppressing the given exact code."""
-    match = _NOQA_RE.search(line)
+    match = _NOQA_RE.search(string=line)
     if not match:
         return False
     codes = {c.strip() for c in match.group(1).split(",")}
