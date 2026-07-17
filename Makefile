@@ -13,9 +13,9 @@ check:
 	tox
 
 build:
-	@MANIFEST=$$(uv run python scripts/generate_image_manifest.py --compact 2>/dev/null); \
+	@MANIFEST=$$(uv run python scripts/generate_image_manifest.py --compact 2>/tmp/manifest-err.log); \
 	if [ -n "$$MANIFEST" ]; then \
-		CHECKSUM=$$(echo -n "$$MANIFEST" | shasum -a 256 | cut -d' ' -f1); \
+		CHECKSUM=$$(printf '%s' "$$MANIFEST" | shasum -a 256 | cut -d' ' -f1); \
 		echo "Image manifest generated (sha256:$$CHECKSUM)"; \
 		$(IMAGE_BUILD_CMD) build \
 			--label "io.opendatahub.tests.required-images=$$MANIFEST" \
@@ -23,6 +23,7 @@ build:
 			-t $(FULL_OPERATOR_IMAGE) .; \
 	else \
 		echo "WARNING: Image manifest generation failed — building without manifest labels"; \
+		if [ -s /tmp/manifest-err.log ]; then cat /tmp/manifest-err.log >&2; fi; \
 		$(IMAGE_BUILD_CMD) build -t $(FULL_OPERATOR_IMAGE) .; \
 	fi
 

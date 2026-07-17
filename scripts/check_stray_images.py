@@ -31,6 +31,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.image_check_utils import (
     build_image_regex,
     get_diff_lines,
+    is_suppressed,
     read_lines,
     scan_python_files,
 )
@@ -68,7 +69,7 @@ def _scan_file(path: Path, known: set[str], only_lines: set[int] | None = None) 
     for i, line in enumerate(lines, 1):
         if only_lines is not None and i not in only_lines:
             continue
-        if "noqa" in line and SUPPRESS_CODE in line:
+        if is_suppressed(line=line, code=SUPPRESS_CODE):
             continue
         for match in image_re.finditer(line):
             image = match.group(2)

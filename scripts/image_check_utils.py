@@ -46,9 +46,16 @@ def get_diff_lines(base: str) -> dict[str, set[int]]:
     return file_lines
 
 
+_NOQA_RE = re.compile(r"#\s*noqa:\s*([A-Z0-9]+(?:\s*,\s*[A-Z0-9]+)*)")
+
+
 def is_suppressed(line: str, code: str) -> bool:
-    """Check if a line has a noqa comment suppressing the given code."""
-    return "noqa" in line and code in line
+    """Check if a line has a # noqa: marker suppressing the given exact code."""
+    match = _NOQA_RE.search(line)
+    if not match:
+        return False
+    codes = {c.strip() for c in match.group(1).split(",")}
+    return code in codes
 
 
 def build_image_regex() -> re.Pattern[str]:
