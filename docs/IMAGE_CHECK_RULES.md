@@ -17,7 +17,7 @@ mirror. Images not in the manifest won't be available in air-gapped clusters.
 
 **Fix:** Move the image to your component's `image_constants.py` or
 `utilities/image_constants.py` if shared across components. Then register the
-class in `scripts/generate_image_manifest.py` under `IMAGE_SOURCES`.
+class in `scripts/generate_image_manifest.py` under `IMAGE_CLASS_MAP`.
 
 **Suppress:** Add `# noqa: IMG001` to the line. Use only for images that are
 not needed in disconnected environments (e.g., test-only images that are skipped

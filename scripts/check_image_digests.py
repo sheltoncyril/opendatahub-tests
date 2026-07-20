@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check container image references for digest pinning and registry policies.
 
-Scans IMAGE_SOURCES classes and reports:
+Scans IMAGE_CLASS_MAP classes and reports:
   - ERROR: images using mutable tag references instead of @sha256: digests
 
 Scans all Python files under tests/ and utilities/ and reports:
@@ -55,12 +55,12 @@ def _find_image_line(source_lines: list[str], start_line: int, image: str) -> in
 
 
 def _check_images(changed_lines: dict[str, set[int]] | None = None) -> tuple[list[dict], list[dict]]:
-    from scripts.generate_image_manifest import IMAGE_SOURCES, REGISTRY_PATTERN, _normalize_image
+    from scripts.generate_image_manifest import IMAGE_CLASS_MAP, REGISTRY_PATTERN, _normalize_image
 
     errors: list[dict] = []
     warnings: list[dict] = []
 
-    for component, class_path in sorted(IMAGE_SOURCES.items()):
+    for component, class_path in sorted(IMAGE_CLASS_MAP.items()):
         if "image_constants" not in class_path:
             continue
 

@@ -200,7 +200,7 @@ class AiSafetyImages:
 These are registered in `scripts/generate_image_manifest.py`:
 
 ```python
-IMAGE_SOURCES = {
+IMAGE_CLASS_MAP = {
     "ai_safety": "tests.ai_safety.image_constants.AiSafetyImages",
     "shared": "utilities.constants.ContainerImages",
 }
@@ -228,7 +228,7 @@ extraction, verification, and output format options.
 ### Adding a new component
 
 1. Create `tests/<component>/image_constants.py` with a class containing all images
-2. Register it in `scripts/generate_image_manifest.py` under `IMAGE_SOURCES`
+2. Register it in `scripts/generate_image_manifest.py` under `IMAGE_CLASS_MAP`
 
 ### CI image checks
 

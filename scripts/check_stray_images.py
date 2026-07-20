@@ -2,7 +2,7 @@
 """Check for container image strings not centralized in constants classes.
 
 Scans Python files under tests/ and utilities/ for hardcoded image
-references that are not defined in a registered IMAGE_SOURCES class.
+references that are not defined in a registered IMAGE_CLASS_MAP class.
 Reports findings so developers can move images to the appropriate
 constants file.
 
@@ -41,11 +41,11 @@ SUPPRESS_CODE: str = "IMG001"
 
 def _get_image_constants_files() -> set[str]:
     """Return paths to image_constants.py files — the only files exempt from stray checks."""
-    from scripts.generate_image_manifest import IMAGE_SOURCES
+    from scripts.generate_image_manifest import IMAGE_CLASS_MAP
 
     return {
         class_path.rsplit(".", 1)[0].replace(".", "/") + ".py"
-        for class_path in IMAGE_SOURCES.values()
+        for class_path in IMAGE_CLASS_MAP.values()
         if "image_constants" in class_path
     }
 
