@@ -20,6 +20,7 @@ from ocp_resources.service import Service
 from timeout_sampler import TimeoutSampler, retry
 
 import tests.ai_hub.constants as ai_hub_constants
+from tests.ai_hub.image_constants import AiHubImages
 from tests.ai_hub.constants import (
     DB_BASE_RESOURCES_NAME,
     MARIADB_MY_CNF,
@@ -37,9 +38,7 @@ from utilities.resources.model_registry_modelregistry_opendatahub_io import Mode
 from utilities.user_utils import get_byoidc_cli_client_id, get_byoidc_issuer_url, get_oidc_token_endpoint
 
 ADDRESS_ANNOTATION_PREFIX: str = "routing.opendatahub.io/external-address-"
-POSTGRES_DB_IMAGE = (
-    "public.ecr.aws/docker/library/postgres@sha256:6e9bbed548cc1ca776dd4685cfea9efe60d58df91186ec6bad7328fd03b388a5"
-)
+POSTGRES_DB_IMAGE = AiHubImages.POSTGRES
 LOGGER = structlog.get_logger(name=__name__)
 
 
