@@ -17,19 +17,9 @@ class FixturesImages:
         "quay.io/rh-aiservices-bu/vllm-cpu-openai-ubi9"
         "@sha256:ada6b3ba98829eb81ae4f89364d9b431c0222671eafb9a04aa16f31628536af2"
     )
-    MILVUS: str = (
-        "docker.io/milvusdb/milvus"
-        "@sha256:3d772c3eae3a6107b778636cea5715b9353360b92e5dcfdcaf4ca7022f4f497c"
-    )
-    ETCD: str = (
-        "quay.io/coreos/etcd"
-        "@sha256:3397341272b9e0a6f44d7e3fc7c321c6efe6cbe82ce866b9b01d0c704bfc5bf3"
-    )
+    MILVUS: str = "docker.io/milvusdb/milvus@sha256:3d772c3eae3a6107b778636cea5715b9353360b92e5dcfdcaf4ca7022f4f497c"
+    ETCD: str = "quay.io/coreos/etcd@sha256:3397341272b9e0a6f44d7e3fc7c321c6efe6cbe82ce866b9b01d0c704bfc5bf3"
     PGVECTOR: str = (
-        "docker.io/pgvector/pgvector"
-        "@sha256:0a07c4114ba6d1d04effcce3385e9f5ce305eb02e56a3d35948a415a52f193ec"
+        "docker.io/pgvector/pgvector@sha256:0a07c4114ba6d1d04effcce3385e9f5ce305eb02e56a3d35948a415a52f193ec"
     )
-    QDRANT: str = (
-        "docker.io/qdrant/qdrant"
-        "@sha256:9dfabc51ededc48158899a288a19a04de1ab54a11d8c512e1c40eebbd5e2bc92"
-    )
+    QDRANT: str = "docker.io/qdrant/qdrant@sha256:9dfabc51ededc48158899a288a19a04de1ab54a11d8c512e1c40eebbd5e2bc92"
