@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 IMAGE_CLASS_MAP: dict[str, str] = {
     "ai_safety": "tests.ai_safety.image_constants.AiSafetyImages",
     "shared": "utilities.image_constants.SharedImages",
+    "workbenches": "tests.workbenches.image_constants.WorkbenchesImages",
 }
 
 KNOWN_REGISTRIES: tuple[str, ...] = (
