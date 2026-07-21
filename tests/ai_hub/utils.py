@@ -20,7 +20,6 @@ from ocp_resources.service import Service
 from timeout_sampler import TimeoutSampler, retry
 
 import tests.ai_hub.constants as ai_hub_constants
-from tests.ai_hub.image_constants import AiHubImages
 from tests.ai_hub.constants import (
     DB_BASE_RESOURCES_NAME,
     MARIADB_MY_CNF,
@@ -31,6 +30,7 @@ from tests.ai_hub.constants import (
     PORT_MAP,
 )
 from tests.ai_hub.exceptions import ModelRegistryResourceNotFoundError
+from tests.ai_hub.image_constants import AiHubImages
 from utilities.constants import MARIA_DB_IMAGE, Annotations, PodNotFound, Protocols
 from utilities.exceptions import ProtocolNotSupportedError, TooManyServicesError
 from utilities.general import wait_for_pods_running
