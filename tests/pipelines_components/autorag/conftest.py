@@ -60,10 +60,10 @@ from tests.pipelines_components.utils import (
     wait_for_managed_pipeline,
 )
 from utilities.constants import Annotations, DscComponents, KServeDeploymentType, RuntimeTemplates
-from utilities.image_constants import SharedImages
 from utilities.data_science_cluster_utils import update_components_in_dsc
 from utilities.exceptions import UnexpectedResourceCountError
 from utilities.general import generate_random_name
+from utilities.image_constants import SharedImages
 from utilities.inference_utils import create_isvc
 from utilities.infra import create_ns
 from utilities.resources.ogx_server import OgxServer
