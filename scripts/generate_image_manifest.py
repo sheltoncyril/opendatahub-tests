@@ -23,6 +23,7 @@ IMAGE_CLASS_MAP: dict[str, str] = {
     "ai_hub": "tests.ai_hub.image_constants.AiHubImages",
     "ai_safety": "tests.ai_safety.image_constants.AiSafetyImages",
     "shared": "utilities.image_constants.SharedImages",
+    "spark": "tests.spark.image_constants.SparkImages",
 }
 
 KNOWN_REGISTRIES: tuple[str, ...] = (
