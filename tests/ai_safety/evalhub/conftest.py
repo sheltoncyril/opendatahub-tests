@@ -9,7 +9,7 @@ import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.data_science_pipelines_application import DataSciencePipelinesApplication
 from ocp_resources.deployment import Deployment
-from ocp_resources.evalhub import EvalHub
+from tests.ai_safety.evalhub.constants import EvalHubV1Alpha1 as EvalHub
 from ocp_resources.inference_service import InferenceService
 from ocp_resources.mlflow import MLflow
 from ocp_resources.namespace import Namespace

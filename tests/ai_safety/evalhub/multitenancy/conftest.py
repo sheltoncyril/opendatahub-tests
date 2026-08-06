@@ -7,7 +7,7 @@ import requests
 import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.deployment import Deployment
-from ocp_resources.evalhub import EvalHub
+from tests.ai_safety.evalhub.constants import EvalHubV1Alpha1 as EvalHub
 from ocp_resources.namespace import Namespace
 from ocp_resources.role import Role
 from ocp_resources.role_binding import RoleBinding
