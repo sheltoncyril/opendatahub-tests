@@ -11,7 +11,6 @@ from ocp_resources.lm_eval_job import LMEvalJob
 from ocp_resources.namespace import Namespace
 from ocp_resources.persistent_volume_claim import PersistentVolumeClaim
 from ocp_resources.pod import Pod
-from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 from ocp_resources.service import Service
 from ocp_resources.serving_runtime import ServingRuntime
@@ -370,19 +369,6 @@ def vllm_emulator_service(
         selector={Labels.Openshift.APP: VLLM_EMULATOR},
     ) as service:
         yield service
-
-
-@pytest.fixture(scope="function")
-def vllm_emulator_route(
-    admin_client: DynamicClient, model_namespace: Namespace, vllm_emulator_service: Service
-) -> Generator[Route, Any, Any]:
-    with Route(
-        client=admin_client,
-        namespace=vllm_emulator_service.namespace,
-        name=VLLM_EMULATOR,
-        service=vllm_emulator_service.name,
-    ) as route:
-        yield route
 
 
 @pytest.fixture(scope="function")

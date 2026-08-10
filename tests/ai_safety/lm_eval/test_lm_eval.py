@@ -268,7 +268,7 @@ def test_lmeval_gpu(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
 def test_lmeval_vllm_emulator_https_ca_bundle(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -298,7 +298,7 @@ def test_lmeval_vllm_emulator_https_ca_bundle(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
 def test_lmeval_vllm_emulator_http_no_ca_bundle(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -325,7 +325,7 @@ def test_lmeval_vllm_emulator_http_no_ca_bundle(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
 def test_lmeval_https_verify_certificate_no_ca_bundle(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -354,7 +354,7 @@ def test_lmeval_https_verify_certificate_no_ca_bundle(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
 def test_lmeval_rerun_after_spec_change(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -433,7 +433,7 @@ def test_lmeval_rerun_after_spec_change(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
 def test_lmeval_https_sets_ssl_cert_file(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -470,7 +470,7 @@ def test_lmeval_https_sets_ssl_cert_file(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
 def test_lmeval_http_has_ca_bundle(
     admin_client: DynamicClient,
     model_namespace: Namespace,
@@ -515,7 +515,7 @@ def test_lmeval_http_has_ca_bundle(
     ],
     indirect=True,
 )
-@pytest.mark.usefixtures("patched_dsc_kserve_headed")
+@pytest.mark.usefixtures("session_patched_dsc_kserve_headed")
 def test_lmeval_https_verify_certificate_has_ca_bundle(
     admin_client: DynamicClient,
     model_namespace: Namespace,
