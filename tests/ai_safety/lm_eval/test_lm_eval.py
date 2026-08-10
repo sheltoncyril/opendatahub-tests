@@ -377,10 +377,10 @@ def test_lmeval_rerun_after_spec_change(
     )
 
     annotations = lmevaljob_vllm_emulator.instance.metadata.annotations or {}
-    assert LAST_SCHEDULED_GENERATION_ANNOTATION in annotations, (
+    initial_generation = annotations.get(LAST_SCHEDULED_GENERATION_ANNOTATION)
+    assert initial_generation is not None, (
         f"Expected annotation '{LAST_SCHEDULED_GENERATION_ANNOTATION}' not found on completed job"
     )
-    initial_generation = annotations[LAST_SCHEDULED_GENERATION_ANNOTATION]
 
     LOGGER.info("Job completed, editing spec to trigger re-run")
     ResourceEditor(
