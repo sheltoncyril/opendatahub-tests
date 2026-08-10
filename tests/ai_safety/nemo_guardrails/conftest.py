@@ -26,7 +26,7 @@ from utilities.constants import LLMdInferenceSimConfig
 def shared_models_namespace(admin_client: DynamicClient) -> Generator[Namespace, Any, Any]:  # noqa: UFN001
     from tests.ai_safety.utils import create_shared_models_ns
 
-    yield from create_shared_models_ns(admin_client=admin_client, name="ai-safety-guardrails-models")
+    yield from create_shared_models_ns(admin_client=admin_client, name="ai-safety-nemo-models")
 
 
 # ===========================
