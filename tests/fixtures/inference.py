@@ -218,8 +218,7 @@ def session_llm_d_inference_sim_serving_runtime(
         containers=[
             {
                 "name": "kserve-container",
-                "image": "quay.io/trustyai_testing/llm-d-inference-sim-dataset-builtin"
-                "@sha256:79e525cfd57a0d72b7e71d5f1e2dd398eca9315cfbd061d9d3e535b1ae736239",
+                "image": FixturesImages.LLMD_INFERENCE_SIM,
                 "imagePullPolicy": "Always",
                 "args": ["--model", LLMdInferenceSimConfig.model_name, "--port", str(LLMdInferenceSimConfig.port)],
                 "ports": [{"containerPort": LLMdInferenceSimConfig.port, "protocol": "TCP"}],

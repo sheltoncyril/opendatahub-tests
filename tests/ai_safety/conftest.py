@@ -10,12 +10,8 @@ from ocp_resources.persistent_volume_claim import PersistentVolumeClaim
 from ocp_resources.service import Service
 from pytest_testconfig import config as py_config
 
-from tests.ai_safety.constants import (
-    AI_SAFETY_SHARED_MODELS_NAMESPACE,
-    VLLM_EMULATOR,
-    VLLM_EMULATOR_IMAGE,
-    VLLM_EMULATOR_PORT,
-)
+from tests.ai_safety.constants import AI_SAFETY_SHARED_MODELS_NAMESPACE, VLLM_EMULATOR, VLLM_EMULATOR_PORT
+from tests.ai_safety.image_constants import AiSafetyImages
 from tests.ai_safety.utils import create_shared_models_ns
 from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import TRUSTYAI_SERVICE_NAME, Labels, Protocols, Timeout
@@ -58,7 +54,7 @@ def session_vllm_emulator_deployment(
                 "containers": [
                     {
                         "name": "vllm-emulator",
-                        "image": VLLM_EMULATOR_IMAGE,
+                        "image": AiSafetyImages.VLLM_EMULATOR,
                         "ports": [{"containerPort": VLLM_EMULATOR_PORT, "protocol": "TCP"}],
                         "readinessProbe": {
                             "tcpSocket": {"port": VLLM_EMULATOR_PORT},
