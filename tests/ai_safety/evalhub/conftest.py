@@ -37,6 +37,7 @@ from tests.ai_safety.evalhub.constants import (
     EVALHUB_TENANT_LABEL_KEY,
     EVALHUB_TENANT_LABEL_VALUE,
     EVALHUB_USER_ROLE_RULES,
+    EVALHUB_VLLM_EMULATOR_PORT,
     GARAK_BENCHMARK_ID,
     GARAK_INTENTS_S3_KEY,
     GARAK_PROVIDER_ID,
@@ -54,6 +55,7 @@ from tests.ai_safety.evalhub.constants import (
     SIMPLE_MINIO_BUCKET,
     SIMPLE_MINIO_SECRET_KEY,
 )
+from tests.ai_safety.evalhub.kueue.constants import VLLM_EMULATOR, VLLM_EMULATOR_IMAGE
 from tests.ai_safety.evalhub.utils import (
     MLflowWithWorkspaces,
     build_pvc_job_payload,
@@ -220,6 +222,77 @@ def tenant_a_rbac_ready(
         )
         LOGGER.error(msg)
         raise RuntimeError(msg) from err
+
+
+@pytest.fixture(scope="class")
+def evalhub_vllm_emulator_deployment(
+    admin_client: DynamicClient,
+    tenant_a_namespace: Namespace,
+    tenant_a_rbac_ready: None,
+) -> Generator[Deployment, Any, Any]:
+    """Deploy the vLLM emulator in tenant-a for job submission tests."""
+    label = {Labels.Openshift.APP: VLLM_EMULATOR}
+    with Deployment(
+        client=admin_client,
+        namespace=tenant_a_namespace.name,
+        name=VLLM_EMULATOR,
+        label=label,
+        selector={"matchLabels": label},
+        template={
+            "metadata": {
+                "labels": label,
+                "name": VLLM_EMULATOR,
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "image": VLLM_EMULATOR_IMAGE,
+                        "name": VLLM_EMULATOR,
+                        "ports": [{"containerPort": EVALHUB_VLLM_EMULATOR_PORT, "protocol": Protocols.TCP}],
+                        "readinessProbe": {
+                            "tcpSocket": {"port": EVALHUB_VLLM_EMULATOR_PORT},
+                            "initialDelaySeconds": 5,
+                            "periodSeconds": 5,
+                            "timeoutSeconds": 3,
+                            "failureThreshold": 6,
+                        },
+                        "securityContext": {
+                            "allowPrivilegeEscalation": False,
+                            "capabilities": {"drop": ["ALL"]},
+                            "seccompProfile": {"type": "RuntimeDefault"},
+                        },
+                    }
+                ]
+            },
+        },
+        replicas=1,
+    ) as deployment:
+        deployment.wait_for_replicas(timeout=300)
+        yield deployment
+
+
+@pytest.fixture(scope="class")
+def evalhub_vllm_emulator_service(
+    admin_client: DynamicClient,
+    tenant_a_namespace: Namespace,
+    evalhub_vllm_emulator_deployment: Deployment,
+) -> Generator[Service, Any, Any]:
+    """Service fronting the vLLM emulator in tenant-a."""
+    with Service(
+        client=admin_client,
+        namespace=tenant_a_namespace.name,
+        name=f"{VLLM_EMULATOR}-service",
+        ports=[
+            {
+                "name": f"{VLLM_EMULATOR}-endpoint",
+                "port": EVALHUB_VLLM_EMULATOR_PORT,
+                "protocol": Protocols.TCP,
+                "targetPort": EVALHUB_VLLM_EMULATOR_PORT,
+            }
+        ],
+        selector={Labels.Openshift.APP: VLLM_EMULATOR},
+    ) as service:
+        yield service
 
 
 @pytest.fixture(scope="class")
