@@ -34,13 +34,6 @@ from utilities.resources.envoy_filter import EnvoyFilter
 from utilities.resources.mcp_gateway_extension import MCPGatewayExtension
 
 
-@pytest.fixture(scope="session")
-def shared_models_namespace(admin_client: DynamicClient) -> Generator[Namespace, Any, Any]:  # noqa: UFN001
-    from tests.ai_safety.utils import create_shared_models_ns
-
-    yield from create_shared_models_ns(admin_client=admin_client, name="ai-safety-nemo-models")
-
-
 # ===========================
 # Secret Fixtures
 # ===========================

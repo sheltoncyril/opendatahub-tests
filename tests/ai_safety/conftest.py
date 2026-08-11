@@ -10,9 +10,31 @@ from ocp_resources.persistent_volume_claim import PersistentVolumeClaim
 from ocp_resources.service import Service
 from pytest_testconfig import config as py_config
 
-from tests.ai_safety.constants import VLLM_EMULATOR, VLLM_EMULATOR_IMAGE, VLLM_EMULATOR_PORT
+from tests.ai_safety.constants import (
+    AI_SAFETY_SHARED_MODELS_NAMESPACE,
+    VLLM_EMULATOR,
+    VLLM_EMULATOR_IMAGE,
+    VLLM_EMULATOR_PORT,
+)
+from tests.ai_safety.utils import create_shared_models_ns
 from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import TRUSTYAI_SERVICE_NAME, Labels, Protocols, Timeout
+from utilities.general import deploy_if_not_exists
+
+
+@pytest.fixture(scope="session")
+def shared_models_namespace(admin_client: DynamicClient) -> Generator[Namespace, Any, Any]:
+    """Single namespace shared by every ai_safety component's session-scoped model resources.
+
+    Must stay a single global namespace, not redefined per component: session_vllm_emulator_*
+    and session_llm_d_inference_sim_* are true session-wide singletons (see tests/fixtures/inference.py
+    and pytest_plugins in tests/conftest.py), so whichever component's test runs first in a given
+    pytest process is the one that actually deploys the model. If each component pointed at its own
+    namespace, every other component would silently reference a model that isn't in the namespace it
+    thinks it's in. Get-or-create: reused as-is if it already exists (e.g. left over from an earlier
+    run on a persistent cluster).
+    """
+    yield from create_shared_models_ns(admin_client=admin_client, name=AI_SAFETY_SHARED_MODELS_NAMESPACE)
 
 
 @pytest.fixture(scope="session")
@@ -55,7 +77,7 @@ def session_vllm_emulator_deployment(
         },
         teardown=False,
     )
-    deployment.deploy()
+    deploy_if_not_exists(deployment)
     deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
     yield deployment
 
@@ -83,7 +105,7 @@ def session_vllm_emulator_service(
         selector={Labels.Openshift.APP: VLLM_EMULATOR},
         teardown=False,
     )
-    svc.deploy()
+    deploy_if_not_exists(svc)
     yield svc
 
 

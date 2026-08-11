@@ -26,6 +26,7 @@ from utilities.constants import (
     Timeout,
     VLLMGPUConfig,
 )
+from utilities.general import deploy_if_not_exists
 from utilities.inference_utils import create_isvc
 from utilities.infra import get_data_science_cluster, wait_for_dsc_status_ready
 from utilities.serving_runtime import ServingRuntimeFromTemplate
@@ -245,7 +246,7 @@ def session_llm_d_inference_sim_serving_runtime(
         supported_model_formats=[{"autoSelect": True, "name": LLMdInferenceSimConfig.name}],
         teardown=False,
     )
-    sr.deploy()
+    deploy_if_not_exists(sr)
     yield sr
 
 
@@ -258,6 +259,17 @@ def session_llm_d_inference_sim_isvc(
 ) -> Generator[InferenceService, Any, Any]:
     """Session-scoped LLM-d sim InferenceService. No teardown — Jenkins handles cleanup."""
     isvc_name = LLMdInferenceSimConfig.isvc_name
+    existing_isvc = InferenceService(client=admin_client, name=isvc_name, namespace=shared_models_namespace.name)
+    if existing_isvc.exists:
+        deployment = Deployment(
+            client=admin_client,
+            name=f"{isvc_name}-predictor",
+            namespace=shared_models_namespace.name,
+        )
+        deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_2MIN)
+        yield existing_isvc
+        return
+
     with create_isvc(
         client=admin_client,
         name=isvc_name,

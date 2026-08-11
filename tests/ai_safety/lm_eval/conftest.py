@@ -36,13 +36,6 @@ from utilities.serving_runtime import ServingRuntimeFromTemplate
 LMEVALJOB_NAME: str = "lmeval-test-job"
 
 
-@pytest.fixture(scope="session")
-def shared_models_namespace(admin_client: DynamicClient) -> Generator[Namespace, Any, Any]:  # noqa: UFN001
-    from tests.ai_safety.utils import create_shared_models_ns
-
-    yield from create_shared_models_ns(admin_client=admin_client, name="ai-safety-lmeval-models")
-
-
 @pytest.fixture(scope="function")
 def lmevaljob_hf(
     request: FixtureRequest,

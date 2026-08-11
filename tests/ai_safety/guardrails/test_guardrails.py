@@ -7,6 +7,7 @@ from ocp_resources.custom_resource_definition import CustomResourceDefinition
 from ocp_resources.namespace import Namespace
 from timeout_sampler import retry
 
+from tests.ai_safety.constants import AI_SAFETY_SHARED_MODELS_NAMESPACE
 from tests.ai_safety.guardrails.constants import (
     AUTOCONFIG_DETECTOR_LABEL,
     AUTOCONFIG_GATEWAY_ENDPOINT,
@@ -38,8 +39,6 @@ from utilities.constants import (
 )
 from utilities.plugins.constant import OpenAIEnpoints
 
-GUARDRAILS_MODELS_NAMESPACE = "ai-safety-guardrails-models"
-
 LOGGER = structlog.get_logger(name=__name__)
 
 
@@ -69,7 +68,7 @@ def test_guardrailsorchestrator_crd_exists(
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(AI_SAFETY_SHARED_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -101,7 +100,7 @@ def test_validate_guardrails_orchestrator_images(
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(AI_SAFETY_SHARED_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
@@ -243,7 +242,7 @@ class TestGuardrailsOrchestratorWithBuiltInDetectors:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(AI_SAFETY_SHARED_MODELS_NAMESPACE),
                         "detectors": {
                             PROMPT_INJECTION_DETECTOR: {
                                 "type": "text_contents",
@@ -612,7 +611,7 @@ class TestGuardrailsOrchestratorAutoConfigWithGateway:
             {
                 "orchestrator_config_data": {
                     "config.yaml": yaml.dump({
-                        "openai": get_llm_d_chat_generation_config(GUARDRAILS_MODELS_NAMESPACE),
+                        "openai": get_llm_d_chat_generation_config(AI_SAFETY_SHARED_MODELS_NAMESPACE),
                         "detectors": BUILTIN_DETECTOR_CONFIG,
                     })
                 },
