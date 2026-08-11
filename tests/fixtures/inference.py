@@ -246,7 +246,7 @@ def session_llm_d_inference_sim_serving_runtime(
         supported_model_formats=[{"autoSelect": True, "name": LLMdInferenceSimConfig.name}],
         teardown=False,
     )
-    deploy_if_not_exists(sr)
+    deploy_if_not_exists(resource=sr)
     yield sr
 
 

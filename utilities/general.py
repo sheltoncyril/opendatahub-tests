@@ -34,7 +34,7 @@ def strip_ansi(text: str) -> str:
     return _ANSI_ESCAPE_RE.sub(repl="", string=text)
 
 
-def deploy_if_not_exists[ResourceT: Resource](resource: ResourceT) -> ResourceT:
+def deploy_if_not_exists(resource: Resource) -> None:
     """Idempotently deploy a resource: reuse it if already present (e.g. left over from a prior run).
 
     Session-scoped shared resources with teardown=False can already exist on a persistent
@@ -42,12 +42,11 @@ def deploy_if_not_exists[ResourceT: Resource](resource: ResourceT) -> ResourceT:
     fixture requesting the same session-scoped singleton. A blind create() 409s in that case.
     """
     if resource.exists:
-        return resource
+        return
     try:
         resource.deploy()
     except ConflictError:
         pass
-    return resource
 
 
 def get_s3_secret_dict(

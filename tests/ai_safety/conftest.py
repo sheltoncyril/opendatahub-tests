@@ -77,7 +77,7 @@ def session_vllm_emulator_deployment(
         },
         teardown=False,
     )
-    deploy_if_not_exists(deployment)
+    deploy_if_not_exists(resource=deployment)
     deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
     yield deployment
 
@@ -105,7 +105,7 @@ def session_vllm_emulator_service(
         selector={Labels.Openshift.APP: VLLM_EMULATOR},
         teardown=False,
     )
-    deploy_if_not_exists(svc)
+    deploy_if_not_exists(resource=svc)
     yield svc
 
 
