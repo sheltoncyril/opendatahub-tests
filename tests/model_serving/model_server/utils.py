@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from string import Template
 from typing import Any
 
+import pytest
 import structlog
 from kubernetes.dynamic import DynamicClient
 from kubernetes.dynamic.exceptions import ResourceNotFoundError
@@ -24,6 +25,13 @@ from utilities.manifests.onnx import ONNX_INFERENCE_CONFIG
 LOGGER = structlog.get_logger(name=__name__)
 
 
+def skip_test(reason: str) -> None:
+    """Log a visible skip banner and call pytest.skip."""
+    border = "=" * 60
+    LOGGER.warning("\n".join(["", border, f"  SKIP — {reason}", border, ""]))
+    pytest.skip(reason)
+
+
 def verify_inference_response(
     inference_service: InferenceService | InferenceGraph,
     inference_config: dict[str, Any],
@@ -36,6 +44,7 @@ def verify_inference_response(
     insecure: bool = False,
     token: str | None = None,
     authorized_user: bool | None = None,
+    inference_timeout: int | None = None,
 ) -> None:
     """
     Verify the inference response.
@@ -52,6 +61,7 @@ def verify_inference_response(
         insecure (bool): Insecure mode.
         token (str): Token.
         authorized_user (bool): Authorized user.
+        inference_timeout (int | None): Retry timeout in seconds for the inference request.
 
     Raises:
         InvalidInferenceResponseError: If inference response is invalid.
@@ -73,12 +83,22 @@ def verify_inference_response(
         use_default_query=use_default_query,
         token=token,
         insecure=insecure,
+        inference_timeout=inference_timeout,
     )
 
     if authorized_user is False:
         auth_header = "x-ext-auth-reason"
 
-        if auth_reason := re.search(rf"{auth_header}: (.*)", res["output"], re.MULTILINE):
+        if isinstance(res["output"], dict):
+            # Response body was parsed to JSON (e.g. FastAPI HTTPException).
+            # Reconstruct full response text from parsed headers so existing
+            # status-line / header checks work unchanged.
+            output = "\n".join(f"{k}: {v}" for k, v in res.items() if k != "output" and isinstance(v, str))
+            output += "\n" + json.dumps(res["output"])
+        else:
+            output = res["output"]
+
+        if auth_reason := re.search(rf"{auth_header}: (.*)", output, re.MULTILINE):
             reason = auth_reason.group(1).lower()
 
             if token:
@@ -91,14 +111,18 @@ def verify_inference_response(
             isinstance(inference_service, InferenceGraph)
             and inference.deployment_mode in KServeDeploymentType.RAW_DEPLOYMENT_MODES
         ):
-            assert "x-forbidden-reason: Access to the InferenceGraph is not allowed" in res["output"]
+            assert "x-forbidden-reason: Access to the InferenceGraph is not allowed" in output
 
-        elif "403 Forbidden" in res["output"]:
+        elif "403 Forbidden" in output:
             resource = f"{inference_service.kind.lower()}s"
-            assert re.search(rf"Forbidden \(user=.*verb=get.*resource={resource}", res["output"])
+            assert re.search(rf"Forbidden \(user=.*verb=get.*resource={resource}", output)
+
+        elif "401 Unauthorized" in output:
+            # HTTP status line carries 401 — correctly rejected.
+            pass
 
         else:
-            raise ValueError(f"Auth header {auth_header} not found in response. Response: {res['output']}")
+            raise ValueError(f"Auth header {auth_header} not found in response. Response: {output}")
 
     else:
         use_regex = False

@@ -67,10 +67,11 @@ RECOMMENDED_PARETO_QUERY_PARAMS: dict[str, str] = {
 RECOMMENDED_PARETO_ADDITIONAL_PARAMS: str = "".join(
     f"&{param_key}={param_value}" for param_key, param_value in RECOMMENDED_PARETO_QUERY_PARAMS.items()
 )
+HF_LAST_SYNCED_SOURCE_ID: str = "hf_last_synced_id"
 HF_SOURCE_ID: str = "huggingface_mixed"
 HF_MODEL_NAME: str = "ibm-granite/granite-speech-3.2-8b"
 # TODO: get a service account to host these models
-HF_CUSTOM_MODE: str = "jonburdo/test2"
+HF_CUSTOM_MODE: str = "dbasunag/onnx-test-model"
 HF_MODELS: dict[str, Any] = {
     "mixed": [
         # Generative models (text-generation)
