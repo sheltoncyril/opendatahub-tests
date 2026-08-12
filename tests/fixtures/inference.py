@@ -23,7 +23,6 @@ from utilities.constants import (
     KServeDeploymentType,
     LLMdInferenceSimConfig,
     RuntimeTemplates,
-    Timeout,
     VLLMGPUConfig,
 )
 from utilities.inference_utils import create_isvc
@@ -40,45 +39,14 @@ def get_or_create_isvc(
     pytestconfig: pytest.Config,
     teardown: bool,
     wait_for_ready_post_upgrade: bool = False,
-    ready_timeout: int = Timeout.TIMEOUT_10MIN,
+    ready_timeout: int = 600,
     gate_post_upgrade_cleanup_by_teardown: bool = False,
     post_create_hook: Callable[[InferenceService], None] | None = None,
     **create_isvc_kwargs: Any,
 ) -> Generator[InferenceService, Any, Any]:
-    """Create an InferenceService, honoring the shared pre/post-upgrade fixture pattern.
-
-    Consolidates the "create a new InferenceService, or reference the one created during
-    pre-upgrade tests and clean it up afterwards" pattern that was duplicated across ai_safety
-    sub-component conftest.py files (e.g. TrustyAI's MLServer-backed gaussian-credit-model,
-    Guardrails' HuggingFace-backed prompt-injection/HAP detector models).
-
-    Args:
-        admin_client: DynamicClient
-        name: InferenceService name.
-        namespace: Namespace name.
-        pytestconfig: pytest.Config, used to detect post_upgrade mode via
-            `pytestconfig.option.post_upgrade`.
-        teardown: Whether the InferenceService should be deleted on teardown. Forwarded as-is to
-            `create_isvc` outside post_upgrade mode. In post_upgrade mode, only consulted when
-            `gate_post_upgrade_cleanup_by_teardown` is True (see below).
-        wait_for_ready_post_upgrade: When True, wait for the existing (post_upgrade) ISVC to
-            report Ready before yielding it. Some callers (e.g. Guardrails detectors) need this;
-            others (e.g. TrustyAI's gaussian-credit-model) historically did not, so it defaults
-            to False to preserve existing per-component behavior.
-        ready_timeout: Timeout (seconds) used when `wait_for_ready_post_upgrade` is True.
-        gate_post_upgrade_cleanup_by_teardown: When False (default, matches TrustyAI's historical
-            behavior), the post_upgrade ISVC is always cleaned up. When True (matches Guardrails'
-            historical behavior), it's only cleaned up if `teardown` is True.
-        post_create_hook: Optional callback invoked with the newly created InferenceService right
-            after creation (only outside post_upgrade mode), before it's yielded. Used for
-            component-specific post-creation waits, e.g. TrustyAI's
-            `wait_for_isvc_deployment_registered_by_trustyai_service`.
-        **create_isvc_kwargs: Forwarded to `utilities.inference_utils.create_isvc` when not in
-            post_upgrade mode (e.g. model_format, runtime, storage_uri/storage_key/storage_path,
-            resources, labels, wait_for_predictor_pods, enable_auth, min_replicas, max_replicas).
-
-    Yields:
-        InferenceService
+    """Create an InferenceService, or reference the one created during pre-upgrade tests and
+    clean it up afterwards, honoring the shared pre/post-upgrade fixture pattern duplicated
+    across ai_safety sub-component conftest.py files.
     """
     if pytestconfig.option.post_upgrade:
         isvc = InferenceService(client=admin_client, name=name, namespace=namespace)
