@@ -34,6 +34,7 @@ EVALHUB_FULL_API_VERSION_V1: str = f"{EVALHUB_API_GROUP}/v1"
 EVALHUB_FULL_API_VERSION_V1ALPHA1: str = f"{EVALHUB_API_GROUP}/v1alpha1"
 EVALHUB_KIND: str = "EvalHub"
 EVALHUB_PLURAL: str = "evalhubs"
+EVALHUB_CRD_NAME: str = f"{EVALHUB_PLURAL}.{EVALHUB_API_GROUP}"
 
 # Multi-tenancy
 EVALHUB_TENANT_LABEL_KEY: str = "evalhub.trustyai.opendatahub.io/tenant"
@@ -46,6 +47,7 @@ EVALHUB_VLLM_EMULATOR_PORT: int = 8000
 # ClusterRole names (kustomize namePrefix applied by operator install)
 EVALHUB_JOBS_WRITER_CLUSTERROLE: str = "trustyai-service-operator-evalhub-jobs-writer"
 EVALHUB_JOB_CONFIG_CLUSTERROLE: str = "trustyai-service-operator-evalhub-job-config"
+EVALHUB_EVENTS_CLUSTERROLE: str = "trustyai-service-operator-evalhub-events"
 
 # EvalHub Kubernetes runtime (batch Job / ConfigMap) — mirrors eval-hub job_builders.go
 EVALHUB_K8S_LABEL_APP: str = "app"
