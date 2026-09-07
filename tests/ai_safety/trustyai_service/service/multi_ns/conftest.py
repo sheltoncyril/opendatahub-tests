@@ -50,7 +50,6 @@ from utilities.inference_utils import create_isvc
 from utilities.infra import create_inference_token, create_ns
 
 
-
 @pytest.fixture(scope="class")
 def model_namespaces(request, admin_client) -> Generator[list[Namespace], Any]:
     with ExitStack() as stack:
