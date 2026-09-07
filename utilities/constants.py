@@ -91,8 +91,11 @@ class RuntimeTemplates:
     VLLM_GAUDI: str = "vllm-gaudi-runtime-template"
     VLLM_SPYRE: str = "vllm-spyre-x86-runtime-template"
     VLLM_CPU_x86: str = "vllm-cpu-x86-runtime-template"
-    VLLM_CPU_POWER: str = "vllm-cpu-power-runtime-template"
+    VLLM_CPU_POWER: str = "vllm-cpu-runtime-template"
     VLLM_CPU_Z: str = "vllm-cpu-z-runtime-template"
+    VLLM_OMNI_CUDA: str = "vllm-omni-cuda-runtime-template"
+    VLLM_OMNI_CUDA_FAST_1: str = "vllm-omni-cuda-runtime-template-fast-1"
+    VLLM_OMNI_CUDA_FAST_2: str = "vllm-omni-cuda-runtime-template-fast-2"
     MLSERVER: str = f"{ModelFormat.MLSERVER}-runtime-template"
     MLSERVER_CUDA: str = "mlserver-cuda-runtime-template"
     TRITON_REST: str = "triton-rest-runtime-template"
@@ -196,6 +199,7 @@ class DscComponents:
     OGX: str = "ogx"
     KUEUE: str = "kueue"
     AIGATEWAY: str = "aigateway"
+    MCPLIFECYCLEOPERATOR: str = "mcplifecycleoperator"
 
     class ManagementState:
         MANAGED: str = "Managed"
