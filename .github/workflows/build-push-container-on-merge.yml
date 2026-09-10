@@ -38,4 +38,6 @@ jobs:
       ref: ${{ github.event.pull_request.base.ref }}
       tag: ${{ needs.resolve-tag.outputs.tag }}
       comments_url: ${{ github.event.pull_request.comments_url }}
-    secrets: inherit
+    secrets:
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }} # pragma: allowlist secret
