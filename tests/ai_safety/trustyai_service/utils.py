@@ -54,8 +54,16 @@ def wait_for_mariadb_pods(client: DynamicClient, deployment_name: str, namespace
         )
 
 
-def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
-    """Generate self-signed TLS certificates for MariaDB.
+def generate_db_tls_certs(namespace_name: str, service_name: str) -> tuple[str, str, str]:
+    """Generate a self-signed CA and server certificate for an in-cluster database.
+
+    The server certificate carries the Service DNS names as SANs, so clients that
+    verify the hostname (TrustyAI connects to PostgreSQL with `sslmode=verify-full`)
+    accept it.
+
+    Args:
+        namespace_name: Namespace the database Service lives in.
+        service_name: Name of the database Service, used as the certificate CN/SAN.
 
     Returns:
         tuple: (ca_cert_pem, server_cert_pem, server_key_pem)
@@ -63,7 +71,7 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     ca_subject = ca_issuer = x509.Name(
-        attributes=[x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb-ca-{namespace_name}")]
+        attributes=[x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"{service_name}-ca-{namespace_name}")]
     )
     ca_cert = (
         x509
@@ -81,7 +89,9 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
     server_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
     server_subject = x509.Name(
-        attributes=[x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"mariadb.{namespace_name}.svc.cluster.local")]
+        attributes=[
+            x509.NameAttribute(oid=NameOID.COMMON_NAME, value=f"{service_name}.{namespace_name}.svc.cluster.local")
+        ]
     )
     server_cert = (
         x509
@@ -94,9 +104,9 @@ def _generate_mariadb_tls_certs(namespace_name: str) -> tuple[str, str, str]:
         .not_valid_after(datetime.datetime.now(datetime.UTC) + datetime.timedelta(days=365))
         .add_extension(
             x509.SubjectAlternativeName([
-                x509.DNSName("mariadb"),
-                x509.DNSName(f"mariadb.{namespace_name}.svc"),
-                x509.DNSName(f"mariadb.{namespace_name}.svc.cluster.local"),
+                x509.DNSName(service_name),
+                x509.DNSName(f"{service_name}.{namespace_name}.svc"),
+                x509.DNSName(f"{service_name}.{namespace_name}.svc.cluster.local"),
             ]),
             critical=False,
         )
@@ -127,7 +137,7 @@ def create_standalone_mariadb(
     Creates TLS secrets, PVC, Service, and Deployment for MariaDB.
     Uses Red Hat registry image to avoid Docker Hub rate limits.
     """
-    ca_cert, server_cert, server_key = _generate_mariadb_tls_certs(namespace_name=namespace_name)
+    ca_cert, server_cert, server_key = generate_db_tls_certs(namespace_name=namespace_name, service_name=name)
 
     with (
         Secret(
