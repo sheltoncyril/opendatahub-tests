@@ -14,7 +14,8 @@ POSTGRES_CONFIG_MOUNT_PATH: str = "/opt/app-root/src/postgresql-cfg"
 POSTGRES_CERTS_MOUNT_PATH: str = "/opt/app-root/src/certs"
 
 # Service under test, deployed directly (see README.md for why there is no CR).
-STORAGE_SERVICE_NAME: str = "trustyai-storage-backend"
+# Keep short so OpenShift auto-generated Route hostnames stay within the 63-char label limit.
+STORAGE_SERVICE_NAME: str = "tai-sb"
 
 # The plain-HTTP API binds 127.0.0.1 only (main.py keeps it loopback for
 # kube-rbac-proxy), so the suite reaches the service over its HTTPS port, which
