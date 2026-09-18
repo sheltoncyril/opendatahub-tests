@@ -162,7 +162,7 @@ class TestPostgresStorageBackend:
             f"Name mapping not reflected in metadata: {mapped['data']['inputSchema']}"
         )
 
-        clear_response = postgres_storage_client.clear_name_mapping(payload={"modelId": model_name})
+        clear_response = postgres_storage_client.clear_name_mapping(model_name=model_name)
         assert clear_response.status_code == HTTPStatus.OK, f"Clearing name mapping failed: {clear_response.text}"
 
         cleared = postgres_storage_client.info().json()[model_name]

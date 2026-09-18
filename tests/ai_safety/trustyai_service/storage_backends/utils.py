@@ -5,6 +5,7 @@ because the operator cannot select the PostgreSQL or SQLite backends yet; see
 this package's README.md.
 """
 
+import json
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
@@ -134,6 +135,7 @@ def create_standalone_postgres(
             teardown=teardown,
         ),
         Service(
+            client=client,
             kind_dict={
                 "apiVersion": "v1",
                 "kind": "Service",
@@ -346,6 +348,7 @@ def create_storage_backend_service(
 
     with (
         Service(
+            client=client,
             kind_dict={
                 "apiVersion": "v1",
                 "kind": "Service",
@@ -580,9 +583,19 @@ class StorageBackendClient:
         """Apply a name mapping."""
         return self.post(endpoint=ENDPOINT_INFO_NAMES, json=payload)
 
-    def clear_name_mapping(self, payload: dict[str, Any]) -> requests.Response:
-        """Clear a name mapping."""
-        return self.delete(endpoint=ENDPOINT_INFO_NAMES, json=payload)
+    def clear_name_mapping(self, model_name: str) -> requests.Response:
+        """Clear a name mapping.
+
+        The API expects the request body to be a JSON-encoded string (the model id),
+        not an object with a modelId field.
+        """
+        return requests.delete(
+            url=self._url(ENDPOINT_INFO_NAMES),
+            data=json.dumps(model_name),
+            headers={"Content-Type": "application/json"},
+            verify=self.cert_path,
+            timeout=self.timeout,
+        )
 
     def tags(self, model_name: str) -> requests.Response:
         """Get per-tag row counts for `model_name`."""
