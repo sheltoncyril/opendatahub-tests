@@ -133,6 +133,7 @@ class TestStorageConnectionPooling:
         assert env.get(ENV_POOL_SIZE) == POOL_SIZE
         assert env.get(ENV_MAX_OVERFLOW) == MAX_OVERFLOW
 
+    @pytest.mark.dependency(name="concurrent_uploads_share_the_pool", scope="class")
     def test_concurrent_uploads_share_the_pool(self, postgres_storage_client: StorageBackendClient) -> None:
         """More concurrent writers than connections still all succeed."""
         model_name = "postgres-pool-model"
@@ -161,6 +162,7 @@ class TestStorageConnectionPooling:
             f"Expected {expected} rows from {CONCURRENT_WRITERS} concurrent writers"
         )
 
+    @pytest.mark.dependency(depends=["concurrent_uploads_share_the_pool"], scope="class")
     def test_storage_stays_healthy_after_concurrent_load(self, postgres_storage_client: StorageBackendClient) -> None:
         """The pool is returned to a usable state once the writers finish."""
         response = postgres_storage_client.readiness()

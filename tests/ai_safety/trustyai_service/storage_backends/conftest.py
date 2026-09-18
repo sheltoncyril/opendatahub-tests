@@ -7,11 +7,11 @@ from typing import Any
 import pytest
 import structlog
 from kubernetes.dynamic import DynamicClient
-from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
 from ocp_resources.namespace import Namespace
 from ocp_resources.secret import Secret
 
+from tests.ai_safety.image_constants import AiSafetyImages
 from tests.ai_safety.trustyai_service.storage_backends.constants import (
     ENV_ALLOW_INSECURE_TLS,
     ENV_SQLITE_PATH,
@@ -43,14 +43,9 @@ LOGGER = structlog.get_logger(name=__name__)
 
 
 @pytest.fixture(scope="class")
-def trustyai_service_image(trustyai_operator_configmap: ConfigMap) -> str:
-    """Image the installed operator would deploy, so tests exercise the shipped build."""
-    image = trustyai_operator_configmap.instance.data.get("trustyaiServiceImage")
-    if not image:
-        raise ValueError(
-            f"'trustyaiServiceImage' missing from ConfigMap {trustyai_operator_configmap.name}; "
-            "cannot determine which TrustyAI service image to test."
-        )
+def trustyai_service_image() -> str:
+    """Candidate service image with PostgreSQL/SQLite/SQLAlchemy support (RHAISTRAT-2662)."""
+    image = AiSafetyImages.TRUSTYAI_SERVICE_SQL_BACKENDS
     LOGGER.info(f"TrustyAI service image under test: {image}")
     return image
 
