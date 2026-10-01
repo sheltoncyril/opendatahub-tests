@@ -25,6 +25,21 @@ def pvc_minio_namespace(
         yield pvc
 
 
+@pytest.fixture(scope="class")
+def pvc_seaweedfs_namespace(
+    admin_client: DynamicClient, seaweedfs_namespace: Namespace
+) -> Generator[PersistentVolumeClaim, Any, Any]:
+    with PersistentVolumeClaim(
+        client=admin_client,
+        name="seaweedfs-pvc",
+        namespace=seaweedfs_namespace.name,
+        accessmodes=PersistentVolumeClaim.AccessMode.RWO,
+        volume_mode=PersistentVolumeClaim.VolumeMode.FILE,
+        size="10Gi",
+    ) as pvc:
+        yield pvc
+
+
 @pytest.fixture(scope="session")
 def trustyai_operator_configmap(
     admin_client: DynamicClient,

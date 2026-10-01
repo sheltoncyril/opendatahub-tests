@@ -31,36 +31,46 @@ from model_registry.types import RegisteredModel
 from model_registry import ModelRegistry as ModelRegistryClient
 
 from utilities.infra import create_ns
-from utilities.constants import OCIRegistry, MinIo, Protocols, Labels, ApiGroups
+from utilities.constants import OCIRegistry, MinIo, SeaweedFs, Protocols, Labels, ApiGroups
 from utilities.general import b64_encoded_string
-from tests.ai_hub.async_job.utils import upload_test_model_to_minio_from_image
+from tests.ai_hub.async_job.utils import upload_test_model_to_s3_from_image
 from tests.ai_hub.utils import get_mr_service_by_label, get_endpoint_from_mr_service
 from tests.ai_hub.async_job.constants import REPO_NAME
 from utilities.general import get_s3_secret_dict
 
 
 @pytest.fixture(scope="class")
+def s3_config(seaweedfs_service: Service) -> dict[str, str | Service]:
+    """Provide SeaweedFS connection details to S3-backed test resources."""
+    return {
+        "service": seaweedfs_service,
+        "port": str(SeaweedFs.Metadata.DEFAULT_PORT),
+        "access_key": SeaweedFs.Credentials.ACCESS_KEY_VALUE,
+        "secret_key": SeaweedFs.Credentials.SECRET_KEY_VALUE,
+        "bucket": SeaweedFs.Buckets.MODELMESH_EXAMPLE_MODELS,
+    }
+
+
+@pytest.fixture(scope="class")
 def s3_secret_for_async_job(
     admin_client: DynamicClient,
     service_account: ServiceAccount,
-    minio_service: Service,
+    seaweedfs_service: Service,
 ) -> Generator[Secret, Any, Any]:
     """Create S3 data connection for async upload job"""
-    # Construct MinIO endpoint from service
-    minio_endpoint = (
-        f"http://{minio_service.name}.{minio_service.namespace}.svc.cluster.local:{MinIo.Metadata.DEFAULT_PORT}"
-    )
+    s3_host = f"{seaweedfs_service.name}.{seaweedfs_service.namespace}.svc.cluster.local"
+    s3_endpoint = f"http://{s3_host}:{SeaweedFs.Metadata.DEFAULT_PORT}"
 
     with Secret(
         client=admin_client,
         name=f"async-job-s3-connection-{shortuuid.uuid().lower()}",
         namespace=service_account.namespace,
         data_dict=get_s3_secret_dict(
-            aws_access_key=MinIo.Credentials.ACCESS_KEY_VALUE,
-            aws_secret_access_key=MinIo.Credentials.SECRET_KEY_VALUE,
-            aws_s3_bucket=MinIo.Buckets.MODELMESH_EXAMPLE_MODELS,
-            aws_s3_endpoint=minio_endpoint,
-            aws_default_region="us-east-1",  # Default region for MinIO
+            aws_access_key=SeaweedFs.Credentials.ACCESS_KEY_VALUE,
+            aws_secret_access_key=SeaweedFs.Credentials.SECRET_KEY_VALUE,
+            aws_s3_bucket=SeaweedFs.Buckets.MODELMESH_EXAMPLE_MODELS,
+            aws_s3_endpoint=s3_endpoint,
+            aws_default_region="us-east-1",
         ),
         label={
             Labels.OpenDataHub.DASHBOARD: "true",
@@ -273,6 +283,82 @@ def oci_namespace(admin_client: DynamicClient) -> Generator[Namespace, Any, Any]
 
 
 @pytest.fixture(scope="class")
+def oci_registry_pod_with_s3(
+    request: FixtureRequest,
+    admin_client: DynamicClient,
+    oci_namespace: Namespace,
+    s3_config: dict[str, str | Service],
+) -> Generator[Pod, Any, Any]:
+    fixture_config = getattr(request, "param", {})
+    s3_service = s3_config["service"]
+    pod_labels = {Labels.Openshift.APP: OCIRegistry.Metadata.NAME}
+
+    if labels := fixture_config.get("labels"):
+        pod_labels.update(labels)
+
+    s3_fqdn = f"{s3_service.name}.{s3_service.namespace}.svc.cluster.local"
+    s3_endpoint = f"{s3_fqdn}:{s3_config['port']}"
+
+    with Pod(
+        client=admin_client,
+        name=OCIRegistry.Metadata.NAME,
+        namespace=oci_namespace.name,
+        containers=[
+            {
+                "args": fixture_config.get("args"),
+                "env": [
+                    {"name": "ZOT_STORAGE_STORAGEDRIVER_NAME", "value": OCIRegistry.Storage.STORAGE_DRIVER},
+                    {
+                        "name": "ZOT_STORAGE_STORAGEDRIVER_ROOTDIRECTORY",
+                        "value": OCIRegistry.Storage.STORAGE_DRIVER_ROOT_DIRECTORY,
+                    },
+                    {"name": "ZOT_STORAGE_STORAGEDRIVER_BUCKET", "value": s3_config["bucket"]},
+                    {"name": "ZOT_STORAGE_STORAGEDRIVER_REGION", "value": OCIRegistry.Storage.STORAGE_DRIVER_REGION},
+                    {"name": "ZOT_STORAGE_STORAGEDRIVER_REGIONENDPOINT", "value": f"http://{s3_endpoint}"},
+                    {"name": "ZOT_STORAGE_STORAGEDRIVER_ACCESSKEY", "value": s3_config["access_key"]},
+                    {"name": "ZOT_STORAGE_STORAGEDRIVER_SECRETKEY", "value": s3_config["secret_key"]},
+                    {
+                        "name": "ZOT_STORAGE_STORAGEDRIVER_SECURE",
+                        "value": OCIRegistry.Storage.STORAGE_STORAGEDRIVER_SECURE,
+                    },
+                    {
+                        "name": "ZOT_STORAGE_STORAGEDRIVER_FORCEPATHSTYLE",
+                        "value": OCIRegistry.Storage.STORAGE_STORAGEDRIVER_FORCEPATHSTYLE,
+                    },
+                    {"name": "ZOT_HTTP_ADDRESS", "value": OCIRegistry.Metadata.DEFAULT_HTTP_ADDRESS},
+                    {"name": "ZOT_HTTP_PORT", "value": str(OCIRegistry.Metadata.DEFAULT_PORT)},
+                    {"name": "ZOT_LOG_LEVEL", "value": "info"},
+                ],
+                "image": fixture_config.get("image", OCIRegistry.PodConfig.REGISTRY_IMAGE),
+                "name": OCIRegistry.Metadata.NAME,
+                "securityContext": {
+                    "allowPrivilegeEscalation": False,
+                    "capabilities": {"drop": ["ALL"]},
+                    "runAsNonRoot": True,
+                    "seccompProfile": {"type": "RuntimeDefault"},
+                },
+                "volumeMounts": [
+                    {
+                        "name": "zot-data",
+                        "mountPath": "/var/lib/registry",
+                    }
+                ],
+            }
+        ],
+        volumes=[
+            {
+                "name": "zot-data",
+                "emptyDir": {},
+            }
+        ],
+        label=pod_labels,
+        annotations=fixture_config.get("annotations"),
+    ) as oci_pod:
+        oci_pod.wait_for_condition(condition="Ready", status="True")
+        yield oci_pod
+
+
+@pytest.fixture(scope="class")
 def oci_registry_pod_with_minio(
     request: FixtureRequest,
     admin_client: DynamicClient,
@@ -386,16 +472,16 @@ def oci_registry_host(oci_registry_route: Route) -> str:
 
 
 @pytest.fixture(scope="class")
-def create_test_data_in_minio_from_image(
-    minio_service: Service,
+def create_test_data_in_s3_from_image(
+    seaweedfs_service: Service,
     admin_client: DynamicClient,
     model_registry_namespace: str,
 ) -> None:
-    """Extract and upload test model from KSERVE_MINIO_IMAGE to MinIO"""
-    upload_test_model_to_minio_from_image(
+    """Extract and upload test model from the model image to SeaweedFS."""
+    upload_test_model_to_s3_from_image(
         admin_client=admin_client,
         namespace=model_registry_namespace,
-        minio_service=minio_service,
+        s3_service=seaweedfs_service,
         object_key="my-model/model.onnx",
     )
 
