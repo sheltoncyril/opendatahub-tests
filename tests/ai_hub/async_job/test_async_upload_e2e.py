@@ -13,6 +13,7 @@ from tests.ai_hub.async_job.utils import (
     pull_manifest_from_oci_registry,
 )
 from tests.ai_hub.constants import MODEL_DICT
+from utilities.constants import MinIo, OCIRegistry
 from model_registry import ModelRegistry as ModelRegistryClient
 from simple_logger.logger import get_logger
 from tests.ai_hub.async_job.constants import MODEL_SYNC_CONFIG, REPO_NAME, TAG
@@ -28,15 +29,25 @@ MODEL_DATA = {
 }
 
 
+@pytest.mark.parametrize(
+    "minio_pod, oci_registry_pod_with_minio",
+    [
+        pytest.param(
+            MinIo.PodConfig.MODEL_REGISTRY_MINIO_CONFIG,
+            OCIRegistry.PodConfig.REGISTRY_BASE_CONFIG,
+        )
+    ],
+    indirect=True,
+)
 @pytest.mark.usefixtures(
     "updated_dsc_component_state_scope_session",
     "model_registry_namespace",
     "model_registry_metadata_db_resources",
-    "seaweedfs_pod",
-    "create_test_data_in_s3_from_image",
+    "minio_pod",
+    "create_test_data_in_minio_from_image",
     "s3_secret_for_async_job",
     "oci_secret_for_async_job",
-    "oci_registry_pod_with_s3",
+    "oci_registry_pod_with_minio",
     "registered_model_from_image",
 )
 @pytest.mark.custom_namespace
@@ -49,7 +60,7 @@ MODEL_DATA = {
 )
 @pytest.mark.downstream_only
 class TestAsyncUploadE2E:
-    """RHOAIENG-32501: Test for async upload job with real SeaweedFS, OCI registry, Connection Secrets and Model Registry"""  # noqa: E501
+    """RHOAIENG-32501: Test for async upload job with real MinIO, OCI registry, Connection Secrets and Model Registry"""
 
     @pytest.mark.dependency(name="job_creation_and_pod_spawning")
     def test_job_creation_and_pod_spawning(

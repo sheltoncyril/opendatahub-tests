@@ -592,8 +592,7 @@ def seaweedfs_pod(
         '[ "$attempt" -eq 60 ] && exit 1; sleep 2; '
         "done; "
         'echo "s3.configure -user admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" '
-        "| /usr/bin/weed shell && "
-        f"echo 's3.bucket.create -name {SeaweedFs.Buckets.MODELMESH_EXAMPLE_MODELS}' | /usr/bin/weed shell"
+        "| /usr/bin/weed shell"
     )
     with Pod(
         client=admin_client,
