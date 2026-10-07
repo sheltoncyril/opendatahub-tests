@@ -586,13 +586,17 @@ def seaweedfs_pod(
     if labels := fixture_config.get("labels"):
         pod_labels.update(labels)
 
+    bucket_creation_commands = "".join(
+        f' && echo "s3.bucket.create -name {bucket}" | /usr/bin/weed shell'
+        for bucket in fixture_config.get("buckets", [])
+    )
     initialization_command = (
         "for attempt in $(seq 1 60); do "
         "wget -q --spider http://127.0.0.1:8333/status && break; "
         '[ "$attempt" -eq 60 ] && exit 1; sleep 2; '
         "done; "
         'echo "s3.configure -user admin -access_key $accesskey -secret_key $secretkey -actions Admin -apply" '
-        "| /usr/bin/weed shell"
+        "| /usr/bin/weed shell" + bucket_creation_commands
     )
     with Pod(
         client=admin_client,
