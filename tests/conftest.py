@@ -72,7 +72,6 @@ from utilities.infra import (
 )
 from utilities.logger import RedactedString
 from utilities.mariadb_utils import wait_for_mariadb_operator_deployments
-from utilities.minio import create_minio_data_connection_secret
 from utilities.openshell_utils import get_cluster_apps_domain, wait_for_openshell_gateway_pod
 from utilities.operator_utils import get_cluster_service_version, get_csv_related_images
 from utilities.serving_runtime import get_runtime_image_from_template
@@ -719,22 +718,6 @@ def minio_service(admin_client: DynamicClient, minio_namespace: Namespace) -> Ge
         session_affinity="ClientIP",
     ) as minio_service:
         yield minio_service
-
-
-@pytest.fixture(scope="class")
-def minio_data_connection(
-    request: FixtureRequest,
-    admin_client: DynamicClient,
-    model_namespace: Namespace,
-    minio_service: Service,
-) -> Generator[Secret, Any, Any]:
-    with create_minio_data_connection_secret(
-        minio_service=minio_service,
-        model_namespace=model_namespace.name,
-        aws_s3_bucket=request.param["bucket"],
-        client=admin_client,
-    ) as secret:
-        yield secret
 
 
 # SeaweedFS
