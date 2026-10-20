@@ -168,13 +168,37 @@ def oci_credentials_secret(
 
 
 @pytest.fixture(scope="class")
+def oci_registry_seaweedfs_secret(
+    admin_client: DynamicClient,
+    oci_namespace: Namespace,
+    seaweedfs_service: Service,
+) -> Generator[Secret, Any, Any]:
+    """SeaweedFS storage credentials in the OCI registry namespace."""
+    seaweedfs_fqdn = f"{seaweedfs_service.name}.{seaweedfs_service.namespace}.svc.cluster.local"
+    with Secret(
+        client=admin_client,
+        name="oci-registry-seaweedfs-credentials",
+        namespace=oci_namespace.name,
+        data_dict=get_s3_secret_dict(
+            aws_access_key=SeaweedFs.Credentials.ACCESS_KEY_VALUE,
+            aws_secret_access_key=SeaweedFs.Credentials.SECRET_KEY_VALUE,
+            aws_s3_bucket=SeaweedFs.Buckets.MODELMESH_EXAMPLE_MODELS,
+            aws_s3_endpoint=f"http://{seaweedfs_fqdn}:{SeaweedFs.Metadata.DEFAULT_PORT}",
+            aws_default_region=OCIRegistry.Storage.STORAGE_DRIVER_REGION,
+        ),
+    ) as secret:
+        yield secret
+
+
+@pytest.fixture(scope="class")
 def oci_registry_pod_with_seaweedfs(
     request: FixtureRequest,
     admin_client: DynamicClient,
     oci_namespace: Namespace,
     seaweedfs_service: Service,
+    oci_registry_seaweedfs_secret: Secret,
 ) -> Generator[Pod, Any, Any]:
-    """OCI registry (zot) backed by the shared SeaweedFS S3 API, used in place of oci_registry_pod_with_minio."""
+    """OCI registry (zot) backed by the shared SeaweedFS S3 API, with credentials supplied by a Secret."""
     fixture_config = getattr(request, "param", {})
     pod_labels = {Labels.Openshift.APP: OCIRegistry.Metadata.NAME}
 
@@ -203,8 +227,21 @@ def oci_registry_pod_with_seaweedfs(
                     },
                     {"name": "ZOT_STORAGE_STORAGEDRIVER_REGION", "value": OCIRegistry.Storage.STORAGE_DRIVER_REGION},
                     {"name": "ZOT_STORAGE_STORAGEDRIVER_REGIONENDPOINT", "value": f"http://{seaweedfs_endpoint}"},
-                    {"name": "ZOT_STORAGE_STORAGEDRIVER_ACCESSKEY", "value": SeaweedFs.Credentials.ACCESS_KEY_VALUE},
-                    {"name": "ZOT_STORAGE_STORAGEDRIVER_SECRETKEY", "value": SeaweedFs.Credentials.SECRET_KEY_VALUE},
+                    {
+                        "name": "ZOT_STORAGE_STORAGEDRIVER_ACCESSKEY",
+                        "valueFrom": {
+                            "secretKeyRef": {"name": oci_registry_seaweedfs_secret.name, "key": "AWS_ACCESS_KEY_ID"},
+                        },
+                    },
+                    {
+                        "name": "ZOT_STORAGE_STORAGEDRIVER_SECRETKEY",
+                        "valueFrom": {
+                            "secretKeyRef": {
+                                "name": oci_registry_seaweedfs_secret.name,
+                                "key": "AWS_SECRET_ACCESS_KEY",
+                            },
+                        },
+                    },
                     {
                         "name": "ZOT_STORAGE_STORAGEDRIVER_SECURE",
                         "value": OCIRegistry.Storage.STORAGE_STORAGEDRIVER_SECURE,
@@ -533,8 +570,8 @@ def lmeval_seaweedfs_copy_pod(
                 "command": ["/bin/sh", "-c"],
                 "args": [
                     (
-                        f"/usr/bin/weed filer.copy /shared/datasets/ {seaweedfs_filer_endpoint}/datasets/ && "
-                        f"/usr/bin/weed filer.copy /shared/flan/ {seaweedfs_filer_endpoint}/flan/"
+                        f"/usr/bin/weed filer.copy /shared/datasets/ {seaweedfs_filer_endpoint}/ && "
+                        f"/usr/bin/weed filer.copy /shared/flan/ {seaweedfs_filer_endpoint}/"
                     ),
                 ],
                 "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
