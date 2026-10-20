@@ -598,7 +598,7 @@ def seaweedfs_deployment_otel(
             name=SeaweedFs.Metadata.NAME,
             namespace=model_namespace.name,
         )
-        deployment.wait_for_replicas()
+        deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
         yield deployment
         if teardown_resources:
             deployment.clean_up()
@@ -617,6 +617,9 @@ def seaweedfs_deployment_otel(
         pod_template = {
             "metadata": {"labels": {"app.kubernetes.io/name": SeaweedFs.Metadata.NAME}},
             "spec": {
+                # Let OpenShift assign the namespace-approved supplemental group.
+                # A fixed fsGroup is rejected by restricted SCCs on some clusters.
+                "securityContext": {"hostUsers": False, "seccompProfile": {"type": "RuntimeDefault"}},
                 "containers": [
                     {
                         "name": SeaweedFs.Metadata.NAME,
@@ -651,7 +654,7 @@ def seaweedfs_deployment_otel(
         )
 
         with deployment:
-            deployment.wait_for_replicas()
+            deployment.wait_for_replicas(timeout=Timeout.TIMEOUT_5MIN)
             yield deployment
 
 
