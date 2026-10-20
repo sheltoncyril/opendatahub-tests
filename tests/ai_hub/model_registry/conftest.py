@@ -37,11 +37,6 @@ LOGGER = structlog.get_logger(name=__name__)
 DEFAULT_TOKEN_DURATION = "10m"
 
 
-# seaweedfs_namespace, seaweedfs_filer_config, seaweedfs_pod, and seaweedfs_service are
-# shared, class-scoped fixtures defined in tests/conftest.py. They are also consumed by
-# tests/ai_safety, so they must not be duplicated here.
-
-
 @pytest.fixture(scope="class")
 def model_registry_instance_rest_endpoint(admin_client: DynamicClient, model_registry_instance) -> list[str]:
     """

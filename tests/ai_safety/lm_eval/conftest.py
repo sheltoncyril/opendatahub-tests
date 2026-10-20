@@ -559,10 +559,10 @@ def lmeval_seaweedfs_copy_pod(
                 "args": [
                     "/usr/bin/weed filer.copy /shared/datasets/ "
                     f"http://{seaweedfs_service.name}.{seaweedfs_service.namespace}.svc.cluster.local:"
-                    f"{SeaweedFs.Metadata.FILER_PORT}/buckets/models/datasets/ && "
+                    f"{SeaweedFs.Metadata.FILER_PORT}/buckets/models/ && "
                     "/usr/bin/weed filer.copy /shared/flan/ "
                     f"http://{seaweedfs_service.name}.{seaweedfs_service.namespace}.svc.cluster.local:"
-                    f"{SeaweedFs.Metadata.FILER_PORT}/buckets/models/flan/"
+                    f"{SeaweedFs.Metadata.FILER_PORT}/buckets/models/"
                 ],
                 "volumeMounts": [{"name": "shared-data", "mountPath": "/shared"}],
                 "securityContext": {
