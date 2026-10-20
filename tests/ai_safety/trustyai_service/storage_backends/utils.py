@@ -280,6 +280,7 @@ def create_storage_backend_service(
     ca_secret_name: str | None = None,
     ca_mount_path: str | None = None,
     data_volume_mount_path: str | None = None,
+    config_map_name: str | None = None,
     wait_for_ready: bool = True,
     teardown: bool = True,
 ) -> Generator[Deployment, Any, Any]:
@@ -295,6 +296,8 @@ def create_storage_backend_service(
         ca_secret_name: Secret holding `ca.crt` for the database CA.
         ca_mount_path: Directory to mount `ca_secret_name` at.
         data_volume_mount_path: Directory backed by an emptyDir, for file-backed SQLite.
+        config_map_name: ConfigMap injected with `envFrom`, the way the operator will deliver
+            non-secret DB settings. Literal `env` entries take precedence over it.
         wait_for_ready: Wait for the pod to report Ready. Set False when the test
             expects the service to fail its startup checks.
         teardown: Whether to delete the resources on exit.
@@ -330,6 +333,7 @@ def create_storage_backend_service(
                     "image": image,
                     "imagePullPolicy": "IfNotPresent",
                     "env": _service_container_env(env=env, db_credentials_secret_name=db_credentials_secret_name),
+                    **({"envFrom": [{"configMapRef": {"name": config_map_name}}]} if config_map_name else {}),
                     "ports": [
                         {"containerPort": SERVICE_TLS_PORT, "protocol": "TCP", "name": "https"},
                         {"containerPort": SERVICE_HEALTH_PORT, "protocol": "TCP", "name": "health"},
@@ -400,6 +404,28 @@ def create_storage_backend_service(
             deployment.wait_for_replicas(deployed=True, timeout=600)
             wait_for_deployment_pods_ready(client=client, namespace=namespace_name, label_selector=f"name={name}")
         yield deployment
+
+
+def run_python_in_service_pod(client: DynamicClient, namespace: str, name: str, code: str) -> dict[str, Any]:
+    """Run `code` in the service container and return the JSON object it prints last.
+
+    The process inherits the container env (including `envFrom`), so a probe that builds
+    the storage interface sees exactly the settings the running service was given. Service
+    modules may log to stdout on import, so only the final line is parsed.
+
+    Args:
+        client: Kubernetes dynamic client.
+        namespace: Namespace of the service.
+        name: Deployment name, also the `name` pod label.
+        code: Python source that prints one JSON object as its last line.
+
+    Returns:
+        dict[str, Any]: The decoded JSON object.
+    """
+    pods = list(Pod.get(client=client, namespace=namespace, label_selector=f"name={name}"))
+    assert pods, f"No pod found for deployment {name}"
+    output = pods[0].execute(command=["python", "-c", code], container="trustyai-service").strip()
+    return json.loads(output.splitlines()[-1])
 
 
 def get_pod_logs(client: DynamicClient, namespace: str, label_selector: str) -> str:

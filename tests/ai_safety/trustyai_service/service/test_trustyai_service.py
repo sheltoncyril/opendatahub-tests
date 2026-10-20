@@ -5,10 +5,7 @@ from kubernetes.dynamic import DynamicClient
 from ocp_resources.custom_resource_definition import CustomResourceDefinition
 from ocp_resources.deployment import Deployment
 from ocp_resources.namespace import Namespace
-<<<<<<< HEAD
-=======
 from ocp_resources.resource import ResourceEditor
->>>>>>> 2d47277b (test: fix TrustyAI SQL backend coverage)
 from ocp_resources.route import Route
 from ocp_resources.trustyai_service import TrustyAIService
 from timeout_sampler import retry
@@ -36,7 +33,6 @@ logger = structlog.get_logger(name=__name__)
 
 
 @retry(wait_timeout=60, sleep=5)
-<<<<<<< HEAD
 def _wait_for_route_ready(admin_client: DynamicClient, trustyai_service: TrustyAIService, token: str) -> bool:
     route = Route(
         client=admin_client,
@@ -44,10 +40,6 @@ def _wait_for_route_ready(admin_client: DynamicClient, trustyai_service: TrustyA
         namespace=trustyai_service.namespace,
         ensure_exists=True,
     )
-=======
-def _wait_for_route_ready(client: DynamicClient, trustyai_service: TrustyAIService, token: str) -> bool:
-    route = Route(client=client, namespace=trustyai_service.namespace, name=TRUSTYAI_SERVICE_NAME, ensure_exists=True)
->>>>>>> 2d47277b (test: fix TrustyAI SQL backend coverage)
     url = f"https://{route.instance.spec.host}/q/health"
     response = requests.get(url, headers={"Authorization": f"Bearer {token}"}, verify=False, timeout=10)
     content_type = response.headers.get("Content-Type", "")
@@ -240,11 +232,7 @@ def test_trustyai_service_db_migration(
     trustyai_deployment.wait_for_replicas()
 
     _wait_for_route_ready(
-<<<<<<< HEAD
         admin_client=admin_client,
-=======
-        client=admin_client,
->>>>>>> 2d47277b (test: fix TrustyAI SQL backend coverage)
         trustyai_service=trustyai_db_migration_patched_service,
         token=current_client_token,
     )

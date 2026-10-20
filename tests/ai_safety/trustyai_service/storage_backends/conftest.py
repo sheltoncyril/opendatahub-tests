@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 import structlog
 from kubernetes.dynamic import DynamicClient
+from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
 from ocp_resources.namespace import Namespace
 from ocp_resources.secret import Secret
@@ -137,6 +138,7 @@ def deploy_storage_service(
         ca_secret_name: str | None = None,
         ca_mount_path: str | None = None,
         data_volume_mount_path: str | None = None,
+        config_map_name: str | None = None,
         wait_for_ready: bool = True,
     ) -> Generator[Deployment, Any, Any]:
         with create_storage_backend_service(
@@ -149,10 +151,33 @@ def deploy_storage_service(
             ca_secret_name=ca_secret_name,
             ca_mount_path=ca_mount_path,
             data_volume_mount_path=data_volume_mount_path,
+            config_map_name=config_map_name,
             wait_for_ready=wait_for_ready,
             teardown=teardown_resources,
         ) as deployment:
             yield deployment
+
+    return _deploy
+
+
+@pytest.fixture(scope="class")
+def deploy_db_config_map(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    teardown_resources: bool,
+) -> Callable[..., Any]:
+    """Factory for the non-secret DB settings ConfigMap the service consumes via `envFrom`."""
+
+    @contextmanager
+    def _deploy(name: str, data: dict[str, str]) -> Generator[ConfigMap, Any, Any]:
+        with ConfigMap(
+            client=admin_client,
+            name=name,
+            namespace=model_namespace.name,
+            data=data,
+            teardown=teardown_resources,
+        ) as config_map:
+            yield config_map
 
     return _deploy
 
