@@ -1,11 +1,14 @@
 """SQL tuning ConfigMaps on TrustyAI services created through their CR."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager
 from http import HTTPStatus
+from typing import Any
 
 import pytest
 import structlog
 from kubernetes.dynamic import DynamicClient
+from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
 from ocp_resources.namespace import Namespace
 from ocp_resources.secret import Secret
@@ -114,10 +117,10 @@ class TestPostgresSettingsFromConfigMap:
         model_namespace: Namespace,
         postgres_db: Deployment,
         postgres_db_credentials_secret: Secret,
-        postgres_service_ca_secret,
-        deploy_db_config_map: Callable[..., object],
+        postgres_service_ca_secret: Callable[[str], AbstractContextManager[Secret]],
+        deploy_db_config_map: Callable[..., AbstractContextManager[ConfigMap]],
         teardown_resources: bool,
-    ):
+    ) -> Generator[Deployment, Any, Any]:
         """CR-created PostgreSQL service whose SQL tuning comes from its ConfigMap reference."""
         with (
             postgres_service_ca_secret(CONFIGURED_DEPLOYMENT),
@@ -271,8 +274,8 @@ class TestInvalidSettingsFailFast:
         model_namespace: Namespace,
         postgres_db: Deployment,
         postgres_db_credentials_secret: Secret,
-        postgres_service_ca_secret,
-        deploy_db_config_map: Callable[..., object],
+        postgres_service_ca_secret: Callable[[str], AbstractContextManager[Secret]],
+        deploy_db_config_map: Callable[..., AbstractContextManager[ConfigMap]],
         teardown_resources: bool,
         case_id: str,
         config: dict[str, str],
@@ -332,9 +335,9 @@ class TestSqlitePragmasFromConfigMap:
         admin_client: DynamicClient,
         model_namespace: Namespace,
         sqlite_credentials_secret: Secret,
-        deploy_db_config_map: Callable[..., object],
+        deploy_db_config_map: Callable[..., AbstractContextManager[ConfigMap]],
         teardown_resources: bool,
-    ):
+    ) -> Generator[Deployment, Any, Any]:
         """CR-created SQLite service whose pragmas come from its tuning ConfigMap."""
         with (
             deploy_db_config_map(

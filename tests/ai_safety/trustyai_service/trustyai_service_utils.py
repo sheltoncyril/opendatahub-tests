@@ -268,7 +268,10 @@ class TrustyAIServiceClient:
 
 
 def get_num_observations_from_trustyai_service(
-    client: DynamicClient, token: str, trustyai_service: TrustyAIService
+    client: DynamicClient,
+    token: str,
+    trustyai_service: TrustyAIService,
+    model_name: str | None = None,
 ) -> int:
     """Gets the number of observations that TrustyAIService has stored for a given model.
 
@@ -276,6 +279,7 @@ def get_num_observations_from_trustyai_service(
         client (DynamicClient): Dynamic client instance.
         token (str): Authentication token.
         trustyai_service (TrustyAIService): TrustyAI service instance.
+        model_name (str | None): Model whose observation count should be returned. When omitted, use the first model.
 
     Returns:
         int: Number of observations, 0 if no metadata found.
@@ -296,7 +300,7 @@ def get_num_observations_from_trustyai_service(
         if not metadata_json:
             return 0
 
-        model_key: str = next(iter(metadata_json))
+        model_key: str = model_name if model_name is not None else next(iter(metadata_json))
         model = metadata_json.get(model_key)
         if not model:
             raise KeyError(f"Model data not found for key: {model_key}")

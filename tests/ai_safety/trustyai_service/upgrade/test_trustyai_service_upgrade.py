@@ -8,6 +8,7 @@ from tests.ai_safety.trustyai_service.service.utils import (
 )
 from tests.ai_safety.trustyai_service.trustyai_service_utils import (
     TrustyAIServiceMetrics,
+    get_num_observations_from_trustyai_service,
     send_inferences_and_verify_trustyai_service_registered,
     verify_trustyai_service_metric_delete_request,
     verify_trustyai_service_metric_registered_post_upgrade,
@@ -162,6 +163,13 @@ class TestPostUpgradeTrustyAIService:
         Returns:
             None
         """
+        expected_observations = get_num_observations_from_trustyai_service(
+            client=admin_client,
+            token=current_client_token,
+            trustyai_service=trustyai_service,
+            model_name="gaussian-credit-model",
+        )
+        assert expected_observations > 0, "Training observations were not present before database migration"
         trustyai_db_migration_patched_service = patch_trustyai_service_cr(
             trustyai_service=trustyai_service, patches=TRUSTYAI_DB_MIGRATION_PATCH
         )
@@ -169,6 +177,17 @@ class TestPostUpgradeTrustyAIService:
         wait_for_trustyai_db_migration_complete_log(
             client=admin_client,
             trustyai_service=trustyai_db_migration_patched_service,
+        )
+
+        migrated_observations = get_num_observations_from_trustyai_service(
+            client=admin_client,
+            token=current_client_token,
+            trustyai_service=trustyai_db_migration_patched_service,
+            model_name="gaussian-credit-model",
+        )
+        assert migrated_observations == expected_observations, (
+            "Database migration changed the gaussian-credit-model observation count: "
+            f"expected {expected_observations}, got {migrated_observations}"
         )
 
         @retry(wait_timeout=30, sleep=5)

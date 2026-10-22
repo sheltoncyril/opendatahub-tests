@@ -1,7 +1,7 @@
 """Fixtures for SQL storage tests using the operator-managed TrustyAIService CR."""
 
 from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from typing import Any
 
 import pytest
@@ -79,7 +79,7 @@ def postgres_service_ca_secret(
     model_namespace: Namespace,
     postgres_db: Deployment,
     teardown_resources: bool,
-) -> Callable[[str], Any]:
+) -> Callable[[str], AbstractContextManager[Secret]]:
     """Factory for a DB CA Secret named as the TrustyAIService operator expects."""
 
     @contextmanager
@@ -116,7 +116,7 @@ def deploy_db_config_map(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     teardown_resources: bool,
-) -> Callable[..., Any]:
+) -> Callable[..., AbstractContextManager[ConfigMap]]:
     """Factory for test-provided non-secret SQL settings."""
 
     @contextmanager
