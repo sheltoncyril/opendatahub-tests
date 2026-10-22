@@ -11,7 +11,6 @@ from kubernetes.dynamic import DynamicClient
 from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
 from ocp_resources.pod import Pod
-from ocp_resources.resource import ResourceEditor
 from ocp_resources.route import Route
 from ocp_resources.secret import Secret
 from ocp_resources.service import Service
@@ -225,10 +224,7 @@ def wait_for_deployment_unready(
         deployment = Deployment(client=client, namespace=namespace, name=name, ensure_exists=True)
         return not deployment.instance.status.get("readyReplicas")
 
-    for sample in TimeoutSampler(wait_timeout=timeout, sleep=5, func=_no_ready_replicas):
-        if sample:
-            return True
-    return False
+    return any(TimeoutSampler(wait_timeout=timeout, sleep=5, func=_no_ready_replicas))
 
 
 def patch_service_deployment(
@@ -244,7 +240,12 @@ def patch_service_deployment(
     if config_map_name:
         container_patch["envFrom"] = [{"configMapRef": {"name": config_map_name}}]
     patch = {"spec": {"template": {"spec": {"containers": [container_patch]}}}}
-    ResourceEditor(patches={deployment: patch}).update()
+    deployment.api.patch(
+        body=patch,
+        name=deployment.name,
+        namespace=deployment.namespace,
+        content_type="application/strategic-merge-patch+json",
+    )
     if wait_for_replicas:
         deployment.wait_for_replicas(deployed=True, timeout=600)
 

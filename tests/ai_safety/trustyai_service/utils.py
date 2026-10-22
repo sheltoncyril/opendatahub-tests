@@ -306,11 +306,6 @@ def create_standalone_mariadb(
             yield deployment
 
 
-@retry(
-    wait_timeout=120,
-    sleep=5,
-    exceptions_dict={TooManyPodsError: [], UnexpectedFailureError: []},
-)
 def _trustyai_service_reports_db_connection_error(trustyai_service: TrustyAIService) -> bool:
     """Return True when the TrustyAIService CR reports a database connection failure."""
     status = trustyai_service.instance.status or {}
@@ -329,6 +324,11 @@ def _pod_logs_show_mariadb_connection_failure(pod: Pod, mariadb_conn_failure_reg
     return bool(re.search(mariadb_conn_failure_regex, log_output, re.MULTILINE))
 
 
+@retry(
+    wait_timeout=120,
+    sleep=5,
+    exceptions_dict={TooManyPodsError: [], UnexpectedFailureError: []},
+)
 def validate_trustyai_service_db_conn_failure(
     client: DynamicClient,
     namespace: Namespace,

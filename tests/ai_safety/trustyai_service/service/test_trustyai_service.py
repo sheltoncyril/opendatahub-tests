@@ -20,6 +20,7 @@ from tests.ai_safety.trustyai_service.service.utils import (
 )
 from tests.ai_safety.trustyai_service.trustyai_service_utils import (
     TrustyAIServiceMetrics,
+    get_num_observations_from_trustyai_service,
     verify_trustyai_service_metric_scheduling_request,
     verify_upload_data_to_trustyai_service,
 )
@@ -27,6 +28,7 @@ from tests.ai_safety.trustyai_service.utils import (
     validate_trustyai_service_db_conn_failure,
     validate_trustyai_service_images,
 )
+from utilities.certificates_utils import create_ca_bundle_file
 from utilities.constants import TRUSTYAI_SERVICE_NAME
 
 logger = structlog.get_logger(name=__name__)
@@ -41,7 +43,12 @@ def _wait_for_route_ready(admin_client: DynamicClient, trustyai_service: TrustyA
         ensure_exists=True,
     )
     url = f"https://{route.instance.spec.host}/q/health"
-    response = requests.get(url, headers={"Authorization": f"Bearer {token}"}, verify=False, timeout=10)
+    response = requests.get(
+        url,
+        headers={"Authorization": f"Bearer {token}"},
+        verify=create_ca_bundle_file(client=admin_client),
+        timeout=10,
+    )
     content_type = response.headers.get("Content-Type", "")
     logger.info(f"Route readiness check: status={response.status_code}, content-type={content_type}")
     assert "application/json" in content_type, f"Route not ready, got content-type: {content_type}"
@@ -162,6 +169,13 @@ def test_trustyai_service_db_migration(
         token=current_client_token,
         data_path=f"{DRIFT_BASE_DATA_PATH}/training_data.json",
     )
+    expected_observations = get_num_observations_from_trustyai_service(
+        client=admin_client,
+        token=current_client_token,
+        trustyai_service=trustyai_service,
+        model_name="gaussian-credit-model",
+    )
+    assert expected_observations > 0, "Training observations were not present before database migration"
 
     trustyai_deployment = Deployment(
         client=admin_client,
@@ -235,6 +249,17 @@ def test_trustyai_service_db_migration(
         admin_client=admin_client,
         trustyai_service=trustyai_db_migration_patched_service,
         token=current_client_token,
+    )
+
+    migrated_observations = get_num_observations_from_trustyai_service(
+        client=admin_client,
+        token=current_client_token,
+        trustyai_service=trustyai_db_migration_patched_service,
+        model_name="gaussian-credit-model",
+    )
+    assert migrated_observations == expected_observations, (
+        "Database migration changed the gaussian-credit-model observation count: "
+        f"expected {expected_observations}, got {migrated_observations}"
     )
 
     verify_trustyai_service_metric_scheduling_request(
