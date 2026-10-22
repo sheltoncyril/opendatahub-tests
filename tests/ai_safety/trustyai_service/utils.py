@@ -315,13 +315,16 @@ def _trustyai_service_reports_db_connection_error(trustyai_service: TrustyAIServ
     return False
 
 
-def _pod_logs_show_mariadb_connection_failure(pod: Pod, mariadb_conn_failure_regex: str) -> bool:
-    """Return True when TrustyAI container logs report a MariaDB TLS/connection failure."""
-    try:
-        log_output = pod.log(container=TRUSTYAI_SERVICE_NAME)
-    except ApiException:
-        return False
-    return bool(re.search(mariadb_conn_failure_regex, log_output, re.MULTILINE))
+def _pod_logs_show_tls_verification_failure(pod: Pod, tls_verification_failure_regex: str) -> bool:
+    """Return True when TrustyAI container logs report a MariaDB TLS verification failure."""
+    for previous in (False, True):
+        try:
+            log_output = pod.log(container=TRUSTYAI_SERVICE_NAME, previous=previous)
+        except ApiException:
+            continue
+        if re.search(tls_verification_failure_regex, log_output, re.MULTILINE | re.IGNORECASE):
+            return True
+    return False
 
 
 @retry(
@@ -335,10 +338,10 @@ def validate_trustyai_service_db_conn_failure(
     label_selector: str | None,
     trustyai_service: TrustyAIService | None = None,
 ) -> bool:
-    """Validate that an invalid DB certificate prevents TrustyAI from using MariaDB.
+    """Validate that an invalid DB certificate leaves the TrustyAI container unready.
 
-    The service may either crash-loop with a MariaDB TLS error in pod logs or remain
-    degraded with a ``DBConnectionError`` status condition.
+    A ``DBConnectionError`` condition alone is insufficient because it can describe
+    operator provisioning failures unrelated to a TrustyAI TLS handshake.
 
     Args:
         client: The OpenShift client.
@@ -355,39 +358,31 @@ def validate_trustyai_service_db_conn_failure(
         UnexpectedFailureError: if the pod failure is different from the expected failure mode.
 
     """
-    if trustyai_service and _trustyai_service_reports_db_connection_error(trustyai_service=trustyai_service):
-        return True
-
     pods = list(Pod.get(client=client, namespace=namespace.name, label_selector=label_selector))
-    mariadb_conn_failure_regex = (
-        r".+ERROR.+Could not connect to mariadb:.+"
-        r"(PKIX path.*failed|SSL|socket|Connection refused)"
-    )
     if pods:
         if len(pods) > 1:
             raise TooManyPodsError("More than one pod found in TrustyAIService.")
         pod = pods[0]
-        for container_status in pod.instance.status.containerStatuses:
-            if container_status.name != TRUSTYAI_SERVICE_NAME:
-                continue
-            terminate_state = container_status.lastState.terminated if container_status.lastState else None
-            if terminate_state and terminate_state.reason in (
-                pod.Status.ERROR,
-                pod.Status.CRASH_LOOPBACK_OFF,
-            ):
-                failure_text = terminate_state.message or pod.log(container=TRUSTYAI_SERVICE_NAME)
-                if not re.search(mariadb_conn_failure_regex, failure_text, re.MULTILINE):
-                    raise UnexpectedFailureError(
-                        f"Service {TRUSTYAI_SERVICE_NAME} did not fail with a mariadb connection failure as expected."
-                        f"\nExpected format: {mariadb_conn_failure_regex}"
-                        f"\nGot: {failure_text!r}"
-                    )
-                return True
-            if _pod_logs_show_mariadb_connection_failure(
-                pod=pod,
-                mariadb_conn_failure_regex=mariadb_conn_failure_regex,
-            ):
-                return True
+        container_statuses = pod.instance.status.containerStatuses or []
+        service_status = next(
+            (status for status in container_statuses if status.name == TRUSTYAI_SERVICE_NAME),
+            None,
+        )
+        if service_status is None or service_status.ready:
+            return False
+
+        tls_verification_failure_regex = (
+            r"(PKIX path.*failed|certificate verify failed|certificate validation failed|"
+            r"self[- ]signed certificate|unable to get local issuer certificate)"
+        )
+        if _pod_logs_show_tls_verification_failure(
+            pod=pod,
+            tls_verification_failure_regex=tls_verification_failure_regex,
+        ):
+            return True
+
+        if trustyai_service and _trustyai_service_reports_db_connection_error(trustyai_service=trustyai_service):
+            LOGGER.info("TrustyAIService reports DBConnectionError, but no pod TLS verification failure is logged yet")
     return False
 
 

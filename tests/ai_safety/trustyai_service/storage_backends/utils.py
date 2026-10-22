@@ -182,7 +182,8 @@ def create_database_backed_trustyai_service(
         wait_for_replicas=wait_for_replicas,
         teardown=teardown,
     ) as service:
-        deployment = Deployment(client=client, namespace=namespace, name=name, ensure_exists=True)
+        deployment = Deployment(client=client, namespace=namespace, name=name)
+        deployment.wait(timeout=300)
         if wait_for_replicas:
             deployment.wait_for_replicas(deployed=True, timeout=600)
         yield service, deployment

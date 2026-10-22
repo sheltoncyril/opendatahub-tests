@@ -14,9 +14,9 @@ from tests.ai_safety.trustyai_service.storage_backends.constants import HEALTH_S
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
     StorageBackendClient,
     build_upload_payload,
+    deployment_pod_selector,
     wait_for_model_observations,
 )
-from utilities.constants import TRUSTYAI_SERVICE_NAME
 
 CONCURRENT_WRITERS: int = 8
 
@@ -61,7 +61,7 @@ class TestStorageHealthAndDurability:
         assert response.status_code == HTTPStatus.OK, f"Upload failed: {response.text}"
         wait_for_model_observations(storage_client=postgres_storage_client, model_name=model_name, expected=n_rows)
 
-        selector = f"app.kubernetes.io/instance={TRUSTYAI_SERVICE_NAME}"
+        selector = deployment_pod_selector(deployment=postgres_backed_service)
         pods = list(Pod.get(client=admin_client, namespace=model_namespace.name, label_selector=selector))
         assert pods, f"No operator-managed TrustyAI pod found with selector {selector}"
         pods[0].delete(wait=True)
