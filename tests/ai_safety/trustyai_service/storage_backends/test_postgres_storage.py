@@ -5,26 +5,44 @@ Every test here runs against a PostgreSQL deployment reached with
 the suite as a whole rather than by a single test.
 """
 
+import base64
 from http import HTTPStatus
 from typing import Any
 
 import pytest
 import structlog
 from ocp_resources.deployment import Deployment
+from ocp_resources.trustyai_service import TrustyAIService
 
 from tests.ai_safety.trustyai_service.storage_backends.constants import (
+    DATABASE_STORAGE_FORMAT,
+    ENV_DATABASE_KIND,
     ENV_STORAGE_FORMAT,
     HEALTH_STATUS_OK,
+    POSTGRES_DATABASE_KIND,
     STORAGE_CHECK_NAME,
-    STORAGE_FORMAT_POSTGRES,
 )
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
     StorageBackendClient,
     build_upload_payload,
+    run_python_in_service_pod,
     wait_for_model_observations,
 )
+from utilities.constants import TRUSTYAI_SERVICE_NAME
 
 LOGGER = structlog.get_logger(name=__name__)
+
+POSTGRES_SESSION_PROBE: str = """
+import json
+from sqlalchemy import text
+from trustyai_service.service.data.storage import get_storage_interface
+
+storage = get_storage_interface()
+with storage._engine.connect() as conn:
+    statement = text("select version(), current_database(), ssl from pg_stat_ssl where pid = pg_backend_pid()")
+    row = conn.execute(statement).one()
+print(json.dumps({"version": row[0], "database": row[1], "ssl": row[2]}))
+"""
 
 
 def _container_env(deployment: Deployment) -> dict[str, Any]:
@@ -47,12 +65,43 @@ class TestPostgresStorageBackend:
         self,
         postgres_backed_service: Deployment,
         postgres_storage_client: StorageBackendClient,
+        postgres_db_credentials_secret,
+        admin_client,
+        model_namespace,
     ) -> None:
-        """The deployment selects PostgreSQL and its storage readiness check passes."""
+        """The CR keeps DATABASE and its Secret selects the PostgreSQL implementation."""
         env = _container_env(deployment=postgres_backed_service)
-        assert env.get(ENV_STORAGE_FORMAT) == STORAGE_FORMAT_POSTGRES, (
-            f"Expected {ENV_STORAGE_FORMAT}={STORAGE_FORMAT_POSTGRES}, got {env.get(ENV_STORAGE_FORMAT)!r}"
+        assert env.get(ENV_STORAGE_FORMAT) == DATABASE_STORAGE_FORMAT, (
+            f"Expected {ENV_STORAGE_FORMAT}={DATABASE_STORAGE_FORMAT}, got {env.get(ENV_STORAGE_FORMAT)!r}"
         )
+        service = TrustyAIService(
+            client=admin_client,
+            namespace=model_namespace.name,
+            name=TRUSTYAI_SERVICE_NAME,
+            ensure_exists=True,
+        )
+        assert service.instance.spec.storage.format == DATABASE_STORAGE_FORMAT
+        assert service.instance.spec.storage.databaseConfigurations == postgres_db_credentials_secret.name
+
+        secret_kind = base64.b64decode(postgres_db_credentials_secret.instance.data["databaseKind"]).decode()
+        assert secret_kind == POSTGRES_DATABASE_KIND
+        kind_entry = next(
+            item
+            for item in postgres_backed_service.instance.spec.template.spec.containers[0].env
+            if item["name"] == ENV_DATABASE_KIND
+        )
+        assert kind_entry["valueFrom"]["secretKeyRef"]["name"] == postgres_db_credentials_secret.name
+        assert kind_entry["valueFrom"]["secretKeyRef"]["key"] == "databaseKind"
+
+        settings = run_python_in_service_pod(
+            client=admin_client,
+            namespace=model_namespace.name,
+            deployment=postgres_backed_service,
+            code=POSTGRES_SESSION_PROBE,
+        )
+        assert "PostgreSQL" in settings["version"], f"Expected a PostgreSQL server, got {settings}"
+        assert settings["database"] == "trustyai_db", f"Wrong database selected: {settings}"
+        assert settings["ssl"] is True, f"PostgreSQL connection did not use TLS: {settings}"
 
         response = postgres_storage_client.readiness()
         assert response.status_code == HTTPStatus.OK, f"Readiness probe failed: {response.text}"

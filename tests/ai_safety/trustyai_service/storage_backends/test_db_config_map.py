@@ -1,16 +1,4 @@
-"""DB settings delivered through a ConfigMap (`envFrom`) and validated by the service.
-
-The operator is expected to deliver the non-secret DB settings (connection pool and
-backend tuning) in a ConfigMap injected with `envFrom`, while credentials and the CA
-stay in Secrets. The service validates every key at startup and refuses to start on a
-bad value instead of silently falling back to a default. These tests cover that
-contract end to end: valid values reach the live database session, and invalid values
-keep the pod unready with an error that names the offending key.
-
-A ConfigMap edit never restarts a pod by itself (env is fixed at container start), so
-the fail-fast behaviour is what keeps a bad edit from replacing a working pod: the new
-pod never becomes ready and the old one keeps serving.
-"""
+"""SQL tuning ConfigMaps on TrustyAI services created through their CR."""
 
 from collections.abc import Callable
 from http import HTTPStatus
@@ -26,34 +14,34 @@ from tests.ai_safety.trustyai_service.storage_backends.constants import (
     ENV_APPLICATION_NAME,
     ENV_MAX_CONNECTIONS_BUDGET,
     ENV_MAX_OVERFLOW,
+    ENV_POOL_RECYCLE,
     ENV_POOL_SIZE,
+    ENV_POOL_TIMEOUT,
     ENV_SQLITE_BUSY_TIMEOUT_MS,
     ENV_SQLITE_CACHE_SIZE_KB,
     ENV_SQLITE_JOURNAL_MODE,
     ENV_SQLITE_PATH,
     ENV_SQLITE_SYNCHRONOUS,
     ENV_STATEMENT_TIMEOUT_MS,
-    ENV_STORAGE_FORMAT,
     ENV_SYNCHRONOUS_COMMIT,
-    SERVICE_DB_CA_MOUNT_PATH,
     SQLITE_DATA_FILE,
-    SQLITE_DATA_MOUNT_PATH,
-    STORAGE_FORMAT_POSTGRES,
-    STORAGE_FORMAT_SQLITE,
-    STORAGE_SERVICE_NAME,
 )
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
     StorageBackendClient,
     build_upload_payload,
+    create_database_backed_trustyai_service,
+    deployment_pod_selector,
+    patch_service_deployment,
     run_python_in_service_pod,
     wait_for_model_observations,
     wait_for_pod_log_message,
 )
+from utilities.constants import TRUSTYAI_SERVICE_NAME
 
 LOGGER = structlog.get_logger(name=__name__)
 
-CONFIGURED_DEPLOYMENT: str = f"{STORAGE_SERVICE_NAME}-cm"
-SQLITE_CONFIGURED_DEPLOYMENT: str = f"{STORAGE_SERVICE_NAME}-cm-sqlite"
+CONFIGURED_DEPLOYMENT: str = TRUSTYAI_SERVICE_NAME
+SQLITE_CONFIGURED_DEPLOYMENT: str = TRUSTYAI_SERVICE_NAME
 DB_CONFIG_MAP_NAME: str = "trustyai-db-config"
 
 # Values chosen to differ from every default so a silently ignored key is visible.
@@ -61,6 +49,10 @@ APPLICATION_NAME: str = "tas-db-config-test"
 STATEMENT_TIMEOUT_MS: str = "45000"
 POOL_SIZE: str = "3"
 MAX_OVERFLOW: str = "2"
+POOL_TIMEOUT: str = "13"
+POOL_RECYCLE: str = "111"
+MAX_CONNECTIONS_BUDGET: str = "5"
+SYNCHRONOUS_COMMIT: str = "off"
 
 # What a session's `SHOW statement_timeout` reports for 45000 ms.
 EXPECTED_STATEMENT_TIMEOUT: str = "45s"
@@ -81,6 +73,8 @@ with storage._engine.connect() as conn:
     }
 out["pool_size"] = storage._engine.pool.size()
 out["max_overflow"] = storage._engine.pool._max_overflow
+out["pool_timeout"] = storage._engine.pool._timeout
+out["pool_recycle"] = storage._engine.pool._recycle
 print(json.dumps(out))
 """
 
@@ -120,29 +114,34 @@ class TestPostgresSettingsFromConfigMap:
         model_namespace: Namespace,
         postgres_db: Deployment,
         postgres_db_credentials_secret: Secret,
-        postgres_db_ca_secret: Secret,
+        postgres_service_ca_secret,
         deploy_db_config_map: Callable[..., object],
-        deploy_storage_service: Callable[..., object],
+        teardown_resources: bool,
     ):
-        """Service on PostgreSQL whose tuning comes only from the ConfigMap."""
+        """CR-created PostgreSQL service whose SQL tuning comes from its ConfigMap reference."""
         with (
+            postgres_service_ca_secret(CONFIGURED_DEPLOYMENT),
             deploy_db_config_map(
                 name=DB_CONFIG_MAP_NAME,
                 data={
                     ENV_POOL_SIZE: POOL_SIZE,
                     ENV_MAX_OVERFLOW: MAX_OVERFLOW,
+                    ENV_POOL_TIMEOUT: POOL_TIMEOUT,
+                    ENV_POOL_RECYCLE: POOL_RECYCLE,
+                    ENV_MAX_CONNECTIONS_BUDGET: MAX_CONNECTIONS_BUDGET,
                     ENV_APPLICATION_NAME: APPLICATION_NAME,
                     ENV_STATEMENT_TIMEOUT_MS: STATEMENT_TIMEOUT_MS,
+                    ENV_SYNCHRONOUS_COMMIT: SYNCHRONOUS_COMMIT,
                 },
             ),
-            deploy_storage_service(
+            create_database_backed_trustyai_service(
+                client=admin_client,
+                namespace=model_namespace.name,
                 name=CONFIGURED_DEPLOYMENT,
-                env={ENV_STORAGE_FORMAT: STORAGE_FORMAT_POSTGRES},
-                db_credentials_secret_name=postgres_db_credentials_secret.name,
-                ca_secret_name=postgres_db_ca_secret.name,
-                ca_mount_path=SERVICE_DB_CA_MOUNT_PATH,
-                config_map_name=DB_CONFIG_MAP_NAME,
-            ) as deployment,
+                credentials_secret_name=postgres_db_credentials_secret.name,
+                teardown=teardown_resources,
+                database_tuning_config_map_name=DB_CONFIG_MAP_NAME,
+            ) as (_, deployment),
         ):
             yield deployment
 
@@ -152,12 +151,14 @@ class TestPostgresSettingsFromConfigMap:
         admin_client: DynamicClient,
         model_namespace: Namespace,
         configured_service: Deployment,
+        current_client_token: str,
     ) -> StorageBackendClient:
         """HTTP client for the ConfigMap-configured service."""
         return StorageBackendClient(
             client=admin_client,
             namespace=model_namespace.name,
             name=CONFIGURED_DEPLOYMENT,
+            token=current_client_token,
         )
 
     def test_settings_reach_the_database_session(
@@ -175,7 +176,7 @@ class TestPostgresSettingsFromConfigMap:
         )
         assert settings["application_name"] == APPLICATION_NAME, f"application_name not applied: {settings}"
         assert settings["statement_timeout"] == EXPECTED_STATEMENT_TIMEOUT, f"statement_timeout not applied: {settings}"
-        assert settings["synchronous_commit"] == "on", f"synchronous_commit must default to on: {settings}"
+        assert settings["synchronous_commit"] == SYNCHRONOUS_COMMIT, f"synchronous_commit not applied: {settings}"
         assert settings["ssl"] is True, f"Connection is not using TLS: {settings}"
 
     def test_pool_sizing_comes_from_the_config_map(
@@ -193,6 +194,8 @@ class TestPostgresSettingsFromConfigMap:
         )
         assert settings["pool_size"] == int(POOL_SIZE), f"pool size not applied: {settings}"
         assert settings["max_overflow"] == int(MAX_OVERFLOW), f"max overflow not applied: {settings}"
+        assert settings["pool_timeout"] == int(POOL_TIMEOUT), f"pool timeout not applied: {settings}"
+        assert settings["pool_recycle"] == int(POOL_RECYCLE), f"pool recycle not applied: {settings}"
 
     def test_upload_round_trip_with_tuned_settings(self, configured_client: StorageBackendClient) -> None:
         """Tuned settings do not change behaviour: an upload is readable back through `/info`."""
@@ -259,38 +262,40 @@ class TestInvalidSettingsFailFast:
         model_namespace: Namespace,
         postgres_db: Deployment,
         postgres_db_credentials_secret: Secret,
-        postgres_db_ca_secret: Secret,
+        postgres_service_ca_secret,
         deploy_db_config_map: Callable[..., object],
-        deploy_storage_service: Callable[..., object],
+        teardown_resources: bool,
         case_id: str,
         config: dict[str, str],
         expected_fragments: list[str],
     ) -> None:
         """The service refuses the value, says which key is wrong, and never becomes ready."""
-        name = f"{STORAGE_SERVICE_NAME}-bad-{case_id}"
+        name = f"{TRUSTYAI_SERVICE_NAME}-bad-{case_id}"
         config_map_name = f"{DB_CONFIG_MAP_NAME}-{case_id}"
 
         with (
+            postgres_service_ca_secret(name),
             deploy_db_config_map(name=config_map_name, data=config),
-            deploy_storage_service(
+            create_database_backed_trustyai_service(
+                client=admin_client,
+                namespace=model_namespace.name,
                 name=name,
-                env={ENV_STORAGE_FORMAT: STORAGE_FORMAT_POSTGRES},
-                db_credentials_secret_name=postgres_db_credentials_secret.name,
-                ca_secret_name=postgres_db_ca_secret.name,
-                ca_mount_path=SERVICE_DB_CA_MOUNT_PATH,
-                config_map_name=config_map_name,
-                wait_for_ready=False,
-            ) as deployment,
+                credentials_secret_name=postgres_db_credentials_secret.name,
+                wait_for_replicas=False,
+                teardown=teardown_resources,
+                database_tuning_config_map_name=config_map_name,
+            ) as (_, deployment),
         ):
             logs = wait_for_pod_log_message(
                 client=admin_client,
                 namespace=model_namespace.name,
-                label_selector=f"name={name}",
+                label_selector=deployment_pod_selector(deployment),
                 message=expected_fragments[0],
             )
             for fragment in expected_fragments:
                 assert fragment in logs, f"Error should mention {fragment!r}; logs: {logs[-2000:]}"
-            assert not deployment.instance.status.get("readyReplicas"), (
+            current_deployment = Deployment(client=admin_client, namespace=model_namespace.name, name=name)
+            assert not current_deployment.instance.status.get("readyReplicas"), (
                 f"Service became ready with invalid settings {config}"
             )
 
@@ -310,10 +315,11 @@ class TestSqlitePragmasFromConfigMap:
         self,
         admin_client: DynamicClient,
         model_namespace: Namespace,
+        sqlite_credentials_secret: Secret,
         deploy_db_config_map: Callable[..., object],
-        deploy_storage_service: Callable[..., object],
+        teardown_resources: bool,
     ):
-        """Service on file-backed SQLite whose pragmas come only from the ConfigMap."""
+        """CR-created SQLite service whose pragmas come from its tuning ConfigMap."""
         with (
             deploy_db_config_map(
                 name=DB_CONFIG_MAP_NAME,
@@ -324,13 +330,19 @@ class TestSqlitePragmasFromConfigMap:
                     ENV_SQLITE_CACHE_SIZE_KB: "4000",
                 },
             ),
-            deploy_storage_service(
+            create_database_backed_trustyai_service(
+                client=admin_client,
+                namespace=model_namespace.name,
                 name=SQLITE_CONFIGURED_DEPLOYMENT,
-                env={ENV_STORAGE_FORMAT: STORAGE_FORMAT_SQLITE, ENV_SQLITE_PATH: SQLITE_DATA_FILE},
-                data_volume_mount_path=SQLITE_DATA_MOUNT_PATH,
-                config_map_name=DB_CONFIG_MAP_NAME,
-            ) as deployment,
+                credentials_secret_name=sqlite_credentials_secret.name,
+                teardown=teardown_resources,
+                database_tuning_config_map_name=DB_CONFIG_MAP_NAME,
+            ) as (_, deployment),
         ):
+            patch_service_deployment(
+                deployment=deployment,
+                env={ENV_SQLITE_PATH: SQLITE_DATA_FILE},
+            )
             yield deployment
 
     def test_pragmas_are_applied(
@@ -343,7 +355,7 @@ class TestSqlitePragmasFromConfigMap:
         pragmas = run_python_in_service_pod(
             client=admin_client,
             namespace=model_namespace.name,
-            name=SQLITE_CONFIGURED_DEPLOYMENT,
+            deployment=configured_sqlite_service,
             code=SQLITE_SETTINGS_PROBE,
         )
         assert pragmas["journal_mode"] == "wal", f"journal_mode not applied: {pragmas}"
@@ -357,12 +369,14 @@ class TestSqlitePragmasFromConfigMap:
         admin_client: DynamicClient,
         model_namespace: Namespace,
         configured_sqlite_service: Deployment,
+        current_client_token: str,
     ) -> None:
         """WAL and the other pragmas do not break reads and writes through the API."""
         storage_client = StorageBackendClient(
             client=admin_client,
             namespace=model_namespace.name,
             name=SQLITE_CONFIGURED_DEPLOYMENT,
+            token=current_client_token,
         )
         model_name = "sqlite-pragma-model"
         n_rows = 4
