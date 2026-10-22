@@ -1,42 +1,23 @@
-"""Health reporting, connection pooling and durability of the SQL backends.
-
-These are the properties the shared SQLAlchemy Core base added on top of the
-per-backend code it replaced: a pooled engine sized from the environment, a
-storage health check that reflects the selected backend, and data that lives in
-the database rather than in the pod.
-"""
+"""Health, concurrency, and persistence for CR-managed PostgreSQL storage."""
 
 from concurrent.futures import ThreadPoolExecutor
 from http import HTTPStatus
 from typing import Any
 
 import pytest
-import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.deployment import Deployment
 from ocp_resources.namespace import Namespace
 from ocp_resources.pod import Pod
 
-from tests.ai_safety.trustyai_service.storage_backends.constants import (
-    ENV_MAX_OVERFLOW,
-    ENV_POOL_SIZE,
-    HEALTH_STATUS_OK,
-    POSTGRES_SERVICE_DEPLOYMENT,
-    STORAGE_CHECK_NAME,
-)
+from tests.ai_safety.trustyai_service.storage_backends.constants import HEALTH_STATUS_OK, STORAGE_CHECK_NAME
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
     StorageBackendClient,
     build_upload_payload,
-    wait_for_deployment_pods_ready,
     wait_for_model_observations,
 )
+from utilities.constants import TRUSTYAI_SERVICE_NAME
 
-LOGGER = structlog.get_logger(name=__name__)
-
-# Deliberately smaller than the number of concurrent writers below, so the writers
-# have to queue on the pool instead of each getting their own connection.
-POOL_SIZE: str = "2"
-MAX_OVERFLOW: str = "1"
 CONCURRENT_WRITERS: int = 8
 
 
@@ -48,19 +29,16 @@ CONCURRENT_WRITERS: int = 8
     indirect=True,
 )
 class TestStorageHealthAndDurability:
-    """Health reporting and the persistence guarantee that motivates a real database."""
+    """Health and persistence guarantee for CR-managed PostgreSQL storage."""
 
     def test_readiness_reports_storage_backend(self, postgres_storage_client: StorageBackendClient) -> None:
-        """Readiness includes a storage check, and it is green against a reachable database."""
         response = postgres_storage_client.readiness()
         assert response.status_code == HTTPStatus.OK, f"Readiness probe failed: {response.text}"
 
         checks = {check["name"]: check["status"] for check in response.json()["checks"]}
-        assert STORAGE_CHECK_NAME in checks, f"No storage check in the readiness payload: {response.json()}"
-        assert checks[STORAGE_CHECK_NAME] == HEALTH_STATUS_OK
+        assert checks.get(STORAGE_CHECK_NAME) == HEALTH_STATUS_OK, f"Storage is not ready: {response.json()}"
 
     def test_general_health_is_healthy(self, postgres_storage_client: StorageBackendClient) -> None:
-        """The combined health endpoint aggregates readiness and liveness."""
         response = postgres_storage_client.health()
         assert response.status_code == HTTPStatus.OK, f"Health endpoint failed: {response.text}"
 
@@ -76,67 +54,43 @@ class TestStorageHealthAndDurability:
         postgres_backed_service: Deployment,
         postgres_storage_client: StorageBackendClient,
     ) -> None:
-        """Rows live in PostgreSQL, not in the pod: a fresh pod still sees them."""
-        model_name = "postgres-restart-model"
+        """Rows persist in the CR-configured database after the operator replaces the service pod."""
+        model_name = "database-restart-model"
         n_rows = 4
-
-        assert (
-            postgres_storage_client.upload(
-                payload=build_upload_payload(model_name=model_name, n_rows=n_rows)
-            ).status_code
-            == HTTPStatus.OK
-        )
+        response = postgres_storage_client.upload(payload=build_upload_payload(model_name=model_name, n_rows=n_rows))
+        assert response.status_code == HTTPStatus.OK, f"Upload failed: {response.text}"
         wait_for_model_observations(storage_client=postgres_storage_client, model_name=model_name, expected=n_rows)
 
-        for pod in Pod.get(
-            client=admin_client,
-            namespace=model_namespace.name,
-            label_selector=f"name={POSTGRES_SERVICE_DEPLOYMENT}",
-        ):
-            LOGGER.info(f"Deleting service pod {pod.name} to force a restart")
-            pod.delete(wait=True)
+        selector = f"app.kubernetes.io/instance={TRUSTYAI_SERVICE_NAME}"
+        pods = list(Pod.get(client=admin_client, namespace=model_namespace.name, label_selector=selector))
+        assert pods, f"No operator-managed TrustyAI pod found with selector {selector}"
+        pods[0].delete(wait=True)
 
         postgres_backed_service.wait_for_replicas(deployed=True, timeout=600)
-        wait_for_deployment_pods_ready(
-            client=admin_client,
-            namespace=model_namespace.name,
-            label_selector=f"name={POSTGRES_SERVICE_DEPLOYMENT}",
-        )
-
         model_info = wait_for_model_observations(
-            storage_client=postgres_storage_client, model_name=model_name, expected=n_rows
+            storage_client=postgres_storage_client,
+            model_name=model_name,
+            expected=n_rows,
+            timeout=180,
         )
         assert model_info["data"]["observations"] == n_rows, (
-            "Data uploaded before the restart is missing after it, so it was not persisted to PostgreSQL"
+            "Data uploaded before the pod restart is missing from the CR-configured database"
         )
 
 
 @pytest.mark.ai_safety
 @pytest.mark.tier2
 @pytest.mark.parametrize(
-    "model_namespace, postgres_backed_service",
-    [
-        pytest.param(
-            {"name": "test-trustyai-storage-pooling"},
-            {"env": {ENV_POOL_SIZE: POOL_SIZE, ENV_MAX_OVERFLOW: MAX_OVERFLOW}},
-        )
-    ],
+    "model_namespace",
+    [pytest.param({"name": "test-trustyai-storage-pooling"})],
     indirect=True,
 )
 class TestStorageConnectionPooling:
-    """Writers share a deliberately small pool instead of opening a connection each."""
-
-    def test_pool_env_is_applied(self, postgres_backed_service: Deployment) -> None:
-        """The pool sizing env reaches the container that builds the engine."""
-        container = postgres_backed_service.instance.spec.template.spec.containers[0]
-        env = {var["name"]: var.get("value") for var in container.env}
-        assert env.get(ENV_POOL_SIZE) == POOL_SIZE
-        assert env.get(ENV_MAX_OVERFLOW) == MAX_OVERFLOW
+    """Concurrent writers continue to succeed through the service's shared database pool."""
 
     @pytest.mark.dependency(name="concurrent_uploads_share_the_pool", scope="class")
     def test_concurrent_uploads_share_the_pool(self, postgres_storage_client: StorageBackendClient) -> None:
-        """More concurrent writers than connections still all succeed."""
-        model_name = "postgres-pool-model"
+        model_name = "database-pool-model"
         rows_per_writer = 2
 
         def _upload(offset: int) -> Any:
@@ -156,18 +110,18 @@ class TestStorageConnectionPooling:
 
         expected = CONCURRENT_WRITERS * rows_per_writer
         model_info = wait_for_model_observations(
-            storage_client=postgres_storage_client, model_name=model_name, expected=expected, timeout=180
+            storage_client=postgres_storage_client,
+            model_name=model_name,
+            expected=expected,
+            timeout=180,
         )
-        assert model_info["data"]["observations"] == expected, (
-            f"Expected {expected} rows from {CONCURRENT_WRITERS} concurrent writers"
-        )
+        assert model_info["data"]["observations"] == expected
 
     @pytest.mark.dependency(depends=["concurrent_uploads_share_the_pool"], scope="class")
     def test_storage_stays_healthy_after_concurrent_load(self, postgres_storage_client: StorageBackendClient) -> None:
-        """The pool is returned to a usable state once the writers finish."""
         response = postgres_storage_client.readiness()
         assert response.status_code == HTTPStatus.OK, f"Readiness failed after concurrent load: {response.text}"
         checks = {check["name"]: check["status"] for check in response.json()["checks"]}
         assert checks.get(STORAGE_CHECK_NAME) == HEALTH_STATUS_OK, (
-            f"Storage unhealthy after concurrent load, pool may be exhausted: {response.json()}"
+            f"Storage unhealthy after concurrent load: {response.json()}"
         )

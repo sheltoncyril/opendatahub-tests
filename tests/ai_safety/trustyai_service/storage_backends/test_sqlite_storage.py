@@ -16,29 +16,29 @@ from ocp_resources.namespace import Namespace
 from ocp_resources.pod import Pod
 
 from tests.ai_safety.trustyai_service.storage_backends.constants import (
+    DATABASE_STORAGE_FORMAT,
+    ENV_DATABASE_KIND,
     ENV_SQLITE_PATH,
     ENV_STORAGE_FORMAT,
     HEALTH_STATUS_OK,
     SQLITE_DATA_FILE,
-    SQLITE_MEMORY_PATH,
-    SQLITE_MEMORY_SERVICE_DEPLOYMENT,
-    SQLITE_SERVICE_DEPLOYMENT,
     STORAGE_CHECK_NAME,
-    STORAGE_FORMAT_SQLITE,
 )
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
     StorageBackendClient,
     build_upload_payload,
+    deployment_pod_selector,
     wait_for_model_observations,
 )
 
 LOGGER = structlog.get_logger(name=__name__)
 
 
-def _service_pod(client: DynamicClient, namespace: str, deployment_name: str) -> Pod:
-    """Return the single pod of a directly deployed service."""
-    pods = list(Pod.get(client=client, namespace=namespace, label_selector=f"name={deployment_name}"))
-    assert len(pods) == 1, f"Expected exactly 1 pod for {deployment_name}, found {len(pods)}"
+def _service_pod(client: DynamicClient, namespace: str, deployment: Deployment) -> Pod:
+    """Return the pod controlled by the operator-created service Deployment."""
+    selector = deployment_pod_selector(deployment=deployment)
+    pods = list(Pod.get(client=client, namespace=namespace, label_selector=selector))
+    assert len(pods) == 1, f"Expected exactly 1 pod for {deployment.name}, found {len(pods)}"
     return pods[0]
 
 
@@ -57,11 +57,13 @@ class TestSqliteStorageBackend:
         sqlite_backed_service: Deployment,
         sqlite_storage_client: StorageBackendClient,
     ) -> None:
-        """The deployment selects SQLite and its storage readiness check passes."""
+        """The CR selects DATABASE and its Secret selects SQLite."""
         container = sqlite_backed_service.instance.spec.template.spec.containers[0]
         env = {var["name"]: var.get("value") for var in container.env}
-        assert env.get(ENV_STORAGE_FORMAT) == STORAGE_FORMAT_SQLITE
+        assert env.get(ENV_STORAGE_FORMAT) == DATABASE_STORAGE_FORMAT
         assert env.get(ENV_SQLITE_PATH) == SQLITE_DATA_FILE
+        kind_entry = next(var for var in container.env if var["name"] == ENV_DATABASE_KIND)
+        assert kind_entry["valueFrom"]["secretKeyRef"]["key"] == "databaseKind"
 
         response = sqlite_storage_client.readiness()
         assert response.status_code == HTTPStatus.OK, f"Readiness probe failed: {response.text}"
@@ -99,9 +101,7 @@ class TestSqliteStorageBackend:
         )
         wait_for_model_observations(storage_client=sqlite_storage_client, model_name=model_name, expected=2)
 
-        pod = _service_pod(
-            client=admin_client, namespace=model_namespace.name, deployment_name=SQLITE_SERVICE_DEPLOYMENT
-        )
+        pod = _service_pod(client=admin_client, namespace=model_namespace.name, deployment=sqlite_backed_service)
         listing = pod.execute(
             command=["/bin/sh", "-c", f"ls -l {SQLITE_DATA_FILE}"],
             container="trustyai-service",
@@ -109,7 +109,7 @@ class TestSqliteStorageBackend:
         )
         assert SQLITE_DATA_FILE in listing, f"No SQLite database at {SQLITE_DATA_FILE}; got: {listing}"
 
-    def test_memory_backend_serves_without_touching_disk(
+    def test_memory_backend_loses_data_after_service_restart(
         self,
         admin_client: DynamicClient,
         model_namespace: Namespace,
@@ -130,12 +130,10 @@ class TestSqliteStorageBackend:
         )
         assert model_info["data"]["observations"] == n_rows
 
-        pod = _service_pod(
-            client=admin_client, namespace=model_namespace.name, deployment_name=SQLITE_MEMORY_SERVICE_DEPLOYMENT
-        )
-        probe = pod.execute(
-            command=["/bin/sh", "-c", f"test -e '{SQLITE_MEMORY_PATH}' && echo EXISTS || echo ABSENT"],
-            container="trustyai-service",
-            ignore_rc=True,
-        )
-        assert "ABSENT" in probe, f"An in-memory database should not create a file named {SQLITE_MEMORY_PATH}: {probe}"
+        pod = _service_pod(client=admin_client, namespace=model_namespace.name, deployment=sqlite_memory_backed_service)
+        pod.delete(wait=True)
+        sqlite_memory_backed_service.wait_for_replicas(deployed=True, timeout=600)
+
+        response = sqlite_memory_storage_client.info()
+        assert response.status_code == HTTPStatus.OK, f"Info request failed after restart: {response.text}"
+        assert model_name not in response.json(), "In-memory SQLite data survived replacement of its process"

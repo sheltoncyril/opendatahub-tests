@@ -1,54 +1,35 @@
-"""Fixtures for the TrustyAI SQL storage backend tests."""
+"""Fixtures for SQL storage tests using the operator-managed TrustyAIService CR."""
 
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from typing import Any
 
 import pytest
-import structlog
 from kubernetes.dynamic import DynamicClient
 from ocp_resources.config_map import ConfigMap
 from ocp_resources.deployment import Deployment
 from ocp_resources.namespace import Namespace
 from ocp_resources.secret import Secret
 
-from tests.ai_safety.image_constants import AiSafetyImages
 from tests.ai_safety.trustyai_service.storage_backends.constants import (
-    ENV_ALLOW_INSECURE_TLS,
     ENV_SQLITE_PATH,
-    ENV_STORAGE_FORMAT,
-    POSTGRES_CA_SECRET_NAME,
     POSTGRES_CREDENTIALS_SECRET_NAME,
+    POSTGRES_DATABASE_KIND,
     POSTGRES_DB_NAME,
     POSTGRES_DB_PASSWORD,
     POSTGRES_DB_USERNAME,
     POSTGRES_PORT,
-    POSTGRES_SERVICE_DEPLOYMENT,
     POSTGRES_SERVICE_NAME,
-    SERVICE_DB_CA_MOUNT_PATH,
     SQLITE_DATA_FILE,
-    SQLITE_DATA_MOUNT_PATH,
-    SQLITE_MEMORY_PATH,
-    SQLITE_MEMORY_SERVICE_DEPLOYMENT,
-    SQLITE_SERVICE_DEPLOYMENT,
-    STORAGE_FORMAT_POSTGRES,
-    STORAGE_FORMAT_SQLITE,
+    SQLITE_DATABASE_KIND,
 )
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
     StorageBackendClient,
+    create_database_backed_trustyai_service,
     create_standalone_postgres,
-    create_storage_backend_service,
+    patch_service_deployment,
 )
-
-LOGGER = structlog.get_logger(name=__name__)
-
-
-@pytest.fixture(scope="class")
-def trustyai_service_image() -> str:
-    """Candidate service image with PostgreSQL/SQLite/SQLAlchemy support (RHAISTRAT-2662)."""
-    image = AiSafetyImages.TRUSTYAI_SERVICE_SQL_BACKENDS
-    LOGGER.info(f"TrustyAI service image under test: {image}")
-    return image
+from utilities.constants import TRUSTYAI_SERVICE_NAME
 
 
 @pytest.fixture(scope="class")
@@ -57,18 +38,19 @@ def postgres_db_credentials_secret(
     model_namespace: Namespace,
     teardown_resources: bool,
 ) -> Generator[Secret, Any, Any]:
-    """Credentials shared by the PostgreSQL deployment and the service under test."""
+    """Credentials and backend selector shared by PostgreSQL and the TrustyAI CR."""
     with Secret(
         client=admin_client,
         name=POSTGRES_CREDENTIALS_SECRET_NAME,
         namespace=model_namespace.name,
         string_data={
-            "databaseKind": "postgresql",
+            "databaseKind": POSTGRES_DATABASE_KIND,
             "databaseName": POSTGRES_DB_NAME,
             "databaseUsername": POSTGRES_DB_USERNAME,
             "databasePassword": POSTGRES_DB_PASSWORD,
             "databaseService": POSTGRES_SERVICE_NAME,
             "databasePort": str(POSTGRES_PORT),
+            "databaseGeneration": "update",
         },
         teardown=teardown_resources,
     ) as secret:
@@ -82,7 +64,7 @@ def postgres_db(
     postgres_db_credentials_secret: Secret,
     teardown_resources: bool,
 ) -> Generator[Deployment, Any, Any]:
-    """A TLS-enabled PostgreSQL deployment in the test namespace."""
+    """A TLS-enabled PostgreSQL database; this is the only directly created Deployment."""
     with create_standalone_postgres(
         client=admin_client,
         namespace_name=model_namespace.name,
@@ -94,70 +76,41 @@ def postgres_db(
 
 
 @pytest.fixture(scope="class")
-def postgres_db_ca_secret(
+def postgres_service_ca_secret(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     postgres_db: Deployment,
     teardown_resources: bool,
-) -> Generator[Secret, Any, Any]:
-    """Copy of the database CA, mounted into the service so it can verify the server."""
-    db_ca_secret = Secret(
-        client=admin_client,
-        name=f"{POSTGRES_SERVICE_NAME}-ca",
-        namespace=model_namespace.name,
-        ensure_exists=True,
-    )
-    with Secret(
-        client=admin_client,
-        name=POSTGRES_CA_SECRET_NAME,
-        namespace=model_namespace.name,
-        data_dict={"ca.crt": db_ca_secret.instance.data["ca.crt"]},
-        teardown=teardown_resources,
-    ) as secret:
-        yield secret
+) -> Callable[[str], Any]:
+    """Factory for a DB CA Secret named as the TrustyAIService operator expects."""
+
+    @contextmanager
+    def _deploy(service_name: str) -> Generator[Secret, Any, Any]:
+        database_ca = Secret(
+            client=admin_client,
+            name=f"{POSTGRES_SERVICE_NAME}-ca",
+            namespace=model_namespace.name,
+            ensure_exists=True,
+        )
+        with Secret(
+            client=admin_client,
+            name=f"{service_name}-db-ca",
+            namespace=model_namespace.name,
+            data_dict={"ca.crt": database_ca.instance.data["ca.crt"]},
+            teardown=teardown_resources,
+        ) as secret:
+            yield secret
+
+    return _deploy
 
 
 @pytest.fixture(scope="class")
-def deploy_storage_service(
-    admin_client: DynamicClient,
-    model_namespace: Namespace,
-    trustyai_service_image: str,
-    teardown_resources: bool,
-) -> Callable[..., Any]:
-    """Factory that deploys the service image with caller-supplied env.
-
-    Used by tests that need a one-off configuration (a missing CA, an insecure
-    opt-in, custom pool sizing) rather than one of the ready-made fixtures.
-    """
-
-    @contextmanager
-    def _deploy(
-        name: str,
-        env: dict[str, str],
-        db_credentials_secret_name: str | None = None,
-        ca_secret_name: str | None = None,
-        ca_mount_path: str | None = None,
-        data_volume_mount_path: str | None = None,
-        config_map_name: str | None = None,
-        wait_for_ready: bool = True,
-    ) -> Generator[Deployment, Any, Any]:
-        with create_storage_backend_service(
-            client=admin_client,
-            namespace_name=model_namespace.name,
-            name=name,
-            image=trustyai_service_image,
-            env=env,
-            db_credentials_secret_name=db_credentials_secret_name,
-            ca_secret_name=ca_secret_name,
-            ca_mount_path=ca_mount_path,
-            data_volume_mount_path=data_volume_mount_path,
-            config_map_name=config_map_name,
-            wait_for_ready=wait_for_ready,
-            teardown=teardown_resources,
-        ) as deployment:
-            yield deployment
-
-    return _deploy
+def postgres_db_ca_secret(
+    postgres_service_ca_secret: Callable[[str], Any],
+) -> Generator[Secret, Any, Any]:
+    """CA Secret used by the default TrustyAIService CR in this namespace."""
+    with postgres_service_ca_secret(TRUSTYAI_SERVICE_NAME) as secret:
+        yield secret
 
 
 @pytest.fixture(scope="class")
@@ -166,7 +119,7 @@ def deploy_db_config_map(
     model_namespace: Namespace,
     teardown_resources: bool,
 ) -> Callable[..., Any]:
-    """Factory for the non-secret DB settings ConfigMap the service consumes via `envFrom`."""
+    """Factory for test-provided non-secret SQL settings."""
 
     @contextmanager
     def _deploy(name: str, data: dict[str, str]) -> Generator[ConfigMap, Any, Any]:
@@ -187,30 +140,22 @@ def postgres_backed_service(
     request: pytest.FixtureRequest,
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    trustyai_service_image: str,
     postgres_db: Deployment,
     postgres_db_credentials_secret: Secret,
     postgres_db_ca_secret: Secret,
     teardown_resources: bool,
 ) -> Generator[Deployment, Any, Any]:
-    """TrustyAI service running against PostgreSQL over verified TLS.
-
-    Tests may add or override env vars with
-    `@pytest.mark.parametrize("postgres_backed_service", [{"env": {...}}], indirect=True)`.
-    """
+    """PostgreSQL service created by the CR; the operator chooses its image."""
     extra_env: dict[str, str] = getattr(request, "param", {}).get("env", {})
-
-    with create_storage_backend_service(
+    with create_database_backed_trustyai_service(
         client=admin_client,
-        namespace_name=model_namespace.name,
-        name=POSTGRES_SERVICE_DEPLOYMENT,
-        image=trustyai_service_image,
-        env={ENV_STORAGE_FORMAT: STORAGE_FORMAT_POSTGRES, **extra_env},
-        db_credentials_secret_name=postgres_db_credentials_secret.name,
-        ca_secret_name=postgres_db_ca_secret.name,
-        ca_mount_path=SERVICE_DB_CA_MOUNT_PATH,
+        namespace=model_namespace.name,
+        name=TRUSTYAI_SERVICE_NAME,
+        credentials_secret_name=postgres_db_credentials_secret.name,
         teardown=teardown_resources,
-    ) as deployment:
+    ) as (_, deployment):
+        if extra_env:
+            patch_service_deployment(deployment=deployment, env=extra_env)
         yield deployment
 
 
@@ -219,37 +164,58 @@ def postgres_storage_client(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     postgres_backed_service: Deployment,
+    current_client_token: str,
 ) -> StorageBackendClient:
-    """HTTP client for the PostgreSQL-backed service."""
+    """Authenticated client for the operator-created PostgreSQL-backed service Route."""
     return StorageBackendClient(
         client=admin_client,
         namespace=model_namespace.name,
-        name=POSTGRES_SERVICE_DEPLOYMENT,
+        name=TRUSTYAI_SERVICE_NAME,
+        token=current_client_token,
     )
+
+
+@pytest.fixture(scope="class")
+def sqlite_credentials_secret(
+    admin_client: DynamicClient,
+    model_namespace: Namespace,
+    teardown_resources: bool,
+) -> Generator[Secret, Any, Any]:
+    """Secret selects SQLite through the CR's DATABASE storage configuration."""
+    with Secret(
+        client=admin_client,
+        name="sqlite-db-credentials",
+        namespace=model_namespace.name,
+        string_data={
+            "databaseKind": SQLITE_DATABASE_KIND,
+            "databaseName": "trustyai.db",
+            "databaseUsername": "unused",
+            "databasePassword": "unused",  # pragma: allowlist secret
+            "databaseService": "unused",
+            "databasePort": str(POSTGRES_PORT),
+            "databaseGeneration": "update",
+        },
+        teardown=teardown_resources,
+    ) as secret:
+        yield secret
 
 
 @pytest.fixture(scope="class")
 def sqlite_backed_service(
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    trustyai_service_image: str,
+    sqlite_credentials_secret: Secret,
     teardown_resources: bool,
 ) -> Generator[Deployment, Any, Any]:
-    """TrustyAI service running against a file-backed SQLite database."""
-    with create_storage_backend_service(
+    """SQLite service created by a TrustyAIService CR, using the cluster-selected image."""
+    with create_database_backed_trustyai_service(
         client=admin_client,
-        namespace_name=model_namespace.name,
-        name=SQLITE_SERVICE_DEPLOYMENT,
-        image=trustyai_service_image,
-        env={
-            ENV_STORAGE_FORMAT: STORAGE_FORMAT_SQLITE,
-            ENV_SQLITE_PATH: SQLITE_DATA_FILE,
-            # SQLite is local to the pod, so there is no database TLS to configure.
-            ENV_ALLOW_INSECURE_TLS: "true",
-        },
-        data_volume_mount_path=SQLITE_DATA_MOUNT_PATH,
+        namespace=model_namespace.name,
+        name=TRUSTYAI_SERVICE_NAME,
+        credentials_secret_name=sqlite_credentials_secret.name,
         teardown=teardown_resources,
-    ) as deployment:
+    ) as (_, deployment):
+        patch_service_deployment(deployment=deployment, env={ENV_SQLITE_PATH: SQLITE_DATA_FILE})
         yield deployment
 
 
@@ -258,12 +224,13 @@ def sqlite_storage_client(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     sqlite_backed_service: Deployment,
+    current_client_token: str,
 ) -> StorageBackendClient:
-    """HTTP client for the file-backed SQLite service."""
     return StorageBackendClient(
         client=admin_client,
         namespace=model_namespace.name,
-        name=SQLITE_SERVICE_DEPLOYMENT,
+        name=TRUSTYAI_SERVICE_NAME,
+        token=current_client_token,
     )
 
 
@@ -271,22 +238,19 @@ def sqlite_storage_client(
 def sqlite_memory_backed_service(
     admin_client: DynamicClient,
     model_namespace: Namespace,
-    trustyai_service_image: str,
+    sqlite_credentials_secret: Secret,
     teardown_resources: bool,
 ) -> Generator[Deployment, Any, Any]:
-    """TrustyAI service running against an in-memory SQLite database."""
-    with create_storage_backend_service(
+    """A second CR-created SQLite service selects the in-memory path for an edge case."""
+    service_name = "trustyai-service-memory"
+    with create_database_backed_trustyai_service(
         client=admin_client,
-        namespace_name=model_namespace.name,
-        name=SQLITE_MEMORY_SERVICE_DEPLOYMENT,
-        image=trustyai_service_image,
-        env={
-            ENV_STORAGE_FORMAT: STORAGE_FORMAT_SQLITE,
-            ENV_SQLITE_PATH: SQLITE_MEMORY_PATH,
-            ENV_ALLOW_INSECURE_TLS: "true",
-        },
+        namespace=model_namespace.name,
+        name=service_name,
+        credentials_secret_name=sqlite_credentials_secret.name,
         teardown=teardown_resources,
-    ) as deployment:
+    ) as (_, deployment):
+        patch_service_deployment(deployment=deployment, env={"STORAGE_DATABASE_PATH": ":memory:"})
         yield deployment
 
 
@@ -295,10 +259,26 @@ def sqlite_memory_storage_client(
     admin_client: DynamicClient,
     model_namespace: Namespace,
     sqlite_memory_backed_service: Deployment,
+    current_client_token: str,
 ) -> StorageBackendClient:
-    """HTTP client for the in-memory SQLite service."""
     return StorageBackendClient(
         client=admin_client,
         namespace=model_namespace.name,
-        name=SQLITE_MEMORY_SERVICE_DEPLOYMENT,
+        name="trustyai-service-memory",
+        token=current_client_token,
     )
+
+
+@pytest.fixture(scope="class")
+def database_backed_service(
+    postgres_backed_service: Deployment,
+) -> Deployment:
+    """Compatibility fixture for PostgreSQL configuration assertions."""
+    return postgres_backed_service
+
+
+@pytest.fixture(scope="class")
+def database_storage_client(
+    postgres_storage_client: StorageBackendClient,
+) -> StorageBackendClient:
+    return postgres_storage_client
