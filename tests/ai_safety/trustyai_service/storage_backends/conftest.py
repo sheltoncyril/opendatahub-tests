@@ -271,10 +271,3 @@ def database_backed_service(
 ) -> Deployment:
     """Compatibility fixture for PostgreSQL configuration assertions."""
     return postgres_backed_service
-
-
-@pytest.fixture(scope="class")
-def database_storage_client(
-    postgres_storage_client: StorageBackendClient,
-) -> StorageBackendClient:
-    return postgres_storage_client
