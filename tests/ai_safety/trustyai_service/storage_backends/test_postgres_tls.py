@@ -1,5 +1,7 @@
 """PostgreSQL TLS behavior through TrustyAIService CRs."""
 
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from http import HTTPStatus
 
 import pytest
@@ -155,18 +157,22 @@ class TestPostgresStorageTls:
         model_namespace: Namespace,
         postgres_db: Deployment,
         postgres_db_credentials_secret: Secret,
+        postgres_service_ca_secret: Callable[[str], AbstractContextManager[Secret]],
         teardown_resources: bool,
     ) -> None:
         """The service reports the configured CA path when the caller requires TLS verification."""
         absent_path = "/etc/tls/db/does-not-exist.crt"
-        with create_database_backed_trustyai_service(
-            client=admin_client,
-            namespace=model_namespace.name,
-            name=MISSING_CA_PATH_SERVICE,
-            credentials_secret_name=postgres_db_credentials_secret.name,
-            wait_for_replicas=False,
-            teardown=teardown_resources,
-        ) as (_, deployment):
+        with (
+            postgres_service_ca_secret(MISSING_CA_PATH_SERVICE),
+            create_database_backed_trustyai_service(
+                client=admin_client,
+                namespace=model_namespace.name,
+                name=MISSING_CA_PATH_SERVICE,
+                credentials_secret_name=postgres_db_credentials_secret.name,
+                wait_for_replicas=False,
+                teardown=teardown_resources,
+            ) as (_, deployment),
+        ):
             patch_service_deployment(
                 deployment=deployment,
                 env={ENV_TLS_CA_CERT: absent_path, ENV_ALLOW_INSECURE_TLS: "false"},
