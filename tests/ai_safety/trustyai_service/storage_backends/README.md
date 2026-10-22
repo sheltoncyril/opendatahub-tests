@@ -26,16 +26,16 @@ operator-created TrustyAI service Route with its normal bearer token.
 
 PostgreSQL tuning tests provide the tuning ConfigMap through
 `spec.storage.databaseTuning`; the operator imports those values into the
-CR-managed service pod. ConfigMap changes take effect after the TrustyAI
-Service Deployment is restarted. The suite checks live PostgreSQL session and
-pool settings, invalid-value startup failures, and normal API behavior with
-tuning enabled. SQLite pragma settings
+CR-managed service pod. The suite updates the ConfigMap after the service is
+running and restarts its pod so the new environment reaches the process. It
+checks live PostgreSQL session and pool settings, invalid-value startup
+failures, and normal API behavior with tuning enabled. SQLite pragma settings
 also come through this CR reference.
 
 SQLite is tested as a single-pod service backend selected through the referenced
-database Secret. The file path remains a test-only environment input because
-the CR does not expose SQLite path or persistence settings. SQLite should not
-be used as a multi-replica persistent backend.
+database Secret. The service uses its default `:memory:` database; SQLite
+pragmas are supplied through the tuning ConfigMap. SQLite should not be used as
+a multi-replica persistent backend.
 
 These tests cover service pod replacement with PostgreSQL data preserved; they
 do not cover a PostgreSQL image or schema upgrade. There is no direct TrustyAI

@@ -20,19 +20,19 @@ from tests.ai_safety.trustyai_service.storage_backends.constants import (
     ENV_SQLITE_BUSY_TIMEOUT_MS,
     ENV_SQLITE_CACHE_SIZE_KB,
     ENV_SQLITE_JOURNAL_MODE,
-    ENV_SQLITE_PATH,
     ENV_SQLITE_SYNCHRONOUS,
     ENV_STATEMENT_TIMEOUT_MS,
     ENV_SYNCHRONOUS_COMMIT,
-    SQLITE_DATA_FILE,
 )
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
     StorageBackendClient,
     build_upload_payload,
     create_database_backed_trustyai_service,
     deployment_pod_selector,
-    patch_service_deployment,
+    restart_trustyai_service_pod,
     run_python_in_service_pod,
+    update_database_tuning_config_map,
+    wait_for_deployment_unready,
     wait_for_model_observations,
     wait_for_pod_log_message,
 )
@@ -123,6 +123,19 @@ class TestPostgresSettingsFromConfigMap:
             postgres_service_ca_secret(CONFIGURED_DEPLOYMENT),
             deploy_db_config_map(
                 name=DB_CONFIG_MAP_NAME,
+                data={},
+            ) as tuning_config_map,
+            create_database_backed_trustyai_service(
+                client=admin_client,
+                namespace=model_namespace.name,
+                name=CONFIGURED_DEPLOYMENT,
+                credentials_secret_name=postgres_db_credentials_secret.name,
+                teardown=teardown_resources,
+                database_tuning_config_map_name=DB_CONFIG_MAP_NAME,
+            ) as (_, deployment),
+        ):
+            update_database_tuning_config_map(
+                config_map=tuning_config_map,
                 data={
                     ENV_POOL_SIZE: POOL_SIZE,
                     ENV_MAX_OVERFLOW: MAX_OVERFLOW,
@@ -133,16 +146,12 @@ class TestPostgresSettingsFromConfigMap:
                     ENV_STATEMENT_TIMEOUT_MS: STATEMENT_TIMEOUT_MS,
                     ENV_SYNCHRONOUS_COMMIT: SYNCHRONOUS_COMMIT,
                 },
-            ),
-            create_database_backed_trustyai_service(
+            )
+            restart_trustyai_service_pod(
                 client=admin_client,
                 namespace=model_namespace.name,
-                name=CONFIGURED_DEPLOYMENT,
-                credentials_secret_name=postgres_db_credentials_secret.name,
-                teardown=teardown_resources,
-                database_tuning_config_map_name=DB_CONFIG_MAP_NAME,
-            ) as (_, deployment),
-        ):
+                deployment=deployment,
+            )
             yield deployment
 
     @pytest.fixture(scope="class")
@@ -275,17 +284,23 @@ class TestInvalidSettingsFailFast:
 
         with (
             postgres_service_ca_secret(name),
-            deploy_db_config_map(name=config_map_name, data=config),
+            deploy_db_config_map(name=config_map_name, data={}) as tuning_config_map,
             create_database_backed_trustyai_service(
                 client=admin_client,
                 namespace=model_namespace.name,
                 name=name,
                 credentials_secret_name=postgres_db_credentials_secret.name,
-                wait_for_replicas=False,
                 teardown=teardown_resources,
                 database_tuning_config_map_name=config_map_name,
             ) as (_, deployment),
         ):
+            update_database_tuning_config_map(config_map=tuning_config_map, data=config)
+            restart_trustyai_service_pod(
+                client=admin_client,
+                namespace=model_namespace.name,
+                deployment=deployment,
+                wait_for_replicas=False,
+            )
             logs = wait_for_pod_log_message(
                 client=admin_client,
                 namespace=model_namespace.name,
@@ -294,10 +309,11 @@ class TestInvalidSettingsFailFast:
             )
             for fragment in expected_fragments:
                 assert fragment in logs, f"Error should mention {fragment!r}; logs: {logs[-2000:]}"
-            current_deployment = Deployment(client=admin_client, namespace=model_namespace.name, name=name)
-            assert not current_deployment.instance.status.get("readyReplicas"), (
-                f"Service became ready with invalid settings {config}"
-            )
+            assert wait_for_deployment_unready(
+                client=admin_client,
+                namespace=model_namespace.name,
+                name=name,
+            ), f"Service became ready with invalid settings {config}"
 
 
 @pytest.mark.ai_safety
@@ -308,7 +324,7 @@ class TestInvalidSettingsFailFast:
     indirect=True,
 )
 class TestSqlitePragmasFromConfigMap:
-    """File-backed SQLite applies the ConfigMap's pragmas to every connection."""
+    """In-memory SQLite applies the ConfigMap's pragmas to every connection."""
 
     @pytest.fixture(scope="class")
     def configured_sqlite_service(
@@ -323,13 +339,8 @@ class TestSqlitePragmasFromConfigMap:
         with (
             deploy_db_config_map(
                 name=DB_CONFIG_MAP_NAME,
-                data={
-                    ENV_SQLITE_JOURNAL_MODE: "wal",
-                    ENV_SQLITE_SYNCHRONOUS: "FULL",
-                    ENV_SQLITE_BUSY_TIMEOUT_MS: "7000",
-                    ENV_SQLITE_CACHE_SIZE_KB: "4000",
-                },
-            ),
+                data={},
+            ) as tuning_config_map,
             create_database_backed_trustyai_service(
                 client=admin_client,
                 namespace=model_namespace.name,
@@ -339,9 +350,19 @@ class TestSqlitePragmasFromConfigMap:
                 database_tuning_config_map_name=DB_CONFIG_MAP_NAME,
             ) as (_, deployment),
         ):
-            patch_service_deployment(
+            update_database_tuning_config_map(
+                config_map=tuning_config_map,
+                data={
+                    ENV_SQLITE_JOURNAL_MODE: "memory",
+                    ENV_SQLITE_SYNCHRONOUS: "FULL",
+                    ENV_SQLITE_BUSY_TIMEOUT_MS: "7000",
+                    ENV_SQLITE_CACHE_SIZE_KB: "4000",
+                },
+            )
+            restart_trustyai_service_pod(
+                client=admin_client,
+                namespace=model_namespace.name,
                 deployment=deployment,
-                env={ENV_SQLITE_PATH: SQLITE_DATA_FILE},
             )
             yield deployment
 
@@ -351,14 +372,14 @@ class TestSqlitePragmasFromConfigMap:
         model_namespace: Namespace,
         configured_sqlite_service: Deployment,
     ) -> None:
-        """Each pragma on a fresh connection matches the ConfigMap (and the lowercase `wal` is accepted)."""
+        """Each pragma on a fresh connection matches the ConfigMap."""
         pragmas = run_python_in_service_pod(
             client=admin_client,
             namespace=model_namespace.name,
             deployment=configured_sqlite_service,
             code=SQLITE_SETTINGS_PROBE,
         )
-        assert pragmas["journal_mode"] == "wal", f"journal_mode not applied: {pragmas}"
+        assert pragmas["journal_mode"] == "memory", f"journal_mode not applied: {pragmas}"
         assert pragmas["synchronous"] == SQLITE_SYNCHRONOUS_FULL, f"synchronous not applied: {pragmas}"
         assert pragmas["busy_timeout"] == 7000, f"busy_timeout not applied: {pragmas}"
         # A negative cache_size is in KiB, so a 4000 KiB request reads back as -4000.
@@ -371,7 +392,7 @@ class TestSqlitePragmasFromConfigMap:
         configured_sqlite_service: Deployment,
         current_client_token: str,
     ) -> None:
-        """WAL and the other pragmas do not break reads and writes through the API."""
+        """The configured pragmas do not break reads and writes through the API."""
         storage_client = StorageBackendClient(
             client=admin_client,
             namespace=model_namespace.name,

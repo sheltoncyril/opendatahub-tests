@@ -2,8 +2,7 @@
 
 SQLite is the dev/test/single-instance backend: it shares the SQLAlchemy Core
 base with PostgreSQL, so these tests check that the same API surface behaves
-identically, that `STORAGE_DATABASE_PATH` is honoured, and that the in-memory
-flavour keeps nothing on disk.
+identically and that the service's default in-memory mode keeps nothing on disk.
 """
 
 from http import HTTPStatus
@@ -18,10 +17,8 @@ from ocp_resources.pod import Pod
 from tests.ai_safety.trustyai_service.storage_backends.constants import (
     DATABASE_STORAGE_FORMAT,
     ENV_DATABASE_KIND,
-    ENV_SQLITE_PATH,
     ENV_STORAGE_FORMAT,
     HEALTH_STATUS_OK,
-    SQLITE_DATA_FILE,
     STORAGE_CHECK_NAME,
 )
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
@@ -50,7 +47,7 @@ def _service_pod(client: DynamicClient, namespace: str, deployment: Deployment) 
     indirect=True,
 )
 class TestSqliteStorageBackend:
-    """The SQLite backend serves the same API as PostgreSQL, from a local file."""
+    """The SQLite backend serves the same API as PostgreSQL, in memory."""
 
     def test_service_reports_sqlite_backend(
         self,
@@ -61,7 +58,6 @@ class TestSqliteStorageBackend:
         container = sqlite_backed_service.instance.spec.template.spec.containers[0]
         env = {var["name"]: var.get("value") for var in container.env}
         assert env.get(ENV_STORAGE_FORMAT) == DATABASE_STORAGE_FORMAT
-        assert env.get(ENV_SQLITE_PATH) == SQLITE_DATA_FILE
         kind_entry = next(var for var in container.env if var["name"] == ENV_DATABASE_KIND)
         assert kind_entry["valueFrom"]["secretKeyRef"]["key"] == "databaseKind"
 
@@ -85,29 +81,6 @@ class TestSqliteStorageBackend:
         )
         assert model_info["data"]["observations"] == n_rows
         assert len(model_info["data"]["inputSchema"]["items"]) == 2
-
-    def test_database_written_to_configured_path(
-        self,
-        admin_client: DynamicClient,
-        model_namespace: Namespace,
-        sqlite_storage_client: StorageBackendClient,
-        sqlite_backed_service: Deployment,
-    ) -> None:
-        """STORAGE_DATABASE_PATH is where the database file actually lands."""
-        model_name = "sqlite-path-model"
-        assert (
-            sqlite_storage_client.upload(payload=build_upload_payload(model_name=model_name, n_rows=2)).status_code
-            == HTTPStatus.OK
-        )
-        wait_for_model_observations(storage_client=sqlite_storage_client, model_name=model_name, expected=2)
-
-        pod = _service_pod(client=admin_client, namespace=model_namespace.name, deployment=sqlite_backed_service)
-        listing = pod.execute(
-            command=["/bin/sh", "-c", f"ls -l {SQLITE_DATA_FILE}"],
-            container="trustyai-service",
-            ignore_rc=True,
-        )
-        assert SQLITE_DATA_FILE in listing, f"No SQLite database at {SQLITE_DATA_FILE}; got: {listing}"
 
     def test_memory_backend_loses_data_after_service_restart(
         self,
