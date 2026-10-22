@@ -12,7 +12,6 @@ from ocp_resources.namespace import Namespace
 from ocp_resources.secret import Secret
 
 from tests.ai_safety.trustyai_service.storage_backends.constants import (
-    ENV_SQLITE_PATH,
     POSTGRES_CREDENTIALS_SECRET_NAME,
     POSTGRES_DATABASE_KIND,
     POSTGRES_DB_NAME,
@@ -20,7 +19,6 @@ from tests.ai_safety.trustyai_service.storage_backends.constants import (
     POSTGRES_DB_USERNAME,
     POSTGRES_PORT,
     POSTGRES_SERVICE_NAME,
-    SQLITE_DATA_FILE,
     SQLITE_DATABASE_KIND,
 )
 from tests.ai_safety.trustyai_service.storage_backends.utils import (
@@ -207,7 +205,7 @@ def sqlite_backed_service(
     sqlite_credentials_secret: Secret,
     teardown_resources: bool,
 ) -> Generator[Deployment, Any, Any]:
-    """SQLite service created by a TrustyAIService CR, using the cluster-selected image."""
+    """SQLite service using the service's default in-memory database."""
     with create_database_backed_trustyai_service(
         client=admin_client,
         namespace=model_namespace.name,
@@ -215,7 +213,6 @@ def sqlite_backed_service(
         credentials_secret_name=sqlite_credentials_secret.name,
         teardown=teardown_resources,
     ) as (_, deployment):
-        patch_service_deployment(deployment=deployment, env={ENV_SQLITE_PATH: SQLITE_DATA_FILE})
         yield deployment
 
 
@@ -241,7 +238,7 @@ def sqlite_memory_backed_service(
     sqlite_credentials_secret: Secret,
     teardown_resources: bool,
 ) -> Generator[Deployment, Any, Any]:
-    """A second CR-created SQLite service selects the in-memory path for an edge case."""
+    """A second CR-created SQLite service uses the default in-memory database."""
     service_name = "trustyai-service-memory"
     with create_database_backed_trustyai_service(
         client=admin_client,
@@ -250,7 +247,6 @@ def sqlite_memory_backed_service(
         credentials_secret_name=sqlite_credentials_secret.name,
         teardown=teardown_resources,
     ) as (_, deployment):
-        patch_service_deployment(deployment=deployment, env={"STORAGE_DATABASE_PATH": ":memory:"})
         yield deployment
 
 

@@ -189,6 +189,48 @@ def create_database_backed_trustyai_service(
         yield service, deployment
 
 
+def update_database_tuning_config_map(config_map: ConfigMap, data: dict[str, str]) -> None:
+    """Replace tuning values after the CR is running; env changes need a pod restart."""
+    resource_dict = config_map.instance.to_dict()
+    resource_dict["data"] = data
+    config_map.update(resource_dict=resource_dict)
+
+
+def restart_trustyai_service_pod(
+    client: DynamicClient,
+    namespace: str,
+    deployment: Deployment,
+    wait_for_replicas: bool = True,
+    timeout: int = 600,
+) -> None:
+    """Replace the CR-managed pod so it reads the latest ConfigMap-backed environment."""
+    selector = deployment_pod_selector(deployment=deployment)
+    pods = list(Pod.get(client=client, namespace=namespace, label_selector=selector))
+    assert pods, f"No service pods found for Deployment {deployment.name}"
+    for pod in pods:
+        pod.delete(wait=True)
+    if wait_for_replicas:
+        deployment.wait_for_replicas(deployed=True, timeout=timeout)
+
+
+def wait_for_deployment_unready(
+    client: DynamicClient,
+    namespace: str,
+    name: str,
+    timeout: int = 300,
+) -> bool:
+    """Wait until the service Deployment has no ready replicas after a rejected setting."""
+
+    def _no_ready_replicas() -> bool:
+        deployment = Deployment(client=client, namespace=namespace, name=name, ensure_exists=True)
+        return not deployment.instance.status.get("readyReplicas")
+
+    for sample in TimeoutSampler(wait_timeout=timeout, sleep=5, func=_no_ready_replicas):
+        if sample:
+            return True
+    return False
+
+
 def patch_service_deployment(
     deployment: Deployment,
     env: dict[str, str] | None = None,
