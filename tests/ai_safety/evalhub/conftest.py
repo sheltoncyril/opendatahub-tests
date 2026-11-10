@@ -97,6 +97,7 @@ def _is_evalhub_crd_available(admin_client: DynamicClient) -> bool:
 def evalhub_cr(
     admin_client: DynamicClient,
     model_namespace: Namespace,
+    teardown_resources: bool,
 ) -> Generator[EvalHub, Any, Any]:
     """Create an EvalHub custom resource and wait for it to be ready."""
     with EvalHub(
@@ -105,6 +106,7 @@ def evalhub_cr(
         namespace=model_namespace.name,
         database={"type": "sqlite"},
         wait_for_resource=True,
+        teardown=teardown_resources,
     ) as evalhub:
         yield evalhub
 
